@@ -22,6 +22,7 @@ export interface Snapshot {
   seq: number;
   busy: boolean;
   model: Model;
+  messages?: unknown[];
 }
 
 interface EventEnvelope { seq: number; runId?: string; time?: number }

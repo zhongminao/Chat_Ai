@@ -68,9 +68,15 @@ npm run dev
 `CodeBlock.tsx` 提供语言标签、复制与代码框；`codeHighlight.ts` 按需加载并复用 Shiki 高亮器。
 支持 Python、Bash、JavaScript、TypeScript、JSX、TSX、JSON、YAML、HTML、CSS、SQL 和 Diff；
 未知语言按原文展示。扩展代码语言时在 `codeHighlight.ts` 添加加载器与标签即可。
+公式支持独立行的双美元符号块和显式 math 围栏，由 `content/MathBlock.tsx` 使用 KaTeX 排版。
+`content/mathBlocks.ts` 只注册块级数学语法，正文中的单美元符号和行内双美元符号保持文本。
+公式分隔符未闭合时展示源码，闭合后渲染；解析失败保留源码，成功时可展开和复制 LaTeX。
+数学 CSS 和字体随前端构建发布，不依赖 CDN。
 正在生成的助手回复通过 `content/useStreamingText.ts` 按文本到达速率柔和显现，
 原始消息状态保持完整，历史消息立即展示；代码和表格在自身区域横向滚动。
 事件订阅使用现有 `after`/`Last-Event-ID` 协议，切换会话会关闭旧连接；首屏从现有事件流回放历史。
+点击新会话时优先复用没有消息且未运行的空会话，找不到才创建；
+是否为空通过原有 conversation 接口确认，连续点击不会反复创建空记录。
 CLI、Controller、业务 API 和事件格式保持原有行为。
 
 模型 API 密钥由 provider 配置指定的环境变量提供。

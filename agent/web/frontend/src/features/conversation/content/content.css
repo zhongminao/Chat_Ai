@@ -42,3 +42,16 @@
   .code-block-toolbar { padding-left: 12px; }
   .markdown-content th, .markdown-content td { padding: 8px 10px; }
 }
+
+.markdown-content .math-block, .markdown-content .math-source-block { margin: 0 0 16px; min-width: 0; max-width: 100%; }
+.math-block { border: 1px solid var(--border); border-radius: 10px; background: #fbfcfe; }
+.math-formula { max-width: 100%; padding: 16px 18px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.math-formula .katex-display { margin: 0; }
+.math-formula .katex { font-size: 1.1em; }
+.math-formula:focus-visible { outline: 2px solid #557cd6; outline-offset: -2px; }
+.math-source-label { margin-bottom: 7px; color: var(--muted); font-size: 11px; }
+.math-source-details { border-top: 1px solid var(--border); }
+.math-source-details > summary { cursor: pointer; padding: 8px 14px; color: #858e9b; font-size: 11px; }
+.math-source-details > .code-block { margin: 0; border-width: 1px 0 0; border-radius: 0 0 10px 10px; }
+.math-source-block > .code-block { margin: 0; }
+@media (max-width: 640px) { .math-formula { padding: 14px 12px; } }

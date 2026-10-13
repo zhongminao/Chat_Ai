@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 import type { ModelGroup, SessionSummary } from '../../api/types';
 import { errorMessage } from '../conversation/useConversation';
 
@@ -56,8 +56,25 @@ export function useSessions() {
     if (creatingRef.current) return;
     creatingRef.current = true; setCreating(true); setError(null);
     try {
-      const session = await api.createSession();
-      setSelected(session.id);
+      const latest = await api.sessions();
+      const candidates = latest.sessions
+        .filter(session => session.title === '新会话')
+        .sort((a, b) => Number(b.id === selected) - Number(a.id === selected));
+      let id: string | undefined;
+      for (const candidate of candidates) {
+        try {
+          const snapshot = await api.snapshot(candidate.id);
+          if (!snapshot.busy && snapshot.messages?.length === 0) {
+            id = candidate.id;
+            break;
+          }
+        } catch (error) {
+          // A session deleted by another client is no longer a candidate.
+          if (!(error instanceof ApiError && error.status === 404)) throw error;
+        }
+      }
+      id ??= (await api.createSession()).id;
+      setSelected(id);
       await refresh();
     } catch (error) { setError(errorMessage(error)); }
     finally { creatingRef.current = false; setCreating(false); }
