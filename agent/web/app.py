@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from ..workflow.config import load
@@ -93,6 +94,8 @@ class Runtime:
 
 
 app = FastAPI(title="chat_ai")
+frontend_dist = Path(__file__).parent / "frontend" / "dist"
+app.mount("/assets", StaticFiles(directory=frontend_dist / "assets", check_dir=False), name="assets")
 runtimes: dict[str, Runtime] = {}
 runtime_lock = threading.Lock()
 session_store = SessionStore(load().event_log.parent)
@@ -114,7 +117,10 @@ def runtime(session_id: str) -> Runtime:
 
 @app.get("/")
 def index():
-    return FileResponse(Path(__file__).parent / "static" / "index.html")
+    index_path = frontend_dist / "index.html"
+    if not index_path.is_file():
+        raise HTTPException(503, "Frontend not built. Run npm ci && npm run build in agent/web/frontend.")
+    return FileResponse(index_path, headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/api/sessions")

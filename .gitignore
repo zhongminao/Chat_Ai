@@ -10,6 +10,8 @@ env/
 
 build/
 dist/
+node_modules/
+*.tsbuildinfo
 *.egg-info/
 
 .spill/

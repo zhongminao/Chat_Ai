@@ -39,6 +39,34 @@ python -m agent.cli.main --session <session_id>
 uvicorn agent.web.app:app --host 127.0.0.1 --port 8764
 ```
 
+Web 前端使用 React + TypeScript + Vite，源码位于 `agent/web/frontend/`。
+首次启动 Web 前先构建前端（需要 Node.js 20.19+ 或 22.12+）：
+
+```bash
+cd agent/web/frontend
+npm ci
+npm run build
+```
+
+生产访问 `http://127.0.0.1:8764`；FastAPI 提供 `dist/index.html`、`/assets` 和原有 `/api`。
+8764 是网页服务端口，模型仍由 provider 配置选择，可直接使用 DeepSeek API。
+
+前端开发时保持上述 FastAPI 服务运行，在另一个终端执行：
+
+```bash
+cd /home/zhong/mydisk/tools/chat_ai/agent/web/frontend
+npm run dev
+```
+
+访问 `http://127.0.0.1:5173`，Vite 将 `/api` 代理到 `127.0.0.1:8764`。
+前端检查：`npm test`；`npm run build` 包含 TypeScript 检查。
+
+前端按职责组织：`features/` 包含会话、对话和模型选择，`api/` 封装原有 HTTP/SSE，
+`state/` 统一处理历史事件回放与实时事件，`styles.css` 管理样式。
+消息内容暂时按纯文本展示，格式扩展入口是 `MessageContent.tsx`。
+事件订阅使用现有 `after`/`Last-Event-ID` 协议，切换会话会关闭旧连接；首屏从现有事件流回放历史。
+CLI、Controller、业务 API 和事件格式保持原有行为。
+
 模型 API 密钥由 provider 配置指定的环境变量提供。
 
 ## 状态与运行时

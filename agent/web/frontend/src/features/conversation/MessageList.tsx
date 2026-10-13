@@ -1,0 +1,38 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import type { Item } from '../../state/conversation';
+import { Icon } from '../../ui/Icon';
+import { MessageContent } from './MessageContent';
+import { ToolCallCard } from './ToolCallCard';
+
+export function MessageList({ items, busy, loading }: { items: Item[]; busy: boolean; loading: boolean }) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const follow = useRef(true);
+  const [away, setAway] = useState(false);
+  const bottom = () => {
+    const element = viewport.current;
+    if (element) { element.scrollTop = element.scrollHeight; follow.current = true; setAway(false); }
+  };
+  useLayoutEffect(() => { if (follow.current) bottom(); }, [items, busy]);
+
+  return <div className="conversation-area">
+    <div ref={viewport} className="message-viewport" role="log" aria-label="对话" aria-busy={loading}
+      onScroll={() => {
+        const element = viewport.current;
+        if (!element) return;
+        follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+        setAway(!follow.current);
+      }}>
+      {loading ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
+        : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
+          <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
+        : <div className="message-list">{items.map(item => item.kind === 'tool'
+          ? <ToolCallCard key={item.id} item={item} />
+          : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
+            <MessageContent content={item.content} />
+          </article>)}
+          {busy && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
+        </div>}
+    </div>
+    {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}
+  </div>;
+}

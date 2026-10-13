@@ -16,3 +16,6 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["agent*"]
+
+[tool.setuptools.package-data]
+"agent.web" = ["frontend/dist/index.html", "frontend/dist/assets/*"]
