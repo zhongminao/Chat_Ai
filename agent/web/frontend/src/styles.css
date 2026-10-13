@@ -27,7 +27,22 @@ button { -webkit-tap-highlight-color: transparent; }
 .new-session { display: flex; gap: 9px; align-items: center; height: 42px; padding: 0 12px; border: 1px solid #dfe2e8; background: white; border-radius: 10px; font-size: 14px; color: #35383d; }
 .new-session:hover:not(:disabled) { background: #f0f2f5; }
 .sidebar-label { margin: 28px 10px 10px; font-size: 11px; color: var(--muted); }
-.session-list { flex: 1; min-height: 0; overflow-y: auto; }
+/* Keep the scroll rail separate from titles and row actions. */
+.session-list {
+  flex: 1;
+  min-height: 0;
+  padding-right: 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #c7ccd5 transparent;
+  overscroll-behavior: contain;
+}
+.session-list::-webkit-scrollbar { width: 6px; }
+.session-list::-webkit-scrollbar-track { background: transparent; }
+.session-list::-webkit-scrollbar-thumb { background: #c7ccd5; border-radius: 6px; }
+.session-list::-webkit-scrollbar-thumb:hover { background: #aab2bf; }
 .session-row { display: flex; align-items: center; margin-bottom: 4px; border-radius: 9px; }
 .session-row:hover { background: #eceef2; }
 .session-row.active { background: #e8ebf0; }

@@ -1,11 +1,12 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Item } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
 import { ToolCallCard } from './ToolCallCard';
 
-export function MessageList({ items, busy, loading }: { items: Item[]; busy: boolean; loading: boolean }) {
+export function MessageList({ items, busy, loading, assistantId }: { items: Item[]; busy: boolean; loading: boolean; assistantId: string | null }) {
   const viewport = useRef<HTMLDivElement>(null);
+  const contentBox = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const [away, setAway] = useState(false);
   const bottom = () => {
@@ -13,6 +14,19 @@ export function MessageList({ items, busy, loading }: { items: Item[]; busy: boo
     if (element) { element.scrollTop = element.scrollHeight; follow.current = true; setAway(false); }
   };
   useLayoutEffect(() => { if (follow.current) bottom(); }, [items, busy]);
+
+  const hasItems = items.length > 0;
+  useEffect(() => {
+    const content = contentBox.current;
+    if (!content) return;
+    const observer = new ResizeObserver(() => {
+      const element = viewport.current;
+      if (element && follow.current) element.scrollTop = element.scrollHeight;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [loading, hasItems]);
+
 
   return <div className="conversation-area">
     <div ref={viewport} className="message-viewport" role="log" aria-label="对话" aria-busy={loading}
@@ -25,10 +39,10 @@ export function MessageList({ items, busy, loading }: { items: Item[]; busy: boo
       {loading ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
         : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
           <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
-        : <div className="message-list">{items.map(item => item.kind === 'tool'
+        : <div ref={contentBox} className="message-list">{items.map(item => item.kind === 'tool'
           ? <ToolCallCard key={item.id} item={item} />
           : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
-            <MessageContent content={item.content} />
+            <MessageContent content={item.content} role={item.role} streaming={busy && item.id === assistantId} />
           </article>)}
           {busy && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
         </div>}

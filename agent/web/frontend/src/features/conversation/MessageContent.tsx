@@ -1,5 +1,12 @@
-// Content rendering is deliberately plain text. Future formats can be added
-// here without coupling them to session management or the event transport.
-export function MessageContent({ content }: { content: string }) {
-  return <div className="message-content">{content}</div>;
-}
+import { memo } from 'react';
+import { MarkdownContent } from './content/MarkdownContent';
+import { useStreamingText } from './content/useStreamingText';
+
+export const MessageContent = memo(function MessageContent({ content, role, streaming = false }: {
+  content: string; role: 'user' | 'assistant'; streaming?: boolean;
+}) {
+  const shown = useStreamingText(content, role === 'assistant' && streaming);
+  return role === 'assistant'
+    ? <MarkdownContent content={shown} />
+    : <div className="message-content">{content}</div>;
+});

@@ -31,7 +31,7 @@ export function App() {
         {!sessions.selected && <button onClick={sessions.retry}>重试</button>}
         {sessions.error && sessions.selected && <button className="icon-button" aria-label="关闭错误提示" onClick={sessions.clearError}><Icon name="close" size={16} /></button>}
       </div>}
-      <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy}
+      <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
         loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error)} />
       <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={conversation.ready} connected={conversation.connected}
         busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}

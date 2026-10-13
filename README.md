@@ -63,7 +63,13 @@ npm run dev
 
 前端按职责组织：`features/` 包含会话、对话和模型选择，`api/` 封装原有 HTTP/SSE，
 `state/` 统一处理历史事件回放与实时事件，`styles.css` 管理样式。
-消息内容暂时按纯文本展示，格式扩展入口是 `MessageContent.tsx`。
+用户消息保留纯文本；助手回复通过 `features/conversation/content/MarkdownContent.tsx` 展示 Markdown。
+内容扩展入口是 `MessageContent.tsx`，正文、表格和代码样式位于 `content/content.css`。
+`CodeBlock.tsx` 提供语言标签、复制与代码框；`codeHighlight.ts` 按需加载并复用 Shiki 高亮器。
+支持 Python、Bash、JavaScript、TypeScript、JSX、TSX、JSON、YAML、HTML、CSS、SQL 和 Diff；
+未知语言按原文展示。扩展代码语言时在 `codeHighlight.ts` 添加加载器与标签即可。
+正在生成的助手回复通过 `content/useStreamingText.ts` 按文本到达速率柔和显现，
+原始消息状态保持完整，历史消息立即展示；代码和表格在自身区域横向滚动。
 事件订阅使用现有 `after`/`Last-Event-ID` 协议，切换会话会关闭旧连接；首屏从现有事件流回放历史。
 CLI、Controller、业务 API 和事件格式保持原有行为。
 
