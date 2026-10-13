@@ -1,0 +1,81 @@
+from collections.abc import Iterator
+from typing import Any, Protocol
+
+from ..core.cancellation import ExecutionContext, RunCancelled
+from .protocol import ModelChunk, ToolCallDelta
+
+
+class ProviderAdapter(Protocol):
+    def request_options(self) -> dict[str, Any]:
+        ...
+
+    def parse_chunk(self, raw: Any) -> ModelChunk:
+        ...
+
+
+def parse_chunk(raw: Any, reasoning_field: str = "reasoning_content") -> ModelChunk:
+    usage = None
+    if getattr(raw, "usage", None):
+        usage = raw.usage.model_dump()
+
+    if not raw.choices:
+        return ModelChunk(usage=usage)
+
+    choice = raw.choices[0]
+    delta = choice.delta
+    tool_deltas = []
+    for item in getattr(delta, "tool_calls", None) or []:
+        function = getattr(item, "function", None)
+        tool_deltas.append(
+            ToolCallDelta(
+                index=getattr(item, "index", 0),
+                id=getattr(item, "id", "") or "",
+                name=getattr(function, "name", "") or "",
+                arguments=getattr(function, "arguments", "") or "",
+            )
+        )
+
+    return ModelChunk(
+        content=getattr(delta, "content", None) or "",
+        reasoning=getattr(delta, reasoning_field, None) or "",
+        tool_deltas=tuple(tool_deltas),
+        finish_reason=choice.finish_reason,
+        usage=usage,
+    )
+
+
+def stream(
+    client: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+    provider: ProviderAdapter,
+    context: ExecutionContext | None = None,
+) -> Iterator[ModelChunk]:
+    options = {
+        "model": model,
+        "messages": messages,
+        "tools": tools,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    options.update(provider.request_options())
+
+    response = client.chat.completions.create(**options)
+    remove_callback = (
+        context.cancellation.add_callback(
+            lambda: getattr(response, "close", lambda: None)()
+        )
+        if context else lambda: None
+    )
+    try:
+        for raw in response:
+            if context:
+                context.cancellation.raise_if_cancelled()
+            yield provider.parse_chunk(raw)
+    except RunCancelled:
+        getattr(response, "close", lambda: None)()
+        raise
+    finally:
+        remove_callback()
+        getattr(response, "close", lambda: None)()

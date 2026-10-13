@@ -1,0 +1,55 @@
+# API 供应商与模型目录。
+default_provider: gpt
+
+providers:
+  gpt:
+    display_name: GPT (passion8 网关)
+    api_key_env: GPT_API_KEY
+    base_url: https://passion8.cc/v1
+    thinking: disabled
+    default_model: gpt-5.5
+    models:
+      - id: gpt-5.5
+        name: GPT-5.5
+      - id: gpt-5.6-terra
+        name: GPT-5.6 Terra
+      - id: gpt-5.6-sol
+        name: GPT-5.6 Sol
+      - id: gpt-6-astra
+        name: GPT-6 Astra
+
+  deepseek:
+    display_name: DeepSeek
+    api_key_env: DEEPSEEK_API_KEY
+    base_url: https://api.deepseek.com
+    thinking: disabled
+    default_model: deepseek-flash
+    models:
+      - id: deepseek-flash
+        name: DeepSeek Flash
+
+  qwen:
+    display_name: Qwen
+    api_key_env: DASHSCOPE_API_KEY
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    thinking: disabled
+    default_model: qwen-plus
+    models:
+      - id: qwen-plus
+        name: Qwen Plus
+        enabled: false
+
+  local-qwen3p5-9b:
+    display_name: 本地 Qwen3.5-9B (vLLM · FP8)
+    api_key_env: LOCAL_QWEN_API_KEY
+    api_key_default: local-qwen3p5-9b
+    base_url: http://127.0.0.1:8002/v1
+    thinking: disabled
+    default_model: local-qwen3p5-9b
+    models:
+      - id: local-qwen3p5-9b
+        name: Qwen3.5-9B 本地
+        pricing:
+          input: 0.0
+          output: 0.0
+          cached_input: 0.0

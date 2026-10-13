@@ -1,0 +1,13 @@
+# 项目级路径配置。
+workspace: ./workspace
+event_log: ./storage/events.jsonl
+providers_file: ./agent/model/providers/providers.yaml
+
+spill:
+  enabled: true
+  max_inline_chars: 12000
+  preview_chars: 4000
+  directory: .spill
+
+mcp:
+  search: http://127.0.0.1:8766/mcp

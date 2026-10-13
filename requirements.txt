@@ -1,0 +1,6 @@
+openai>=1.0
+PyYAML>=6.0
+prompt-toolkit>=3.0
+fastapi>=0.100
+uvicorn>=0.30
+mcp>=1.0

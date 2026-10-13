@@ -1,0 +1,203 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.0 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.3.0">
+  <diagram id="module-io" name="模块端口与回环">
+    <mxGraphModel dx="1272" dy="769" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cli" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#475569;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="CLI&#xa;agent/cli/main.py" vertex="1">
+          <mxGeometry height="190" width="250" x="292" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_out" parent="cli" style="ellipse;fillColor=#e0e7ff;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.42105263157894735" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cli_out_label" parent="cli" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · prompt: str" vertex="1">
+          <mxGeometry height="36" width="180" x="55" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_in" parent="cli" style="ellipse;fillColor=#e0e7ff;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.7368421052631579" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cli_in_label" parent="cli" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · text: str（实时显示）" vertex="1">
+          <mxGeometry height="36" width="180" x="55" y="122" as="geometry" />
+        </mxCell>
+        <mxCell id="core" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#475569;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="Controller&#xa;agent/core/controller.py" vertex="1">
+          <mxGeometry height="400" width="460" x="626" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.25" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="user_label" parent="core" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · prompt: str" vertex="1">
+          <mxGeometry height="36" width="180" x="14" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="text" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.4" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="text_label" parent="core" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · output(text)" vertex="1">
+          <mxGeometry height="36" width="180" x="14" y="142" as="geometry" />
+        </mxCell>
+        <mxCell id="req" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.25" as="geometry">
+            <mxPoint x="-6" y="18" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="req_label" parent="core" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · client / model&#xa;messages / tools / provider" vertex="1">
+          <mxGeometry height="36" width="180" x="265" y="106" as="geometry" />
+        </mxCell>
+        <mxCell id="chunks" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.425" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="chunks_label" parent="core" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · Iterator[ModelChunk]" vertex="1">
+          <mxGeometry height="36" width="180" x="265" y="152" as="geometry" />
+        </mxCell>
+        <mxCell id="call" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.65" as="geometry">
+            <mxPoint x="-6" y="30" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="call_label" parent="core" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · workspace / name&#xa;arguments: dict" vertex="1">
+          <mxGeometry height="36" width="180" x="265" y="278" as="geometry" />
+        </mxCell>
+        <mxCell id="result" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.825" as="geometry">
+            <mxPoint x="-6" y="-6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="result_label" parent="core" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · result: str" vertex="1">
+          <mxGeometry height="36" width="180" x="265" y="312" as="geometry" />
+        </mxCell>
+        <mxCell id="event" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.825" as="geometry">
+            <mxPoint x="-6" y="-32" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="event_label" parent="core" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · event_type + data" vertex="1">
+          <mxGeometry height="36" width="180" x="14" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="core_model_config" parent="core" style="ellipse;fillColor=#dcfce7;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.08" as="geometry">
+            <mxPoint x="68" y="-38" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core_model_config_label" parent="core" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;fontColor=#334155;" value="IN · model / provider / thinking" vertex="1">
+          <mxGeometry height="36" width="210" x="14" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="model" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#475569;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="模型流适配器&#xa;model/openai_compatible.py + providers" vertex="1">
+          <mxGeometry height="160" width="330" x="1176" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="model_in" parent="model" style="ellipse;fillColor=#ffedd5;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.4166666666666667" as="geometry">
+            <mxPoint x="-6" y="22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_in_label" parent="model" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · stream(...) 参数" vertex="1">
+          <mxGeometry height="24" width="165" x="12.833333333333332" y="80.45614035087718" as="geometry" />
+        </mxCell>
+        <mxCell id="model_out" parent="model" style="ellipse;fillColor=#ffedd5;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.7083333333333334" as="geometry">
+            <mxPoint x="-6" y="21" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_out_label" parent="model" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · ModelChunk 流" vertex="1">
+          <mxGeometry height="24" width="165" x="12.833333333333332" y="127.54385964912278" as="geometry" />
+        </mxCell>
+        <mxCell id="tool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce7f3;strokeColor=#475569;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="工具执行器&#xa;agent/tools/executor.py" vertex="1">
+          <mxGeometry height="170" width="260" x="1256" y="665" as="geometry" />
+        </mxCell>
+        <mxCell id="tool_in" parent="tool" style="ellipse;fillColor=#fce7f3;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.38095238095238093" as="geometry">
+            <mxPoint x="-6" y="21" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tool_in_label" parent="tool" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · execute(root, name, arguments)" vertex="1">
+          <mxGeometry height="29.14" width="214.02482758620687" x="10.113103448275861" y="77.19" as="geometry" />
+        </mxCell>
+        <mxCell id="tool_out" parent="tool" style="ellipse;fillColor=#fce7f3;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.7142857142857143" as="geometry">
+            <mxPoint x="-5" y="-4" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tool_out_label" parent="tool" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="OUT · 结果 / [tool error]" vertex="1">
+          <mxGeometry height="29.14285714285714" width="130" x="11.007662835249041" y="108.85714285714285" as="geometry" />
+        </mxCell>
+        <mxCell id="log" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#475569;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="EventLog&#xa;agent/storage/event_log.py" vertex="1">
+          <mxGeometry height="111" width="270" x="220" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="log_in" parent="log" style="ellipse;fillColor=#f1f5f9;strokeColor=#334155;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.42105263157894735" as="geometry">
+            <mxPoint x="-6" y="33" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="log_in_label" parent="log" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;fontStyle=0;fontSize=12;fontColor=#334155;" value="IN · append(type, **data)" vertex="1">
+          <mxGeometry height="21.031578947368413" width="147.27272727272725" x="110.45454545454545" y="72.00105263157894" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="cli_out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#4f46e5;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;" target="user" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="text" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#4f46e5;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;" target="cli_in" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="req" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#ea580c;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;" target="model_in" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="model_out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#ea580c;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;" target="chunks" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="call" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#db2777;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="tool_in" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250" y="756" />
+            </Array>
+            <mxPoint x="1091.9999999999523" y="744" as="sourcePoint" />
+            <mxPoint x="1249.9999999999977" y="769.7619047619048" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="tool_out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#db2777;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;" target="result" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1226" y="790" />
+              <mxPoint x="1226" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;fontSize=12;labelBackgroundColor=#ffffff;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="log_in" value="事件追加">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+            <mxPoint x="619.999999999972" y="765" as="sourcePoint" />
+            <mxPoint x="556" y="767" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_config" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;strokeWidth=2;verticalAlign=top;spacingTop=16;fontStyle=1;fontSize=16;" value="模型配置与适配信息&#xa;agent/model/" vertex="1">
+          <mxGeometry height="140" width="210" x="730" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="model_config_in" parent="model_config" style="ellipse;fillColor=#ede9fe;strokeColor=#5b21b6;strokeWidth=2;" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" y="0.32" as="geometry">
+            <mxPoint x="-6" y="26" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_config_in_label" parent="model_config" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;fontColor=#334155;" value="IN · config.yaml + providers.yaml" vertex="1">
+          <mxGeometry height="26.53" width="200.12" x="9.88" y="63.37" as="geometry" />
+        </mxCell>
+        <mxCell id="model_config_out" parent="model_config" style="ellipse;fillColor=#ede9fe;strokeColor=#5b21b6;strokeWidth=2;" vertex="1">
+          <mxGeometry height="12" relative="1" width="12" x="1" y="0.68" as="geometry">
+            <mxPoint x="-215" y="12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model_config_out_label" parent="model_config" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;fontColor=#334155;" value="OUT · model / provider / thinking&lt;br&gt;request_options() + parse_chunk()" vertex="1">
+          <mxGeometry height="35.37" width="192.99" x="7.01" y="95.79" as="geometry" />
+        </mxCell>
+        <mxCell id="bD3Egg7hRIzxfNWFENIg-4" edge="1" parent="1" source="model_config_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="core_model_config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
