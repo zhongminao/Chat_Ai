@@ -106,7 +106,10 @@ class SessionRuntimes:
                        "Use watch(cursor=<last watch cursor>, timeout=60) when waiting for changes. "
                        "A completed resource contains result_path; read it with read_file when useful. "
                        "Decide whether results are sufficient, whether to keep working, or wait again. "
-                       "Only submit when ready to deliver the final report; ordinary conversation needs no submit. "
+                       "\n普通问答、澄清和进度说明直接回复，无需调用 submit。"
+                       "完成复杂任务后，若需要收起较长的分析和工具执行过程，再调用 submit 提交整理后的最终结论。"
+                       "网页会将本轮此前的过程默认折叠，只展示 submit 内容。"
+                       "submit 会结束本轮执行，应单独调用，内容须完整、可独立阅读，不必重复过程。\n"
                        "Reuse exact Markdown image URLs from reports to display their images, and use the "
                        "local image_file paths with read_image if you need to inspect them.")
         tools = ToolRouter(config.workspace, McpRuntime(config.mcp) if config.mcp else None,

@@ -28,7 +28,10 @@ export function App() {
     <main className="workspace">
       <header className="workspace-header">
         <button className="icon-button mobile-only" aria-label="打开会话列表" onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
-        <AgentTabs sessions={sessions.sessions} selected={sessions.selected} onSelect={sessions.select} />
+        <AgentTabs sessions={sessions.sessions} selected={sessions.selected} onSelect={sessions.select}>
+          <WatchPanel sessionId={current?.parent_session_id ?? sessions.selected}
+            onChange={() => { void sessions.refresh(); }} />
+        </AgentTabs>
       </header>
       {error && <div className="error-banner" role="alert"><span>{error}</span>
         {!sessions.selected && <button onClick={sessions.retry}>重试</button>}
@@ -37,9 +40,6 @@ export function App() {
       <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
         sessionId={sessions.selected} images={conversation.images} editingImage={Boolean(conversation.pending)} onRenameImage={conversation.renameImage}
         loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error)} />
-      <WatchPanel sessionId={readOnly ? null : sessions.selected}
-        disabled={!conversation.ready || !conversation.connected || conversation.busy || Boolean(conversation.pending)}
-        onSend={conversation.send} onChange={() => { void sessions.refresh(); }} />
       <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={conversation.ready} connected={conversation.connected}
         status={status} readOnly={readOnly}
         busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}

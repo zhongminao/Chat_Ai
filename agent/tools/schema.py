@@ -23,7 +23,7 @@ WATCH_SCHEMA = {"type": "function", "function": {
 
 SUBMIT_SCHEMA = {"type": "function", "function": {
     "name": "submit",
-    "description": "Submit the final report and end this execution. Call alone, after all work is done. Required for a child task; optional for a main agent's formal deliverable. Ordinary main-agent conversation does not need submit.",
+    "description": "Submit the complete Markdown final report and end this execution. Call alone. Main agents follow their system instructions to decide when to use it; child agents must call it exactly once on completion.",
     "parameters": {"type": "object", "properties": {
         "content": {"type": "string", "description": "The complete final report in Markdown. Include exact image URLs from show_image or child reports when displaying images."}},
         "required": ["content"], "additionalProperties": False}}}
