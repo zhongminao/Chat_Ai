@@ -18,7 +18,7 @@ mcp:
   search: http://127.0.0.1:8766/mcp
 
 
-# 主 Agent 和子 Agent 共用；{workspace} 替换为实际工作区绝对路径。
+# 主 Agent 默认提示词；子 Agent 使用 delegate 传入的提示词；{workspace} 替换为实际工作区绝对路径。
 system_prompt: |
   You are a small coding assistant. Use the provided tools when needed.
   Keep answers concise. After creating an image file requested by the user,

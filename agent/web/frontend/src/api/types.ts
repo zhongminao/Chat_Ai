@@ -4,6 +4,9 @@ export interface SessionSummary {
   createdAt: string | null;
   updatedAt: number;
   empty?: boolean;
+  parent_session_id?: string | null;
+  busy?: boolean;
+  status?: 'idle' | 'running' | 'submitted' | 'failed' | 'cancelled';
 }
 
 export interface Model {
@@ -23,6 +26,7 @@ export interface Snapshot {
   seq: number;
   busy: boolean;
   model: Model;
+  parent_session_id?: string | null;
   messages?: unknown[];
   images?: ImageAsset[];
 }
@@ -40,16 +44,19 @@ export interface ImageAsset {
 
 interface EventEnvelope { seq: number; runId?: string; time?: number }
 export type AgentEvent = EventEnvelope & (
-  | { type: 'turn.started'; prompt: string; images?: ImageAsset[] }
+  | { type: 'turn.started'; prompt: string; source?: 'agent_report'; images?: ImageAsset[] }
   | { type: 'image.renamed'; image: ImageAsset }
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
   | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
+  | { type: 'agent.created'; session_id: string }
+  | { type: 'report.submitted'; content: string }
+  | { type: 'report.received'; session_id: string; content: string; status: 'submitted' | 'failed' | 'cancelled' }
   | { type: 'turn.completed'; answer?: string }
   | { type: 'turn.cancelled'; answer?: string }
   | { type: 'turn.failed'; reason: string }
   | { type: 'error'; message: string; reason?: string }
-  | { type: 'model.completed' | 'reasoning.delta' | 'tool_call.delta' | 'agent.started' | 'agent.completed' }
+  | { type: 'model.completed' | 'reasoning.delta' | 'tool_call.delta' }
 );

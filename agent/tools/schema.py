@@ -5,11 +5,19 @@ from typing import Any
 
 DELEGATE_SCHEMA = {"type": "function", "function": {
     "name": "delegate",
-    "description": "Delegate a focused task to a child agent.",
+    "description": "Start an independent child session asynchronously. Returns its session_id immediately. Its single final report will be delivered automatically; do not poll or wait in bash. The child gets only these prompts, its own history and the shared workspace. Stopping your reply does not stop it.",
     "parameters": {"type": "object", "properties": {
-        "agent": {"type": "string", "description": "Child agent name."},
-        "task": {"type": "string", "description": "Focused task for the child agent."}},
-        "required": ["agent", "task"]}}}
+        "system_prompt": {"type": "string", "description": "Child role and task-specific instructions."},
+        "user_prompt": {"type": "string", "description": "Complete task and all necessary context, including exact paths."}},
+        "required": ["system_prompt", "user_prompt"], "additionalProperties": False}}}
+
+
+SUBMIT_SCHEMA = {"type": "function", "function": {
+    "name": "submit",
+    "description": "Submit the final report and end this execution. Call alone, after all work is done. Required for a child task; optional for a main agent's formal deliverable. Ordinary main-agent conversation does not need submit.",
+    "parameters": {"type": "object", "properties": {
+        "content": {"type": "string", "description": "The complete final report in Markdown."}},
+        "required": ["content"], "additionalProperties": False}}}
 
 
 TOOL_SCHEMAS = [

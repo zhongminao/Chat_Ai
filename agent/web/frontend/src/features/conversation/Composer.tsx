@@ -7,6 +7,7 @@ import { ImageAttachments } from '../images/ImageAttachments';
 
 interface Props {
   ready: boolean; connected: boolean; busy: boolean;
+  status: string; readOnly: boolean;
   pending: 'send' | 'stop' | 'model' | 'image' | null;
   model: Model | null; models: ModelGroup[];
   sessionId: string | null; images: ImageAsset[];
@@ -27,8 +28,8 @@ export function Composer(props: Props) {
     const element = textarea.current;
     if (element) { element.style.height = 'auto'; element.style.height = `${Math.min(element.scrollHeight, 220)}px`; }
   }, [text]);
-  const canEditImages = props.ready && props.connected && !props.busy && !props.pending && !draft.uploading;
-  const disabled = !props.ready || !props.connected || draft.uploading ||
+  const canEditImages = !props.readOnly && props.ready && props.connected && !props.busy && !props.pending && !draft.uploading;
+  const disabled = (props.readOnly && !props.busy) || !props.ready || !props.connected || draft.uploading ||
     Boolean(props.pending && props.pending !== 'image') || (!props.busy && !text.trim() && !draft.ids.length);
   async function submit() {
     if (disabled) return;
@@ -54,12 +55,12 @@ export function Composer(props: Props) {
         disabled={!canEditImages} onRename={props.onRenameImage} onRemove={id => draft.remove([id])} />}
       {draft.uploading && <div className="image-draft-status" role="status">正在上传图片…</div>}
       {draft.error && <div className="image-draft-status image-draft-error" role="alert">{draft.error}</div>}
-      <textarea ref={textarea} rows={2} aria-label="消息" placeholder="输入消息…" value={text}
+      <textarea ref={textarea} rows={2} aria-label="消息" placeholder={props.readOnly ? '子 agent 会话仅供查看' : '输入消息…'} value={text}
         onPaste={event => {
           const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
           if (files.length && canEditImages) { event.preventDefault(); void draft.upload(files); }
         }}
-        disabled={!props.ready} onChange={event => setText(event.target.value)} onKeyDown={event => {
+        disabled={!props.ready || props.readOnly} onChange={event => setText(event.target.value)} onKeyDown={event => {
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
             event.preventDefault(); void submit();
           }
@@ -72,7 +73,7 @@ export function Composer(props: Props) {
         <button type="button" className="icon-button image-upload-button" aria-label="添加图片" title="选择图片，也可粘贴或拖入图片"
           disabled={!canEditImages || draft.ids.length >= 8} onClick={() => fileInput.current?.click()}><Icon name="image" /></button>
         <ModelPicker groups={props.models} model={props.model}
-        disabled={!props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
+        disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
         </div>
         <button type="submit" className={`send-button ${props.busy ? 'stop-button' : ''}`} disabled={disabled}
           aria-label={props.busy ? '停止执行' : '发送消息'} title={props.busy ? '停止执行' : '发送消息'}>
@@ -80,6 +81,9 @@ export function Composer(props: Props) {
         </button>
       </div>
     </form>
-    <div className="composer-hint">{props.pending === 'stop' ? '正在请求停止…' : 'Enter 发送 · Shift + Enter 换行'}</div>
+    <div className="composer-hint connection-status" role="status">
+      <span className={`connection-dot ${props.connected ? 'connected' : ''}`} />
+      {props.pending === 'stop' ? '正在请求停止…' : props.status}
+    </div>
   </div>;
 }

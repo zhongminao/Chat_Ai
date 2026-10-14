@@ -7,7 +7,7 @@
 ## 当前结构
 
 ```text
-agent/core/       Controller、状态转移和工具调度
+agent/core/       AgentRuntime、状态转移和工具调度
 agent/model/      模型协议、provider、模型目录、图文消息组装
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与 adapter
@@ -202,7 +202,7 @@ CLI 只打印图片名称、原文件路径和保存路径，不依赖图形界�
 图片复制到当前 session 的 attachments/；覆盖或移除原绘图文件不影响已发布图片。
 `tool.completed` 的 `result` 保持文本，新增可选的 `images` 元数据用于界面显示和历史回放。
 传给模型的工具消息仍为文本；图片不会自动回传给视觉模型。旧字符串工具结果和旧事件继续兼容。
-子 agent 发布的图片随父级 delegate 工具结果返回同一个会话。
+子 agent 的图片保存在它自己的 session，可从顶部子 agent 导航查看。父级只接收 submit 的最终报告；报告可附上图片的完整路径。
 
 ```text
 agent/tools/images.py                       show_image，共用图片发布逻辑
@@ -355,4 +355,24 @@ SearXNG 是搜索后端；`web_mcp.py` 是 MCP 适配层。`fetch_url` 不执行
 → 返回统一结果
 ```
 
-先保持检索模块独立，不把索引、向量库和排序逻辑放进 `Controller`。具体数据源、向量模型和存储方式在实现前单独确定。
+先保持检索模块独立，不把索引、向量库和排序逻辑放进 `AgentRuntime`。具体数据源、向量模型和存储方式在实现前单独确定。
+
+
+## 独立子 agent 与最终报告
+
+`AgentRuntime` 执行一次模型/工具循环；`SessionRuntime` 管理 session 的串行队列、停止、报告和父子通知。
+Web 与 CLI 共用这两层。每个 session 有自己的运行线程、历史、图片和取消信号，不同 session 可并发执行。
+
+主 agent 调用 `delegate(system_prompt, user_prompt)`，立即取得子 session ID。子 agent 使用这两个提示词、创建时主 agent 的模型和共享工作区，不复制主对话或图片。子 agent 不注册 delegate，必须调用一次 `submit(content)` 提交完整报告；普通文字结束不算成功提交。
+
+主 agent 也有 submit，用于可选的正式报告。submit 结束本次执行，不关闭主 session。成功提交后的同批其他工具调用会被跳过。
+网页在 submit 后将最近一条用户消息到本次提交之间的执行过程折叠，折叠栏显示用时（包含等待子任务的时间），最终 Markdown 正文始终显示；展开可查看过程文字、工具调用和图片。子 agent 回传报告只供主 agent 读取，不在主对话渲染。子 session 供查看和停止，后续任务应创建新的子 session。
+
+子任务结束后，SessionRuntime 将唯一报告或失败状态送入父 session 的队列；父 session 当前回复结束后再处理。
+内部报告采用独立事件/消息类型，模型适配器将其转换为带来源标识的观察消息，不冒充真实用户，也不补写已完成的 delegate 工具回执。
+父 agent 空闲时自动处理报告；主动停止后只接收保存，直到你发送下一条消息才继续执行。关闭网页、切换会话、结束回复或停止父回复都不会取消子任务。
+
+顶部可切换主/子 agent，连接状态移至输入框下方。删除主 session 前需要先删除它的子 session，运行中的 session 不能删除。
+任务由 chat_ai 服务进程维护；重启服务会中断尚未完成的任务，不会自动重跑。父 session 再次载入时补收已提交报告或中断状态，按子 session ID 去重。
+CLI 一次性请求会等待子任务和报告处理完毕再退出。不要同时用 CLI 与 Web 写入同一个 session。
+模型服务自身的并发限制仍然生效；共用同一个 Moldflow study 的仿真仍应串行执行。

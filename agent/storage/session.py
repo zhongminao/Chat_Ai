@@ -23,13 +23,13 @@ class SessionStore:
         self.root = (root / "sessions").resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def create(self, on_event: Callable[[dict[str, Any]], None] | None = None) -> Session:
+    def create(self, on_event: Callable[[dict[str, Any]], None] | None = None, **metadata: Any) -> Session:
         session_id = uuid.uuid4().hex
         directory = self.root / session_id
         directory.mkdir(parents=True, exist_ok=True)
         (directory / "session.json").write_text(
             json.dumps(
-                {"id": session_id, "createdAt": datetime.now(timezone.utc).isoformat()},
+                {**metadata, "id": session_id, "createdAt": datetime.now(timezone.utc).isoformat()},
                 ensure_ascii=False,
                 indent=2,
             ) + "\n",
@@ -46,6 +46,13 @@ class SessionStore:
     def open(self, session_id: str, on_event: Callable[[dict[str, Any]], None] | None = None) -> Session:
         directory = self.path(session_id)
         return Session(session_id, directory, EventLog(directory / "events.jsonl", on_event))
+
+    def metadata(self, session_id: str) -> dict:
+        return json.loads((self.path(session_id) / "session.json").read_text(encoding="utf-8"))
+
+    def children(self, session_id: str) -> list[str]:
+        return [path.parent.name for path in self.root.glob("*/session.json")
+                if json.loads(path.read_text(encoding="utf-8")).get("parent_session_id") == session_id]
 
     def delete(self, session_id: str) -> None:
         shutil.rmtree(self.path(session_id))

@@ -32,8 +32,8 @@ export function SessionSidebar(props: Props) {
       <nav className="session-list" aria-label="历史会话">
         {props.loading && <p className="muted sidebar-empty">加载中…</p>}
         {!props.loading && !props.sessions.length && <p className="muted sidebar-empty">暂无历史会话</p>}
-        {props.sessions.map(session => <SessionRow key={session.id} session={session}
-          selected={session.id === props.selected} busy={props.busy} deleting={props.deleting} renaming={props.renaming}
+        {props.sessions.filter(session => !session.parent_session_id).map(session => <SessionRow key={session.id} session={session}
+          selected={session.id === props.selected || session.id === props.sessions.find(item => item.id === props.selected)?.parent_session_id} busy={props.busy} deleting={props.deleting} renaming={props.renaming}
           onSelect={props.onSelect} onDelete={props.onDelete} onRename={props.onRename} />)}
       </nav>
       <div className="sidebar-footer"><span className="brand-mark" aria-hidden="true">a</span><span>Agent workspace</span></div>

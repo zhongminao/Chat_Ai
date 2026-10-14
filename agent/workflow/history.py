@@ -2,7 +2,7 @@ import json
 
 from .state import AgentState
 from ..tools.schema import ToolCallAssembler
-from ..model.messages import build_user_message, build_tool_message
+from ..model.messages import build_user_message, build_tool_message, build_report_message
 
 
 class HistoryNode:
@@ -41,8 +41,12 @@ class HistoryNode:
                         "role": "assistant",
                         "content": "[assistant system response] Previous request did not finish.",
                     })
-                images = [image["id"] for image in event.get("images", [])]
-                messages.append(build_user_message(event["prompt"], images))
+                if event.get("source") != "agent_report":
+                    images = [image["id"] for image in event.get("images", [])]
+                    messages.append(build_user_message(event["prompt"], images))
+            elif kind == "report.received":
+                close_pending()
+                messages.append(build_report_message(event))
             elif kind == "model.started":
                 text = []
                 assembler = ToolCallAssembler()

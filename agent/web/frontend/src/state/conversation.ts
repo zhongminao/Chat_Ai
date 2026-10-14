@@ -2,7 +2,9 @@ import type { AgentEvent, ImageAsset, Model, Snapshot } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[] };
 export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' };
-export type Item = TextItem | ToolItem;
+export type ExecutionItem = TextItem | ToolItem;
+export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
+export type Item = ExecutionItem | ReportItem;
 export interface Conversation {
   items: Item[];
   images: ImageAsset[];
@@ -13,11 +15,12 @@ export interface Conversation {
   model: Model | null;
   error: string | null;
   snapshot: Snapshot | null;
+  execution: { startIndex: number; startedAt?: number } | null;
 }
 
 export const emptyConversation = (): Conversation => ({
   items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
-  model: null, error: null, snapshot: null,
+  model: null, error: null, snapshot: null, execution: null,
 });
 
 export type Action =
@@ -34,7 +37,13 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
   let next = { ...state, seq: event.seq };
   switch (event.type) {
     case 'turn.started':
+      if (event.source === 'agent_report') {
+        next.busy = true; next.assistantId = null; next.error = null;
+        next.execution = state.execution ?? { startIndex: state.items.length, startedAt: event.time };
+        break;
+      }
       next = { ...next, busy: true, assistantId: null, error: null,
+        execution: { startIndex: state.items.length + 1, startedAt: event.time },
         items: [...state.items, { id: `user:${event.seq}`, kind: 'text', role: 'user', content: event.prompt,
           images: event.images?.map(image => image.id) }] };
       break;
@@ -52,10 +61,12 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       break;
     }
     case 'tool.requested':
+      if (event.tool === 'submit') break;
       next.items = [...state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
         arguments: event.arguments, status: 'running' }];
       break;
     case 'tool.completed': {
+      if (event.tool === 'submit') break;
       const id = `tool:${event.callId}`;
       const exists = state.items.some(item => item.id === id);
       const status = String(event.result).startsWith('[tool cancelled]') ? 'interrupted' : 'completed';
@@ -65,17 +76,33 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
         : [...state.items, { id, kind: 'tool', name: event.tool, result: event.result, images, status }];
       break;
     }
+    case 'report.submitted': {
+      const startIndex = state.execution?.startIndex ?? state.items.length;
+      const startedAt = state.execution?.startedAt;
+      next.items = [...state.items.slice(0, startIndex), {
+        id: `report:${event.seq}`, kind: 'report', content: event.content,
+        process: state.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind !== 'report'),
+        durationSeconds: startedAt !== undefined && event.time !== undefined
+          ? Math.max(0, Math.floor((event.time - startedAt) / 1e9)) : null,
+      }];
+      next.execution = null;
+      next.assistantId = null;
+      break;
+    }
+    case 'report.received':
+      // The parent model consumes child reports; they are not conversation output.
+      break;
     case 'model.changed': next.model = event.new; break;
     case 'turn.failed':
     case 'error':
       next.error = event.type === 'turn.failed' ? event.reason : event.reason ?? event.message;
       // Failed and cancelled runs cannot leave a tool card marked as running.
       next.items = state.items.map(item => item.kind === 'tool' && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
-      next.busy = false; next.assistantId = null;
+      next.busy = false; next.assistantId = null; next.execution = null;
       break;
     case 'turn.cancelled':
       next.items = state.items.map(item => item.kind === 'tool' && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
-      next.busy = false; next.assistantId = null;
+      next.busy = false; next.assistantId = null; next.execution = null;
       break;
     case 'turn.completed': next.busy = false; next.assistantId = null; break;
   }

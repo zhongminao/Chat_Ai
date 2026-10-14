@@ -20,10 +20,10 @@ from ..storage.event_log import EventLog
 from ..tools.router import ToolRouter
 from ..tools.result import ToolResult, normalize_result
 from ..tools.spill import handle as spill_output
-from ..tools.schema import DELEGATE_SCHEMA, TOOL_SCHEMAS, ToolCallAssembler
+from ..tools.schema import SUBMIT_SCHEMA, ToolCallAssembler
 
 
-class Controller:
+class AgentRuntime:
     def __init__(
         self,
         client: Any,
@@ -39,7 +39,7 @@ class Controller:
         system_prompt: str,
         output: Callable[[str], None] | None = None,
         tools: ToolRouter | None = None,
-        enable_delegate: bool = True,
+        on_submit: Callable[[str, str], None] | None = None,
         control: ControlState | None = None,
         images: ImageStore | None = None,
         on_tool_result: Callable[[ToolResult], None] | None = None,
@@ -53,9 +53,10 @@ class Controller:
         self.max_rounds = max_rounds
         self.system_prompt = system_prompt
         self.tools = tools or ToolRouter(workspace)
-        if enable_delegate and self.tools.delegate is None:
-            self.tools.delegate = self._delegate
-            self.tools.schemas.append(DELEGATE_SCHEMA)
+        self.on_submit = on_submit
+        self.submitted_report: str | None = None
+        self.tools.submit = self._submit
+        self.tools.schemas.append(SUBMIT_SCHEMA)
         self.state: AgentState = {
             "model": dict(model),
             "messages": [],
@@ -76,41 +77,13 @@ class Controller:
             {"role": "system", "content": system_prompt.replace("{workspace}", str(workspace.resolve()))},
         ]
 
-    def _delegate(
-        self, agent: str, task: str, context: ExecutionContext | None = None
-    ) -> str | ToolResult:
-        if not agent.strip() or not task.strip():
-            raise ValueError("agent and task are required")
-        if agent == "main":
-            raise ValueError("an agent cannot delegate to main")
-        self.log.append("agent.started", agent=agent, task=task)
-        child_tools = ToolRouter(self.workspace, self.tools.mcp)
-        outputs: list[ToolResult] = []
-        child = Controller(
-            client=self.client,
-            model=dict(self.model),
-            provider=self.provider,
-            catalog=self.catalog,
-            thinking=self.model.get("thinking", "disabled"),
-            session_id=f"{self.session_id}:{agent}",
-            spill=self.spill,
-            workspace=self.workspace,
-            log=_SilentLog(),
-            max_rounds=self.max_rounds,
-            system_prompt=self.system_prompt,
-            output=lambda text: None,
-            tools=child_tools,
-            enable_delegate=False,
-            control=self.control,
-            images=self.images,
-            on_tool_result=outputs.append,
-        )
-        result = child.run(task, context=context)
-        self.log.append("agent.completed", agent=agent, result=result)
-        if outputs:
-            return ToolResult(result + "\n\n" + "\n\n".join(item.text for item in outputs),
-                              [image for item in outputs for image in item.images])
-        return result
+    def _submit(self, content: str) -> str:
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("report content must be non-empty text")
+        if self.submitted_report is not None:
+            raise ValueError("a report has already been submitted")
+        self.submitted_report = content.strip()
+        return "Report submitted."
 
     def _cancel_pending_tools(self, run_id: str, calls: list[Any]) -> None:
         for call in calls:
@@ -145,7 +118,7 @@ class Controller:
 
     def run(
         self,
-        prompt: str | UserInput,
+        prompt: str | UserInput | None,
         context: ExecutionContext | None = None,
     ) -> str:
         own_token = context is None
@@ -174,17 +147,21 @@ class Controller:
 
     def _run(
         self,
-        prompt: str | UserInput,
+        prompt: str | UserInput | None,
         context: ExecutionContext,
     ) -> str:
         run_id = uuid.uuid4().hex
         self._current_run_id = run_id
         self._current_answer = ""
+        self.submitted_report = None
         context.cancellation.raise_if_cancelled()
-        value = self.prepare_input(prompt)
-        assets = [self.images.get(image) for image in value.images]
-        self.messages.append(build_user_message(value.text, value.images))
-        self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
+        if prompt is None:
+            self.log.append("turn.started", runId=run_id, prompt="", source="agent_report")
+        else:
+            value = self.prepare_input(prompt)
+            assets = [self.images.get(image) for image in value.images]
+            self.messages.append(build_user_message(value.text, value.images))
+            self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
 
         for round_no in range(self.max_rounds):
             vision, image_limit = self.catalog.vision_options(self.model) if self.catalog else (False, None)
@@ -197,7 +174,6 @@ class Controller:
             usage = None
 
             self.log.append("model.started", runId=run_id, round=round_no)
-            cancelled = False
             for chunk in stream(
                 self.client,
                 self.model["name"],
@@ -297,7 +273,8 @@ class Controller:
 
             completed_call_ids = set()
             for call in calls:
-                context.cancellation.raise_if_cancelled()
+                if self.submitted_report is None:
+                    context.cancellation.raise_if_cancelled()
                 self.log.append(
                     "tool.requested",
                     runId=run_id,
@@ -307,7 +284,11 @@ class Controller:
                 )
                 try:
                     self.tools.model_images = model_image_ids(self.messages)
-                    output = normalize_result(self.tools.call(call.name, call.arguments, context))
+                    output = normalize_result(
+                        "[tool skipped] Report already submitted."
+                        if self.submitted_report is not None
+                        else self.tools.call(call.name, call.arguments, context)
+                    )
                     result = spill_output(
                         output.text,
                         enabled=self.state.get("spill_enabled", True),
@@ -336,7 +317,18 @@ class Controller:
                     self.on_tool_result(output)
                 self.messages.append(build_tool_message(call.id, result, [image["id"] for image in output.model_images]))
                 completed_call_ids.add(call.id)
-                context.cancellation.raise_if_cancelled()
+                if self.submitted_report is None:
+                    context.cancellation.raise_if_cancelled()
+
+            if self.submitted_report is not None:
+                report = self.submitted_report
+                if self.on_submit:
+                    self.on_submit(report, run_id)
+                else:
+                    self.log.append("report.submitted", runId=run_id, content=report)
+                self.output(report)
+                self.log.append("turn.completed", runId=run_id, answer=report)
+                return report
 
         self.log.append("turn.failed", runId=run_id, reason="max_rounds")
         raise RuntimeError("maximum model rounds reached")
@@ -346,7 +338,3 @@ class Controller:
         identifiers = tuple(self.images.get(image)["id"] for image in value.images)
         return UserInput(value.text, identifiers)
 
-
-class _SilentLog:
-    def append(self, *args, **kwargs):
-        return None

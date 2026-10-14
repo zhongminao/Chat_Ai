@@ -15,6 +15,7 @@ class ToolRouter:
         self.workspace = workspace
         self.mcp = mcp
         self.delegate = delegate
+        self.submit = None
         self.images = images
         self.vision = False
         self.image_limit: int | None = None
@@ -47,10 +48,14 @@ class ToolRouter:
                 raise
             except Exception as exc:
                 return f"[tool error] {type(exc).__name__}: {exc}"
-        if name == "delegate":
-            if not self.delegate:
-                raise ValueError("delegate is unavailable")
-            return self.delegate(arguments["agent"], arguments["task"], context)
+        if name in {"delegate", "submit"}:
+            try:
+                handler = self.delegate if name == "delegate" else self.submit
+                if handler is None:
+                    raise ValueError(f"{name} is unavailable")
+                return handler(**arguments)
+            except Exception as exc:
+                return f"[tool error] {type(exc).__name__}: {exc}"
         if self.mcp and name in self.mcp.tools:
             try:
                 result = self.mcp.call(name, arguments, context)

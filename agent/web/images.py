@@ -55,7 +55,7 @@ def image_router(sessions, runtime) -> APIRouter:
             if rt.busy:
                 raise HTTPException(409, "运行结束后才能修改图片名称")
             try:
-                return {"image": rt.controller.dispatch(RenameImage(image_id, request.name))}
+                return {"image": rt.agent.dispatch(RenameImage(image_id, request.name))}
             except FileNotFoundError as exc:
                 raise HTTPException(404, str(exc)) from exc
             except ValueError as exc:

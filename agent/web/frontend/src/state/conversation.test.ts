@@ -90,4 +90,99 @@ describe('existing event protocol -> conversation', () => {
     expect(replay([]).ready).toBe(true);
     expect(reduce(replay([start, modelStart, text]), { type: 'reset' })).toEqual(emptyConversation());
   });
+
+  it('renders submit as one report without a duplicate tool card, including replay', () => {
+    const events: AgentEvent[] = [start, modelStart,
+      { seq: 3, type: 'tool.requested', callId: 'submit', tool: 'submit', arguments: { content: '# Result' } },
+      { seq: 4, type: 'tool.completed', callId: 'submit', tool: 'submit', result: 'Report submitted.' },
+      { seq: 5, type: 'report.submitted', content: '# Result' },
+      { seq: 6, type: 'turn.completed' }];
+    const view = replay(events);
+    expect(view.items).toEqual([
+      expect.objectContaining({ kind: 'text', role: 'user' }),
+      expect.objectContaining({ kind: 'report', content: '# Result' }),
+    ]);
+    expect(reduce(view, { type: 'events', events })).toEqual(view);
+    expect(view.busy).toBe(false);
+  });
+
+  it('hides child reports while keeping the main automatic continuation', () => {
+    const view = replay([
+      { seq: 1, type: 'report.received', session_id: 'child', status: 'submitted', content: 'done' },
+      { seq: 2, type: 'turn.started', prompt: '', source: 'agent_report' },
+      { seq: 3, type: 'model.started', round: 0 },
+      { seq: 4, type: 'message.delta', text: 'summary', round: 0 },
+      { seq: 5, type: 'turn.completed' },
+    ]);
+    expect(view.items).toEqual([
+      expect.objectContaining({ kind: 'text', role: 'assistant', content: 'summary' }),
+    ]);
+    expect(view.ready).toBe(true);
+  });
+
+  it('folds all loops and automatic continuations since the last user message on submit', () => {
+    const events: AgentEvent[] = [
+      { ...start, time: 1e9 }, modelStart, text, requested, completed,
+      { seq: 6, type: 'model.started', round: 1 },
+      { seq: 7, type: 'message.delta', text: 'child is working', round: 1 },
+      { seq: 8, type: 'turn.completed' },
+      { seq: 9, type: 'report.received', session_id: 'child', status: 'submitted', content: 'private child report' },
+      { seq: 10, type: 'turn.started', prompt: '', source: 'agent_report', time: 50e9 },
+      { seq: 11, type: 'model.started', round: 0 },
+      { seq: 12, type: 'message.delta', text: 'preparing final answer', round: 0 },
+    ];
+    const running = replay(events, snapshot(12, true));
+    expect(running.items.map(item => item.kind)).toEqual(['text', 'text', 'tool', 'text', 'text']);
+    const submitted: AgentEvent[] = [
+      { seq: 13, type: 'report.submitted', content: '# Final', time: 66e9 },
+      { seq: 14, type: 'turn.completed' },
+    ];
+    const view = reduce(running, { type: 'events', events: submitted });
+    expect(view.items).toHaveLength(2);
+    expect(view.items[0]).toMatchObject({ role: 'user', content: 'hello' });
+    expect(view.items[1]).toMatchObject({ kind: 'report', content: '# Final', durationSeconds: 65,
+      process: [
+        { kind: 'text', content: 'partial' },
+        { kind: 'tool', name: 'search', result: 'found' },
+        { kind: 'text', content: 'child is working' },
+        { kind: 'text', content: 'preparing final answer' },
+      ] });
+    expect(JSON.stringify(view.items)).not.toContain('private child report');
+    const replayed = replay([...events, ...submitted]);
+    expect(replayed.items).toEqual(view.items);
+    expect(reduce(view, { type: 'events', events: submitted })).toEqual(view);
+  });
+
+  it('keeps earlier user turns and submitted reports outside the next collapse', () => {
+    const view = replay([
+      { ...start, time: 0 }, modelStart, text,
+      { seq: 4, type: 'report.submitted', content: 'first report', time: 10e9 },
+      { seq: 5, type: 'turn.completed' },
+      { seq: 6, type: 'turn.started', prompt: 'second task', time: 20e9 },
+      { seq: 7, type: 'model.started', round: 0 },
+      { seq: 8, type: 'message.delta', text: 'second process', round: 0 },
+      { seq: 9, type: 'report.submitted', content: 'second report', time: 22e9 },
+      { seq: 10, type: 'turn.completed' },
+    ]);
+    expect(view.items).toHaveLength(4);
+    expect(view.items[1]).toMatchObject({ content: 'first report', durationSeconds: 10,
+      process: [{ content: 'partial' }] });
+    expect(view.items[3]).toMatchObject({ content: 'second report', durationSeconds: 2,
+      process: [{ content: 'second process' }] });
+  });
+
+  it('hides child failure and cancellation receipts and still advances the replay cursor', () => {
+    for (const status of ['failed', 'cancelled', 'submitted'] as const) {
+      const view = replay([{ seq: 1, type: 'report.received', session_id: 'child', content: 'internal', status }]);
+      expect(view.items).toEqual([]);
+      expect(view.seq).toBe(1);
+      expect(view.ready).toBe(true);
+      expect(view.error).toBeNull();
+    }
+  });
+
+  it('can render a direct submission without process items or fabricated elapsed time', () => {
+    const view = replay([start, { seq: 2, type: 'report.submitted', content: 'direct' }]);
+    expect(view.items[1]).toMatchObject({ content: 'direct', process: [], durationSeconds: null });
+  });
 });

@@ -55,8 +55,8 @@ class EventLog:
             return []
         return [
             record
-            for line in self.path.read_text(encoding="utf-8").splitlines()
-            if line
+            for line in self.path.read_text(encoding="utf-8").splitlines(keepends=True)
+            if line.endswith("\n")
             for record in [json.loads(line)]
             if int(record["seq"]) > after
         ]

@@ -3,6 +3,7 @@ import selectors
 import signal
 import subprocess
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +47,7 @@ def read_file(
 
 def _atomic_write(target: Path, content: str, context: ExecutionContext | None) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = target.with_name(f".{target.name}.tmp-{os.getpid()}")
+    temporary = target.with_name(f".{target.name}.tmp-{uuid.uuid4().hex}")
     try:
         with temporary.open("w", encoding="utf-8") as stream:
             for start in range(0, len(content), 65536):
