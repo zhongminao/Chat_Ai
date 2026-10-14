@@ -49,6 +49,17 @@ class ModelCatalog:
     def default(self) -> ModelTarget:
         return self.resolve(self.default_provider)
 
+    def vision_options(self, model: dict[str, str]) -> tuple[bool, int | None]:
+        provider = self.providers.get(model["provider"], {})
+        entry = next((item for item in provider.get("models", []) if item["id"] == model["name"]), {})
+        enabled = entry.get("vision", provider.get("vision", False)) is True
+        limit = entry.get("max_images", provider.get("max_images"))
+        if limit is not None:
+            limit = int(limit)
+            if limit < 1:
+                raise ValueError("max_images must be a positive integer")
+        return enabled, limit
+
     def runtime(self, target: ModelTarget):
         provider = self.providers[target.provider]
         env_name = provider.get("api_key_env")

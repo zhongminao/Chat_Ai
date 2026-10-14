@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { api } from '../../api/client';
+import type { ImageAsset } from '../../api/types';
 import { subscribe } from '../../api/events';
 import { conversationReducer, emptyConversation } from '../../state/conversation';
 
@@ -9,9 +10,10 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
   const [state, dispatch] = useReducer(conversationReducer, undefined, emptyConversation);
   const [connected, setConnected] = useState(false);
   const [loadedId, setLoadedId] = useState<string | null>(null);
-  const [pending, setPending] = useState<'send' | 'stop' | 'model' | null>(null);
+  const [pending, setPending] = useState<'send' | 'stop' | 'model' | 'image' | null>(null);
   const generation = useRef(0);
   const commandPending = useRef(false);
+  const renameBarrier = useRef<Promise<boolean>>(Promise.resolve(true));
   const ended = useRef(onTurnEnded);
   ended.current = onTurnEnded;
 
@@ -22,6 +24,7 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     const current = () => version === generation.current;
     dispatch({ type: 'reset' });
     setLoadedId(null); setConnected(false); setPending(null); commandPending.current = false;
+    renameBarrier.current = Promise.resolve(true);
     if (id) {
       api.snapshot(id, abort.signal).then(snapshot => {
         if (!current()) return;
@@ -45,7 +48,7 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     return () => { ++generation.current; abort.abort(); close?.(); };
   }, [id]);
 
-  async function command(kind: 'send' | 'stop' | 'model', operation: (session: string) => Promise<unknown>): Promise<boolean> {
+  async function command(kind: 'send' | 'stop' | 'model' | 'image', operation: (session: string) => Promise<unknown>): Promise<boolean> {
     if (!id || commandPending.current) return false;
     const version = generation.current;
     commandPending.current = true;
@@ -65,12 +68,33 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     }
   }
 
+  function renameImage(image: string, name: string) {
+    const operation = command('image', async session => {
+      const version = generation.current;
+      const result = await api.renameImage(session, image, name);
+      if (version === generation.current) dispatch({ type: 'image', image: result.image });
+    });
+    renameBarrier.current = operation;
+    return operation;
+  }
+
+  async function sendMessage(content: string, images: string[] = []) {
+    const version = generation.current;
+    const barrier = renameBarrier.current;
+    const saved = await barrier;
+    if (barrier === renameBarrier.current) renameBarrier.current = Promise.resolve(true);
+    if (!saved || version !== generation.current) return false;
+    return command('send', session => api.send(session, content, images));
+  }
+
   return {
     ...state,
     ready: state.ready && loadedId === id,
     connected: connected && loadedId === id,
     pending,
-    send: (content: string) => command('send', session => api.send(session, content)),
+    send: sendMessage,
+    registerImage: (image: ImageAsset) => dispatch({ type: 'image', image }),
+    renameImage,
     stop: () => command('stop', session => api.stop(session)),
     switchModel: (provider: string, model: string) => command('model', async session => {
       const version = generation.current;

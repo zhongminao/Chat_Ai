@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from filelock import FileLock
+
 from .event_log import EventLog
 
 
@@ -47,6 +49,22 @@ class SessionStore:
 
     def delete(self, session_id: str) -> None:
         shutil.rmtree(self.path(session_id))
+
+    def rename(self, session_id: str, title: str) -> str:
+        title = title.strip()
+        if not title or len(title) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in title):
+            raise ValueError("会话名称需要 1–80 个字符，不能包含换行或控制字符")
+        path = self.path(session_id) / "session.json"
+        with FileLock(str(path.with_suffix(".lock"))):
+            meta = json.loads(path.read_text(encoding="utf-8"))
+            meta["title"] = title
+            temporary = path.with_suffix(".tmp")
+            try:
+                temporary.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                temporary.replace(path)
+            finally:
+                temporary.unlink(missing_ok=True)
+        return title
 
 
 def create(

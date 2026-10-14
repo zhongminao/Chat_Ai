@@ -12,3 +12,11 @@ class QwenProvider:
 
     def parse_chunk(self, raw: Any) -> ModelChunk:
         return parse_chunk(raw, reasoning_field="reasoning_content")
+
+
+@dataclass(frozen=True)
+class LocalQwenProvider(QwenProvider):
+    thinking: str = "disabled"
+
+    def request_options(self) -> dict[str, Any]:
+        return {"extra_body": {"chat_template_kwargs": {"enable_thinking": self.thinking == "enabled"}}}

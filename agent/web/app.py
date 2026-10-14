@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..workflow.config import load
 from ..core.control import ControlState
@@ -17,18 +17,26 @@ from ..storage.event_log import EventLog
 from ..storage.session import SessionStore
 from ..workflow.history import HistoryNode
 from ..workflow.commands import SwitchModel
+from ..workflow.input import UserInput
+from ..storage.images import ImageStore
 from ..tools.mcp.client import McpRuntime
 from ..tools.router import ToolRouter
 from .bus import EventBus
+from .images import image_router
 
 
 class Message(BaseModel):
-    content: str
+    content: str = ""
+    images: list[str] = Field(default_factory=list)
 
 
 class ModelRequest(BaseModel):
     provider: str
     model: str
+
+
+class SessionName(BaseModel):
+    title: str
 
 
 class Runtime:
@@ -53,6 +61,7 @@ class Runtime:
             catalog=catalog, thinking=target.thinking,
             session_id=self.session.id, spill=config.spill,
             workspace=config.workspace, log=self.session.events,
+            max_rounds=config.max_rounds, system_prompt=config.system_prompt,
             output=lambda text: None,
             tools=tools,
             control=self.control,
@@ -65,10 +74,11 @@ class Runtime:
         self.lock = threading.Lock()
         threading.Thread(target=self._worker, daemon=True).start()
 
-    def submit(self, content: str):
+    def submit(self, content: str | UserInput):
         with self.lock:
             if self.busy:
                 raise HTTPException(409, "This session is already running")
+            content = self.controller.prepare_input(content)
             self.control.clear_stop()
             self.busy = True
             self.queue.put(content)
@@ -115,6 +125,9 @@ def runtime(session_id: str) -> Runtime:
         return runtimes[session_id]
 
 
+app.include_router(image_router(session_store, runtime))
+
+
 @app.get("/")
 def index():
     index_path = frontend_dist / "index.html"
@@ -145,6 +158,18 @@ def delete_session(session_id: str):
     return {"deleted": True}
 
 
+@app.patch("/api/sessions/{session_id}")
+def rename_session(session_id: str, request: SessionName):
+    with runtime_lock:
+        try:
+            title = session_store.rename(session_id, request.title)
+        except FileNotFoundError as exc:
+            raise HTTPException(404, "Session not found") from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+    return {"id": session_id, "title": title}
+
+
 @app.get("/api/sessions")
 def sessions():
     root = session_store.root
@@ -155,10 +180,12 @@ def sessions():
             continue
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         records = EventLog(directory / "events.jsonl").read()
-        first = next((e["prompt"] for e in records if e["type"] == "turn.started"), "")
+        first_event = next((e for e in records if e["type"] == "turn.started"), {})
+        first = first_event.get("prompt", "")
         result.append({
             "id": directory.name,
-            "title": " ".join(first.split())[:40] or "新会话",
+            "title": meta.get("title") or " ".join(first.split())[:40] or ("图片对话" if first_event.get("images") else "新会话"),
+            "empty": not bool(first_event),
             "createdAt": meta.get("createdAt"),
             "updatedAt": records[-1]["time"] / 1e9 if records else meta_path.stat().st_mtime,
         })
@@ -181,6 +208,7 @@ def conversation(session_id: str):
         "id": session_id, "messages": HistoryNode(records).messages(),
         "seq": records[-1]["seq"] if records else 0,
         "busy": bool(rt and rt.busy), "model": target,
+        "images": ImageStore(directory_for(session_id)).list(),
     }
 
 
@@ -213,9 +241,12 @@ def switch_model(session_id: str, request: ModelRequest):
 
 @app.post("/api/sessions/{session_id}/messages")
 def send(session_id: str, message: Message):
-    if not message.content.strip():
-        raise HTTPException(400, "Empty message")
-    runtime(session_id).submit(message.content)
+    try:
+        runtime(session_id).submit(UserInput(message.content, tuple(message.images)))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
     return {"accepted": True}
 
 

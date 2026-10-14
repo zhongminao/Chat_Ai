@@ -95,7 +95,7 @@ def fetch_url(url: Annotated[str, Field(min_length=1)]) -> FetchResult:
         headers={"User-Agent": "chat-ai-fetch/1.0"},
         follow_redirects=True,
         timeout=20,
-        trust_env=False,
+        trust_env=True,
     )
     response.raise_for_status()
     parser = TextParser()

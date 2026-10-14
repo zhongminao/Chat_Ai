@@ -3,6 +3,8 @@ from typing import Any, Protocol
 
 from ..core.cancellation import ExecutionContext, RunCancelled
 from .protocol import ModelChunk, ToolCallDelta
+from .messages import request_messages
+from ..storage.images import ImageStore
 
 
 class ProviderAdapter(Protocol):
@@ -51,10 +53,12 @@ def stream(
     tools: list[dict[str, Any]],
     provider: ProviderAdapter,
     context: ExecutionContext | None = None,
+    images: ImageStore | None = None,
+    read_images: bool = True,
 ) -> Iterator[ModelChunk]:
     options = {
         "model": model,
-        "messages": messages,
+        "messages": request_messages(messages, images, read_images=read_images),
         "tools": tools,
         "stream": True,
         "stream_options": {"include_usage": True},

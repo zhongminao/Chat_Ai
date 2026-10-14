@@ -1,0 +1,11 @@
+.tool-output { width: 100%; }
+.image-outputs { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.image-output { width: 100%; margin: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: white; }
+.image-output-preview { display: block; padding: 8px; }
+.image-output img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: contain; }
+.image-output figcaption { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--border); font-size: 12px; color: #626770; }
+.image-output-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-output-actions { display: flex; flex: none; gap: 12px; }
+.image-output-actions a { color: #5571a7; text-decoration: none; }
+.image-output-actions a:hover { text-decoration: underline; }
+.image-output-error { padding: 24px 12px; color: #a83737; font-size: 13px; }

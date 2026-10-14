@@ -12,6 +12,9 @@ dependencies = [
   "fastapi>=0.100",
   "uvicorn>=0.30",
   "mcp>=1.0",
+  "Pillow>=11.0",
+  "python-multipart>=0.0.20",
+  "filelock>=3.16",
 ]
 
 [tool.setuptools.packages.find]

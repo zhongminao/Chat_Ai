@@ -5,3 +5,9 @@ from dataclasses import dataclass
 class SwitchModel:
     provider: str
     model: str
+
+
+@dataclass(frozen=True)
+class RenameImage:
+    image: str
+    name: str

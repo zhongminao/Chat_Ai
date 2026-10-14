@@ -3,6 +3,7 @@ export interface SessionSummary {
   title: string;
   createdAt: string | null;
   updatedAt: number;
+  empty?: boolean;
 }
 
 export interface Model {
@@ -23,15 +24,28 @@ export interface Snapshot {
   busy: boolean;
   model: Model;
   messages?: unknown[];
+  images?: ImageAsset[];
+}
+
+export interface ImageAsset {
+  id: string;
+  name: string;
+  ordinal: number;
+  filename: string;
+  mime: string;
+  width: number;
+  height: number;
+  size: number;
 }
 
 interface EventEnvelope { seq: number; runId?: string; time?: number }
 export type AgentEvent = EventEnvelope & (
-  | { type: 'turn.started'; prompt: string }
+  | { type: 'turn.started'; prompt: string; images?: ImageAsset[] }
+  | { type: 'image.renamed'; image: ImageAsset }
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
-  | { type: 'tool.completed'; callId: string; tool: string; result: unknown }
+  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
   | { type: 'turn.completed'; answer?: string }
   | { type: 'turn.cancelled'; answer?: string }

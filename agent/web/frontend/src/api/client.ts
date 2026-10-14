@@ -1,4 +1,4 @@
-import type { Model, ModelGroup, SessionSummary, Snapshot } from './types';
+import type { ImageAsset, Model, ModelGroup, SessionSummary, Snapshot } from './types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -28,8 +28,21 @@ export const api = {
   models: (signal?: AbortSignal) => request<{ models: ModelGroup[] }>('/api/models', { signal }),
   createSession: () => request<{ id: string }>('/api/sessions', post()),
   deleteSession: (id: string) => request<{ deleted: boolean }>(sessionPath(id), { method: 'DELETE' }),
+  renameSession: (id: string, title: string) => request<{ id: string; title: string }>(
+    sessionPath(id), { ...post({ title }), method: 'PATCH' },
+  ),
   snapshot: (id: string, signal?: AbortSignal) => request<Snapshot>(`${sessionPath(id)}/conversation`, { signal }),
-  send: (id: string, content: string) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content })),
+  send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),
+  uploadImage: (id: string, file: File) => {
+    const body = new FormData(); body.append('file', file);
+    return request<{ image: ImageAsset }>(`${sessionPath(id)}/images`, { method: 'POST', body });
+  },
+  renameImage: (id: string, image: string, name: string) => request<{ image: ImageAsset }>(
+    `${sessionPath(id)}/images/${encodeURIComponent(image)}`,
+    { ...post({ name }), method: 'PATCH' },
+  ),
+  imageUrl: (id: string, image: string, preview = false) =>
+    `${sessionPath(id)}/images/${encodeURIComponent(image)}/content${preview ? '?preview=true' : ''}`,
   stop: (id: string) => request<{ stopped: boolean }>(`${sessionPath(id)}/control/stop`, post()),
   switchModel: (id: string, provider: string, model: string) =>
     request<{ model: Model }>(`${sessionPath(id)}/model`, post({ provider, model })),

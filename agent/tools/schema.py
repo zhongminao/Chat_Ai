@@ -14,6 +14,19 @@ DELEGATE_SCHEMA = {"type": "function", "function": {
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
+        "name": "read_image",
+        "description": "Inspect an existing PNG, JPEG or WebP image using the current model's vision. Use this to examine a plot or screenshot before deciding what to change. Requires a vision-capable model; does not publish a preview to the user.",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string", "description": "Exact file path, workspace-relative or absolute. Use the full saved session path supplied with an existing image. Image names, numbers and IDs are not paths; do not invent directories."}},
+            "required": ["path"]}}},
+    {"type": "function", "function": {
+        "name": "show_image",
+        "description": "Publish an existing PNG, JPEG or WebP file as a conversation image and return its saved path. After generating a plot or screenshot, call this tool with the file path. It does not generate images.",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string", "description": "Exact file path, workspace-relative or absolute. Reuse the full saved session path returned by read_image to display that same image. Do not use a name, number or ID as a path."},
+            "name": {"type": "string", "description": "Optional display name; defaults to the original filename for new images. Names may repeat and are not image references. Setting a name for an existing image renames it."}},
+            "required": ["path"]}}},
+    {"type": "function", "function": {
         "name": "read_file",
         "description": "Read a UTF-8 text file page by page. Absolute paths are allowed.",
         "parameters": {"type": "object", "properties": {

@@ -14,10 +14,12 @@ export function useSessions() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const listVersion = useRef(0);
   const creatingRef = useRef(false);
+  const renamingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const version = ++listVersion.current;
@@ -58,7 +60,7 @@ export function useSessions() {
     try {
       const latest = await api.sessions();
       const candidates = latest.sessions
-        .filter(session => session.title === '新会话')
+        .filter(session => session.empty ?? (session.title === '新会话'))
         .sort((a, b) => Number(b.id === selected) - Number(a.id === selected));
       let id: string | undefined;
       for (const candidate of candidates) {
@@ -81,7 +83,7 @@ export function useSessions() {
   }
 
   async function remove(id: string) {
-    if (deleting || !window.confirm('删除这个历史会话？此操作无法撤销。')) return;
+    if (deleting || renamingRef.current || !window.confirm('删除这个历史会话？此操作无法撤销。')) return;
     setDeleting(id); setError(null);
     try {
       await api.deleteSession(id);
@@ -95,7 +97,20 @@ export function useSessions() {
     finally { setDeleting(null); }
   }
 
-  return { sessions, models, selected, select: setSelected, loading, creating, deleting,
+  async function rename(id: string, title: string): Promise<boolean> {
+    if (renamingRef.current || deleting) return false;
+    renamingRef.current = true; setRenaming(id); setError(null);
+    try {
+      const renamed = await api.renameSession(id, title);
+      ++listVersion.current;
+      setSessions(items => items.map(item => item.id === id ? { ...item, title: renamed.title } : item));
+      await refresh();
+      return true;
+    } catch (error) { setError(errorMessage(error)); return false; }
+    finally { renamingRef.current = false; setRenaming(null); }
+  }
+
+  return { sessions, models, selected, select: setSelected, loading, creating, deleting, renaming, rename,
     error, clearError: () => setError(null), create, remove, refresh,
     retry: () => setAttempt(value => value + 1) };
 }

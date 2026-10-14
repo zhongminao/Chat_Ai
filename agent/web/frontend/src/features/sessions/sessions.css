@@ -1,0 +1,9 @@
+.session-action.icon-button { width: 24px; height: 28px; opacity: 0; }
+.session-row:hover .session-action, .session-row:focus-within .session-action { opacity: 1; }
+.session-rename { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; width: 100%; min-width: 0; padding: 8px 4px 8px 8px; }
+.session-rename input { flex: 1; min-width: 0; width: 100%; padding: 6px; border: 1px solid #bbc5d7; border-radius: 6px; background: white; color: #3f4248; font: inherit; font-size: 13px; }
+.session-rename input:focus { outline: 2px solid #557cd6; outline-offset: 1px; }
+.session-rename-actions { display: flex; flex: none; }
+.session-rename-actions .icon-button { width: 24px; height: 28px; }
+.session-rename-error { flex-basis: 100%; padding: 3px; color: #a83737; font-size: 11px; }
+@media (max-width: 640px) { .session-action.icon-button { opacity: 1; } }

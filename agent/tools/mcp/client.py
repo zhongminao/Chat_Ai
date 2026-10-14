@@ -1,9 +1,8 @@
 import asyncio
-import json
 import threading
 from typing import Any
 
-from mcp import ClientSession
+from mcp import ClientSession, types
 from mcp.client.streamable_http import streamable_http_client
 
 from ...core.cancellation import ExecutionContext, RunCancelled
@@ -40,7 +39,7 @@ class McpRuntime:
         name: str,
         arguments: dict[str, Any],
         context: ExecutionContext | None = None,
-    ) -> str:
+    ) -> types.CallToolResult:
         server, tool = self.tools[name]
         url = self.servers[server]
         loop = asyncio.new_event_loop()
@@ -86,11 +85,7 @@ class McpRuntime:
                 context.cancellation.raise_if_cancelled()
             if failure:
                 raise failure[0]
-            value = result["value"]
-            if value.is_error:
-                return "[mcp error] " + self._content(value)
-            structured = value.structured_content
-            return json.dumps(structured, ensure_ascii=False) if structured is not None else self._content(value)
+            return result["value"]
         except RunCancelled:
             raise
         finally:
@@ -108,8 +103,3 @@ class McpRuntime:
                     context.cancellation.raise_if_cancelled()
                 return result
 
-    @staticmethod
-    def _content(result) -> str:
-        return "\n".join(
-            item.text for item in result.content if getattr(item, "text", None)
-        )

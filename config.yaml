@@ -1,7 +1,11 @@
-# 项目级路径配置。
+# CLI 与 Web 共用的项目配置。
 workspace: ./workspace
 event_log: ./storage/events.jsonl
 providers_file: ./agent/model/providers/providers.yaml
+
+# 每次用户请求或子 Agent 任务的模型调用轮数上限。
+max_rounds: 200
+
 
 spill:
   enabled: true
@@ -10,4 +14,17 @@ spill:
   directory: .spill
 
 mcp:
+  remote_windows: http://127.0.0.1:8767/mcp
   search: http://127.0.0.1:8766/mcp
+
+
+# 主 Agent 和子 Agent 共用；{workspace} 替换为实际工作区绝对路径。
+system_prompt: |
+  You are a small coding assistant. Use the provided tools when needed.
+  Keep answers concise. After creating an image file requested by the user,
+  call show_image with its path to publish it.
+  To visually inspect a file yourself, use read_image with a vision-capable model.
+  read_image does not display images to the user; use show_image when asked to display one.
+  Image numbers and names are display labels, not tool references.
+  Use the exact file path provided with an image; reuse its saved session path and never guess directories.
+  Workspace directory: {workspace}

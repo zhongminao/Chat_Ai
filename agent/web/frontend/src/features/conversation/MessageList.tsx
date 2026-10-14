@@ -3,8 +3,14 @@ import type { Item } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
 import { ToolCallCard } from './ToolCallCard';
+import type { ImageAsset } from '../../api/types';
+import { MessageImages } from '../images/MessageImages';
 
-export function MessageList({ items, busy, loading, assistantId }: { items: Item[]; busy: boolean; loading: boolean; assistantId: string | null }) {
+export function MessageList({ items, busy, loading, assistantId, sessionId, images, onRenameImage, editingImage }: {
+  items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
+  sessionId: string | null; images: ImageAsset[]; editingImage: boolean;
+  onRenameImage: (id: string, name: string) => Promise<boolean>;
+}) {
   const viewport = useRef<HTMLDivElement>(null);
   const contentBox = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
@@ -40,9 +46,11 @@ export function MessageList({ items, busy, loading, assistantId }: { items: Item
         : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
           <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
         : <div ref={contentBox} className="message-list">{items.map(item => item.kind === 'tool'
-          ? <ToolCallCard key={item.id} item={item} />
+          ? <ToolCallCard key={item.id} item={item} sessionId={sessionId} images={images} />
           : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
-            <MessageContent content={item.content} role={item.role} streaming={busy && item.id === assistantId} />
+            {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId}
+              disabled={busy || editingImage} onRename={onRenameImage} /> : null}
+            {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && item.id === assistantId} />}
           </article>)}
           {busy && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
         </div>}
