@@ -19,7 +19,7 @@ def show_image(
     image = images.add_file(source, name)
     _check(context)
     text = (f"图片已展示 ({image['width']} × {image['height']})\n"
-            f"{images.describe(image)}\n来源：{source}")
+            f"{images.describe(image)}\n来源：{source}\n报告图片引用：{images.markdown(image)}")
     return ToolResult(text, [image])
 
 

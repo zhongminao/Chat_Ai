@@ -150,6 +150,13 @@ class ImageStore:
         extension = "preview.png" if preview else image["extension"]
         return self.root / f"{image['id']}.{extension}"
 
+    def url(self, image: dict) -> str:
+        return f"/api/sessions/{self.root.parent.name}/images/{image['id']}/content"
+
+    def markdown(self, image: dict) -> str:
+        label = image["name"].replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+        return f"![{label}]({self.url(image)})"
+
     def describe(self, image: dict) -> str:
         return (f"编号：{image_number(image['ordinal'])}\n名称：{image['name']}\n"
                 f"路径：{self._path(image).resolve()}")

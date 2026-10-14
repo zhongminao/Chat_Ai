@@ -90,4 +90,47 @@ describe('existing event protocol -> conversation', () => {
     expect(replay([]).ready).toBe(true);
     expect(reduce(replay([start, modelStart, text]), { type: 'reset' })).toEqual(emptyConversation());
   });
+
+  it('renders submit as one report without a duplicate tool card, including replay', () => {
+    const events: AgentEvent[] = [start, modelStart,
+      { seq: 3, type: 'tool.requested', callId: 'submit', tool: 'submit', arguments: { content: '# Result' } },
+      { seq: 4, type: 'tool.completed', callId: 'submit', tool: 'submit', result: 'Report submitted.' },
+      { seq: 5, type: 'report.submitted', content: '# Result' },
+      { seq: 6, type: 'turn.completed' }];
+    const view = replay(events);
+    expect(view.items).toEqual([
+      expect.objectContaining({ kind: 'text', role: 'user' }),
+      expect.objectContaining({ kind: 'report', content: '# Result' }),
+    ]);
+    expect(reduce(view, { type: 'events', events })).toEqual(view);
+    expect(view.busy).toBe(false);
+  });
+
+  it('folds model and tool loops into the submitted answer using the full execution duration', () => {
+    const view = replay([
+      { ...start, time: 1e9 }, modelStart, text, requested, completed,
+      { seq: 6, type: 'model.started', round: 1 },
+      { seq: 7, type: 'message.delta', text: 'done', round: 1 },
+      { seq: 8, type: 'report.submitted', content: '# Result', time: 66e9 },
+      { seq: 9, type: 'turn.completed' },
+    ]);
+    expect(view.items).toHaveLength(2);
+    expect(view.items[1]).toMatchObject({ kind: 'report', content: '# Result', durationSeconds: 65,
+      process: [{ content: 'partial' }, { name: 'search', result: 'found' }, { content: 'done' }] });
+  });
+
+  it('keeps a manually requested background-result response in its own user turn', () => {
+    const view = replay([
+      start, modelStart, text, { seq: 4, type: 'turn.completed' },
+      { seq: 5, type: 'turn.started', prompt: '处理后台任务', time: 10e9 },
+      { seq: 6, type: 'model.started', round: 0 },
+      { seq: 7, type: 'message.delta', text: 'reading report', round: 0 },
+      { seq: 8, type: 'report.submitted', content: 'result', time: 12e9 },
+      { seq: 9, type: 'turn.completed' },
+    ]);
+    expect(view.items).toHaveLength(4);
+    expect(view.items[1]).toMatchObject({ content: 'partial' });
+    expect(view.items[2]).toMatchObject({ role: 'user', content: '处理后台任务' });
+    expect(view.items[3]).toMatchObject({ content: 'result', durationSeconds: 2, process: [{ content: 'reading report' }] });
+  });
 });

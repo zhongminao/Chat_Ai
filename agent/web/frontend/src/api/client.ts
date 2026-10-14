@@ -1,4 +1,4 @@
-import type { ImageAsset, Model, ModelGroup, SessionSummary, Snapshot } from './types';
+import type { ImageAsset, Model, ModelGroup, SessionSummary, Snapshot, WatchResult } from './types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -25,6 +25,8 @@ const post = (body?: unknown): RequestInit => ({
 
 export const api = {
   sessions: (signal?: AbortSignal) => request<{ sessions: SessionSummary[] }>('/api/sessions', { signal }),
+  watch: (id: string, cursor?: number, timeout = 0, signal?: AbortSignal) => request<WatchResult>(
+    `${sessionPath(id)}/watch?timeout=${timeout}${cursor === undefined ? '' : `&cursor=${cursor}`}`, { signal }),
   models: (signal?: AbortSignal) => request<{ models: ModelGroup[] }>('/api/models', { signal }),
   createSession: () => request<{ id: string }>('/api/sessions', post()),
   deleteSession: (id: string) => request<{ deleted: boolean }>(sessionPath(id), { method: 'DELETE' }),

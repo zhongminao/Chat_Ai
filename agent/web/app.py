@@ -1,27 +1,22 @@
 import asyncio
 import json
 import queue
-import threading
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from ..core.session_registry import SessionRuntimes
+from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..workflow.config import load
-from ..core.control import ControlState
-from ..core.controller import Controller
 from ..model.catalog import ModelCatalog
 from ..storage.event_log import EventLog
-from ..storage.session import SessionStore
 from ..workflow.history import HistoryNode
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
 from ..storage.images import ImageStore
-from ..tools.mcp.client import McpRuntime
-from ..tools.router import ToolRouter
-from .bus import EventBus
 from .images import image_router
 
 
@@ -39,76 +34,11 @@ class SessionName(BaseModel):
     title: str
 
 
-class Runtime:
-    def __init__(self, directory: Path | None = None):
-        config = load()
-        self.bus = EventBus()
-        self.session = (
-            session_store.open(directory.name, self.bus.publish)
-            if directory else session_store.create(self.bus.publish)
-        )
-        records = self.session.events.read()
-        catalog = ModelCatalog(config.providers_file)
-        target = catalog.default()
-        for event in records:
-            if event["type"] == "model.changed":
-                target = catalog.resolve(event["new"]["provider"], event["new"]["name"])
-        client, provider = catalog.runtime(target)
-        tools = ToolRouter(config.workspace, McpRuntime(config.mcp) if config.mcp else None)
-        self.control = ControlState()
-        self.controller = Controller(
-            client=client, model=target.as_dict(), provider=provider,
-            catalog=catalog, thinking=target.thinking,
-            session_id=self.session.id, spill=config.spill,
-            workspace=config.workspace, log=self.session.events,
-            max_rounds=config.max_rounds, system_prompt=config.system_prompt,
-            output=lambda text: None,
-            tools=tools,
-            control=self.control,
-        )
-        self.controller.state = HistoryNode(records).run(self.controller.state)
-        self.controller.messages.extend(self.controller.state["messages"])
-        self.controller.state["messages"] = self.controller.messages
-        self.queue = queue.Queue()
-        self.busy = False
-        self.lock = threading.Lock()
-        threading.Thread(target=self._worker, daemon=True).start()
-
-    def submit(self, content: str | UserInput):
-        with self.lock:
-            if self.busy:
-                raise HTTPException(409, "This session is already running")
-            content = self.controller.prepare_input(content)
-            self.control.clear_stop()
-            self.busy = True
-            self.queue.put(content)
-
-    def stop(self) -> bool:
-        with self.lock:
-            if not self.busy:
-                return False
-            self.control.request_stop()
-            return True
-
-    def _worker(self):
-        while True:
-            content = self.queue.get()
-            try:
-                self.controller.run(content)
-            except Exception as exc:
-                self.session.events.append("turn.failed", reason=str(exc))
-            finally:
-                with self.lock:
-                    self.busy = False
-                self.queue.task_done()
-
-
 app = FastAPI(title="chat_ai")
 frontend_dist = Path(__file__).parent / "frontend" / "dist"
 app.mount("/assets", StaticFiles(directory=frontend_dist / "assets", check_dir=False), name="assets")
-runtimes: dict[str, Runtime] = {}
-runtime_lock = threading.Lock()
-session_store = SessionStore(load().event_log.parent)
+registry = SessionRuntimes()
+session_store = registry.store
 
 
 def directory_for(session_id: str) -> Path:
@@ -117,12 +47,11 @@ def directory_for(session_id: str) -> Path:
     except FileNotFoundError:
         raise HTTPException(404, "Session not found")
 
-def runtime(session_id: str) -> Runtime:
-    directory = directory_for(session_id)
-    with runtime_lock:
-        if session_id not in runtimes:
-            runtimes[session_id] = Runtime(directory)
-        return runtimes[session_id]
+def runtime(session_id: str) -> SessionRuntime:
+    try:
+        return registry.get(session_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, "Session not found") from exc
 
 
 app.include_router(image_router(session_store, runtime))
@@ -138,35 +67,28 @@ def index():
 
 @app.post("/api/sessions")
 def create():
-    with runtime_lock:
-        rt = Runtime()
-        runtimes[rt.session.id] = rt
-    return {"id": rt.session.id}
+    return {"id": registry.create().session.id}
 
 
 @app.delete("/api/sessions/{session_id}")
 def delete_session(session_id: str):
-    with runtime_lock:
-        rt = runtimes.get(session_id)
-        if rt and rt.busy:
-            raise HTTPException(409, "This session is running")
-        runtimes.pop(session_id, None)
-        try:
-            session_store.delete(session_id)
-        except FileNotFoundError:
-            raise HTTPException(404, "Session not found")
+    try:
+        registry.delete(session_id)
+    except SessionBusy as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(404, "Session not found") from exc
     return {"deleted": True}
 
 
 @app.patch("/api/sessions/{session_id}")
 def rename_session(session_id: str, request: SessionName):
-    with runtime_lock:
-        try:
-            title = session_store.rename(session_id, request.title)
-        except FileNotFoundError as exc:
-            raise HTTPException(404, "Session not found") from exc
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
+    try:
+        title = session_store.rename(session_id, request.title)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, "Session not found") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     return {"id": session_id, "title": title}
 
 
@@ -182,8 +104,16 @@ def sessions():
         records = EventLog(directory / "events.jsonl").read()
         first_event = next((e for e in records if e["type"] == "turn.started"), {})
         first = first_event.get("prompt", "")
+        rt = registry.items.get(directory.name)
+        terminal = next((e for e in reversed(records) if e["type"] in
+                         {"report.submitted", "turn.failed", "turn.cancelled"}), {})
         result.append({
             "id": directory.name,
+            "parent_session_id": meta.get("parent_session_id"),
+            "busy": bool(rt and rt.busy),
+            "status": "running" if rt and rt.busy else {
+                "report.submitted": "submitted", "turn.failed": "failed", "turn.cancelled": "cancelled",
+            }.get(terminal.get("type"), "idle"),
             "title": meta.get("title") or " ".join(first.split())[:40] or ("图片对话" if first_event.get("images") else "新会话"),
             "empty": not bool(first_event),
             "createdAt": meta.get("createdAt"),
@@ -193,19 +123,29 @@ def sessions():
     return {"sessions": result}
 
 
+@app.get("/api/sessions/{session_id}/watch")
+async def watch(session_id: str, cursor: int | None = None, timeout: float = Query(0, ge=0, le=30)):
+    directory_for(session_id)
+    try:
+        return await asyncio.to_thread(registry.monitor(session_id).watch, cursor, timeout)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 @app.get("/api/sessions/{session_id}/conversation")
 def conversation(session_id: str):
     records = EventLog(directory_for(session_id) / "events.jsonl").read()
-    rt = runtimes.get(session_id)
+    rt = registry.items.get(session_id)
     catalog = ModelCatalog(load().providers_file)
-    target = catalog.default().as_dict()
+    meta = session_store.metadata(session_id)
+    target = meta.get("model") or catalog.default().as_dict()
     for event in records:
         if event["type"] == "model.changed":
             target = event["new"]
-    if rt:
-        target = rt.controller.model
+    if rt and rt._agent is not None:
+        target = rt.agent.model
     return {
-        "id": session_id, "messages": HistoryNode(records).messages(),
+        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": HistoryNode(records).messages(),
         "seq": records[-1]["seq"] if records else 0,
         "busy": bool(rt and rt.busy), "model": target,
         "images": ImageStore(directory_for(session_id)).list(),
@@ -228,10 +168,10 @@ def models():
 def switch_model(session_id: str, request: ModelRequest):
     rt = runtime(session_id)
     with rt.lock:
-        if rt.busy:
-            raise HTTPException(409, "This session is already running")
+        if rt.busy or rt.parent_session_id:
+            raise HTTPException(409, "This session is running or is a read-only child session")
         try:
-            model = rt.controller.dispatch(
+            model = rt.agent.dispatch(
                 SwitchModel(provider=request.provider, model=request.model)
             )
         except (ValueError, RuntimeError) as exc:
@@ -242,7 +182,9 @@ def switch_model(session_id: str, request: ModelRequest):
 @app.post("/api/sessions/{session_id}/messages")
 def send(session_id: str, message: Message):
     try:
-        runtime(session_id).submit(UserInput(message.content, tuple(message.images)))
+        runtime(session_id).enqueue(UserInput(message.content, tuple(message.images)))
+    except SessionBusy as exc:
+        raise HTTPException(409, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     except FileNotFoundError as exc:

@@ -7,7 +7,7 @@
 ## 当前结构
 
 ```text
-agent/core/       Controller、状态转移和工具调度
+agent/core/       AgentRuntime、状态转移和工具调度
 agent/model/      模型协议、provider、模型目录、图文消息组装
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与 adapter
@@ -134,7 +134,7 @@ system_prompt: |
 ```
 
 主 Agent 每次用户请求、子 Agent 每次委派任务各自最多执行 `max_rounds` 轮模型调用，默认均为 200；一轮可包含多个工具调用。
-子 Agent 继承主 Agent 的轮数上限和系统提示词，不再另设 4 轮限制。达到上限会结束该任务并报错。
+子 Agent 使用 delegate 传入的 system_prompt 和 user_prompt，继承模型与轮数上限。达到上限会结束该任务并更新 watch 状态。
 `max_rounds` 必须为正整数；`system_prompt` 必须为非空文本。实际默认提示词还包含图片工具的使用规则，修改时可直接编辑 YAML 多行文本。
 提示词中的 `{workspace}` 替换为实际工作区绝对路径，其他花括号原样保留，支持直接写入 JSON 示例。
 配置在创建 Agent 时加载；修改后重启 Web 和 CLI，即可让新旧会话使用最新配置，不改写历史日志。
@@ -202,7 +202,7 @@ CLI 只打印图片名称、原文件路径和保存路径，不依赖图形界�
 图片复制到当前 session 的 attachments/；覆盖或移除原绘图文件不影响已发布图片。
 `tool.completed` 的 `result` 保持文本，新增可选的 `images` 元数据用于界面显示和历史回放。
 传给模型的工具消息仍为文本；图片不会自动回传给视觉模型。旧字符串工具结果和旧事件继续兼容。
-子 agent 发布的图片随父级 delegate 工具结果返回同一个会话。
+子 agent 的图片保存在独立 session。submit 将已展示图片的 Markdown 地址写入报告；主 agent 读到报告后可直接引用这些地址。
 
 ```text
 agent/tools/images.py                       show_image，共用图片发布逻辑
@@ -355,4 +355,27 @@ SearXNG 是搜索后端；`web_mcp.py` 是 MCP 适配层。`fetch_url` 不执行
 → 返回统一结果
 ```
 
-先保持检索模块独立，不把索引、向量库和排序逻辑放进 `Controller`。具体数据源、向量模型和存储方式在实现前单独确定。
+先保持检索模块独立，不把索引、向量库和排序逻辑放进 `AgentRuntime`。具体数据源、向量模型和存储方式在实现前单独确定。
+
+
+## Watch 多 agent
+
+- `delegate(system_prompt, user_prompt)`：创建独立子 session，立即返回 ID 和 watch 使用提示。
+- `watch(cursor=None, timeout=0)`：无 cursor 返回资源快照；有 cursor 返回其后变化的资源；timeout>0 时等待任意变化，最多 120 秒。超时返回空 changes，游标不变。
+- `submit(content)`：保存本轮最终 Markdown 报告并结束执行。子 agent 必须提交，主 agent 可选。
+
+watch 只返回状态、路径及失败原因，不返回报告正文。用现有 read_file 读取 result_path；是否汇总、是否继续工作、是否等待由 LLM 决定。
+游标是每个调用者的位置，不表示领取或消费报告。网页与模型查询互不影响；一次增量返回每个变化资源的最新状态，可合并短时间内的多次更新。删除以 deleted 标记返回，首次快照不包含已删除资源。
+
+每个主 session 的状态保存在 watch.json。通用 Monitor 只负责版本、资源快照和条件变量通知，不依赖 agent、模型或网页。新增 Bash 等资源只需接入 update，无需改变 watch 协议；本版本尚未增加后台 Bash 工具。
+SessionRuntimes 负责会话查找、创建子任务以及 agent 状态适配；SessionRuntime 只管理单个 session 的串行执行和取消；AgentRuntime 运行模型和工具循环。
+
+子任务完成不会启动主 agent 或修改主对话。主 agent 在新的用户请求中按提示调用 watch；也可在当前执行中显式等待。主回复结束、停止或网页断开均不取消子任务；停止 watch 等待只取消当前主执行。
+网页输入框上方显示后台任务数量，点击“交给主 agent”会产生明确的用户消息。子 session 从顶部导航查看，不出现在主会话历史列表。
+
+报告保存为 storage/sessions/<id>/reports/<run_id>.md。show_image 回执提供稳定的 /api/sessions/.../images/.../content 地址；submit 会规范化本轮已展示图片的路径，并补全遗漏的图片引用。报告中的 image_file 注释保留本地路径，供 read_image 使用，网页不渲染这些注释。
+框架不额外运行总结模型。主 agent 可以总结或直接使用子报告中的文字和图片；图片实际内容只有显式读图时才进入视觉模型。
+主 agent 的 submit 会折叠本轮过程并显示用时；普通回复保持原样。每条用户消息或按钮操作均开始新一轮，不合并后台自动回复。
+
+服务重启后恢复已保存的监控状态和报告，未完成的子 agent 标为 failed，不自动重跑。CLI 一次性调用会等待后台子任务结束再退出；交互式 CLI 退出会结束其进程内任务。不要从 CLI 和 Web 同时写同一个 session。
+不同 session 可并发，但模型服务器的并发容量仍然生效。同一 Moldflow study 的仿真需要保持串行。

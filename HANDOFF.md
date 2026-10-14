@@ -1,60 +1,33 @@
-# chat_ai 交接文档
+# chat_ai 交接
 
-## 开发约定
+代码保持简洁模块化，CLI 与 Web 共用运行层和事件协议。
 
-代码保持简洁，模块职责清晰，功能通过小模块组合。CLI、Web 和核心控制器共用同一套事件流；界面逻辑不进入核心。文档保持简洁，只记录当前真实行为。
+## 核心边界
 
-## 架构边界
-- **control**：`agent/core/control.py` 保存当前运行控制信号；Web 和 CLI 共用，当前支持 stop。它属于 runtime 控制状态，不写入可回放的 `AgentState`。
+- agent/core/agent_runtime.py：一次模型与工具循环；submit 结束本轮。
+- agent/core/session_runtime.py：一个会话的执行队列、独立停止信号和报告落盘。
+- agent/core/session_registry.py：会话创建/查找、子 agent 启动与监控状态适配。
+- agent/core/monitor.py：通用资源快照、增量游标、条件变量等待；不调用模型，不操作对话。
+- agent/storage/reports.py：保存报告，规范化已展示图片的 Markdown 引用。
+- agent/tools/router.py：统一工具路由。
 
+## 子 agent / watch
 
-- **state**：可记录、可回放、可传输的 JSON；保存消息、工具 schema、MCP 名称和 URL 等数据。
-- **runtime**：保存 MCP 连接、客户端、线程、回调和工具名称映射。
-- **core**：使用统一工具列表和调用接口，不区分本地工具与 MCP 工具。
+主 agent 有 delegate(system_prompt,user_prompt)、watch(cursor=None,timeout=0)、submit(content)；子 agent 有 submit，没有递归委派。
+delegate 立即返回独立 session ID 和 watch 使用提示。watch 无 cursor 为快照，有 cursor 为增量，timeout>0 等待任意变化；返回状态和 result_path，正文由 read_file 获取。每个调用者自行保存游标，无领取状态。
+监控状态在主 session 的 watch.json。未来可登记其他 kind，例如后台 Bash；当前只实现 agent 生产者。
+子任务完成只更新监控状态，不启动父模型，不写父消息。新的用户消息或网页“交给主 agent”操作才开始新一轮；正在等待的 watch 可被变化唤醒。
+不同 session 可并发，停止父回复不停止子任务；服务重启不自动重跑中断任务。
 
-MCP 客户端在 `agent/tools/mcp/client.py`，适配器在 `agent/tools/mcp/adapter/`，工具由 `agent/tools/router.py` 统一路由。
+## 报告与图像
 
-## 当前入口
+submit 保存 reports/<run_id>.md 并发出 report.submitted 事件，子任务进入 completed。
+show_image 返回图片的稳定网页地址；报告保存时补全已展示图片，image_file HTML 注释提供模型读图所需的本地路径，网页忽略注释。
+不额外运行报告总结 agent。主 agent 自主读取、判断、汇总或直接引用报告。
+网页保留主/子导航、输入框下连接状态和 submit 折叠过程。原始子报告不注入主对话。
 
-```bash
-cd /home/zhong/mydisk/tools/chat_ai
-conda activate py313
-pip install -e .
-python -m agent.cli.main
-uvicorn agent.web.app:app --host 127.0.0.1 --port 8764
-```
+## 服务
 
-模型配置来自 `config.yaml` 和 `agent/model/providers/providers.yaml`。模型切换是 workflow 命令，核心接收新状态。
-
-## 存储与历史
-
-每个 session 位于 `storage/sessions/<session_id>/`，包含 `session.json` 和 `events.jsonl`。`events.jsonl` 是程序唯一事件流。`HistoryNode` 读取事件并返回新的 `AgentState`，CLI 和 Web 共用它。大工具输出写入工作目录 `.spill/<session_id>/`，由 `read_file` 分页读取。
-
-## MCP 服务
-
-`config.yaml` 当前配置：
-
-```yaml
-mcp:
-  search: http://127.0.0.1:8766/mcp
-```
-
-`agent/tools/mcp/adapter/web_mcp.py` 是网页 MCP 适配器：`search` 调用 SearXNG，`fetch_url` 使用 HTTP 读取静态 HTML。它由 `systemd --user` 的 `chat-search-mcp.service` 运行。
-
-SearXNG 地址为 `http://127.0.0.1:8888`，只作为搜索后端，不提供 MCP 接口。
-
-## 下一阶段任务：混合检索
-
-实现关键词检索 + 向量检索的统一检索模块，流程为：
-
-```text
-query → keyword retriever + vector retriever → merge/deduplicate/rank → results
-```
-
-要求：
-
-1. 检索器独立于 `Controller`。
-2. 先定义统一的 JSON 结果结构。
-3. 关键词检索和向量检索可单独测试。
-4. 合并、去重、排序保持为独立小模块。
-5. 完成前先确定被检索对象、向量模型和索引存储方式。
+项目 /home/zhong/mydisk/tools/chat_ai，systemctl --user chat_ai，Web 8200。
+MCP：remote_windows http://127.0.0.1:8767/mcp；search http://127.0.0.1:8766/mcp。
+DEEPSEEK_API_KEY 由 ~/.config/chat_ai/chat.env 提供，不在仓库中保存。

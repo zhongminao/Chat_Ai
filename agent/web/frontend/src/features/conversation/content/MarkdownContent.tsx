@@ -44,6 +44,6 @@ const components: Components = {
 
 export function MarkdownContent({ content }: { content: string }) {
   return <SourceContext.Provider value={content}><div className="markdown-content">
-    <Markdown remarkPlugins={plugins} components={components}>{content}</Markdown>
+    <Markdown skipHtml remarkPlugins={plugins} components={components}>{content}</Markdown>
   </div></SourceContext.Provider>;
 }

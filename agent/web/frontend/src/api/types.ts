@@ -4,7 +4,17 @@ export interface SessionSummary {
   createdAt: string | null;
   updatedAt: number;
   empty?: boolean;
+  parent_session_id?: string | null;
+  busy?: boolean;
+  status?: 'idle' | 'running' | 'submitted' | 'failed' | 'cancelled';
 }
+
+export interface WatchResource {
+  id: string; kind?: string; session_id?: string; title?: string;
+  status?: string; result_path?: string; error?: string; version: number; deleted?: boolean;
+}
+
+export interface WatchResult { cursor: number; changes: WatchResource[] }
 
 export interface Model {
   provider: string;
@@ -23,6 +33,7 @@ export interface Snapshot {
   seq: number;
   busy: boolean;
   model: Model;
+  parent_session_id?: string | null;
   messages?: unknown[];
   images?: ImageAsset[];
 }
@@ -47,9 +58,11 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
   | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
+  | { type: 'agent.created'; session_id: string }
+  | { type: 'report.submitted'; content: string }
   | { type: 'turn.completed'; answer?: string }
   | { type: 'turn.cancelled'; answer?: string }
   | { type: 'turn.failed'; reason: string }
   | { type: 'error'; message: string; reason?: string }
-  | { type: 'model.completed' | 'reasoning.delta' | 'tool_call.delta' | 'agent.started' | 'agent.completed' }
+  | { type: 'model.completed' | 'reasoning.delta' | 'tool_call.delta' }
 );

@@ -60,7 +60,7 @@ export function useSessions() {
     try {
       const latest = await api.sessions();
       const candidates = latest.sessions
-        .filter(session => session.empty ?? (session.title === '新会话'))
+        .filter(session => !session.parent_session_id && (session.empty ?? (session.title === '新会话')))
         .sort((a, b) => Number(b.id === selected) - Number(a.id === selected));
       let id: string | undefined;
       for (const candidate of candidates) {

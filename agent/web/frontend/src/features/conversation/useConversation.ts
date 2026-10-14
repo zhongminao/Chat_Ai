@@ -38,7 +38,7 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
             dispatch({ type: 'events', events });
             // Replaying historical events should not refresh the sidebar for every old turn.
             if (events.some(event => event.seq > snapshot.seq &&
-              ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))) ended.current();
+              ['turn.completed', 'turn.cancelled', 'turn.failed', 'agent.created'].includes(event.type))) ended.current();
           },
         });
       }).catch(error => {

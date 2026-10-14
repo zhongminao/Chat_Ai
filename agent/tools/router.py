@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from ..core.cancellation import ExecutionContext, RunCancelled
@@ -7,14 +8,16 @@ from .images import read_image, show_image
 from .result import ToolResult
 from .mcp.client import McpRuntime
 from .mcp.results import convert_result
-from .schema import DELEGATE_SCHEMA, TOOL_SCHEMAS
+from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, TOOL_SCHEMAS
 
 
 class ToolRouter:
-    def __init__(self, workspace, mcp: McpRuntime | None = None, delegate=None, images: ImageStore | None = None):
+    def __init__(self, workspace, mcp: McpRuntime | None = None, delegate=None, watch=None, images: ImageStore | None = None):
         self.workspace = workspace
         self.mcp = mcp
         self.delegate = delegate
+        self.watch = watch
+        self.submit = None
         self.images = images
         self.vision = False
         self.image_limit: int | None = None
@@ -22,6 +25,8 @@ class ToolRouter:
         self.schemas = TOOL_SCHEMAS + (mcp.schemas if mcp else [])
         if delegate:
             self.schemas.append(DELEGATE_SCHEMA)
+        if watch:
+            self.schemas.append(WATCH_SCHEMA)
 
     @property
     def mcp_servers(self) -> dict[str, str]:
@@ -47,10 +52,18 @@ class ToolRouter:
                 raise
             except Exception as exc:
                 return f"[tool error] {type(exc).__name__}: {exc}"
-        if name == "delegate":
-            if not self.delegate:
-                raise ValueError("delegate is unavailable")
-            return self.delegate(arguments["agent"], arguments["task"], context)
+        if name in {"delegate", "watch", "submit"}:
+            try:
+                handler = getattr(self, name)
+                if handler is None:
+                    raise ValueError(f"{name} is unavailable")
+                if name == "watch":
+                    return json.dumps(handler(context=context, **arguments), ensure_ascii=False)
+                return handler(**arguments)
+            except RunCancelled:
+                raise
+            except Exception as exc:
+                return f"[tool error] {type(exc).__name__}: {exc}"
         if self.mcp and name in self.mcp.tools:
             try:
                 result = self.mcp.call(name, arguments, context)

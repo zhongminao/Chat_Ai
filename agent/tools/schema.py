@@ -5,11 +5,28 @@ from typing import Any
 
 DELEGATE_SCHEMA = {"type": "function", "function": {
     "name": "delegate",
-    "description": "Delegate a focused task to a child agent.",
+    "description": "Start an independent child session asynchronously. Returns its session_id immediately. It is registered with watch. Call watch() for a snapshot, then watch(cursor=..., timeout=60) to wait for changes. Read result_path with read_file when completed. No automatic reply or result injection occurs. The child gets only these prompts, its own history and the shared workspace. Stopping your reply does not stop it.",
     "parameters": {"type": "object", "properties": {
-        "agent": {"type": "string", "description": "Child agent name."},
-        "task": {"type": "string", "description": "Focused task for the child agent."}},
-        "required": ["agent", "task"]}}}
+        "system_prompt": {"type": "string", "description": "Child role and task-specific instructions."},
+        "user_prompt": {"type": "string", "description": "Complete task and all necessary context, including exact paths."}},
+        "required": ["system_prompt", "user_prompt"], "additionalProperties": False}}}
+
+
+WATCH_SCHEMA = {"type": "function", "function": {
+    "name": "watch",
+    "description": "Query monitored background resources. Without cursor returns a snapshot. With cursor returns changed resources only; timeout>0 waits for any change. Use the cursor from the last watch result, not from a spawn call. A completed agent gives result_path: read that file using read_file, then decide to continue, wait again or submit. Returns status/references, not report contents. Querying does not consume results. Other resource kinds may be monitored later.",
+    "parameters": {"type": "object", "properties": {
+        "cursor": {"type": ["integer", "null"], "minimum": 0},
+        "timeout": {"type": "number", "minimum": 0, "maximum": 120, "default": 0}},
+        "additionalProperties": False}}}
+
+
+SUBMIT_SCHEMA = {"type": "function", "function": {
+    "name": "submit",
+    "description": "Submit the final report and end this execution. Call alone, after all work is done. Required for a child task; optional for a main agent's formal deliverable. Ordinary main-agent conversation does not need submit.",
+    "parameters": {"type": "object", "properties": {
+        "content": {"type": "string", "description": "The complete final report in Markdown. Include exact image URLs from show_image or child reports when displaying images."}},
+        "required": ["content"], "additionalProperties": False}}}
 
 
 TOOL_SCHEMAS = [
