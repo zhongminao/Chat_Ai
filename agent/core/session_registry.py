@@ -10,14 +10,15 @@ from .session_runtime import SessionBusy, SessionRuntime
 from ..model.catalog import ModelCatalog
 from ..storage.session import SessionStore
 from ..storage import reports
-from ..tools.mcp.client import McpRuntime
+from ..tools.mcp.client import McpClient
 from ..tools.router import ToolRouter
 from ..workflow.config import load
-from ..workflow.history import HistoryNode
+from ..workflow.history import restore_messages
 from ..workflow.input import UserInput
+from ..workflow.state import AgentState
 
 
-class SessionRuntimes:
+class SessionRegistry:
     def __init__(self, config=None):
         self.config = config or load()
         self.store = SessionStore(self.config.event_log.parent)
@@ -70,11 +71,12 @@ class SessionRuntimes:
         parent = self.get(parent_id)
         monitor = self.monitor(parent_id)
         child = self.create(parent_session_id=parent_id, system_prompt=system_prompt.strip(),
-                            model=dict(parent.agent.model), title=" ".join(user_prompt.split())[:40])
+                            model=dict(parent.state["model"]), title=" ".join(user_prompt.split())[:40])
         monitor.update(f"agent:{child.session.id}", kind="agent", session_id=child.session.id,
                        title=child.meta["title"], status="running")
+        execution = parent.state["execution"]
         parent.session.events.append("agent.created", session_id=child.session.id,
-                                     runId=getattr(parent.agent, "_current_run_id", None))
+                                     runId=execution["id"] if execution else None)
         child.start(UserInput(user_prompt))
         return json.dumps({"id": f"agent:{child.session.id}", "session_id": child.session.id,
                            "status": "running", "hint": "已纳入 watch 监控。先调用 watch() 获取快照；"
@@ -85,7 +87,7 @@ class SessionRuntimes:
             f"agent:{child.session.id}", kind="agent", session_id=child.session.id,
             title=child.meta.get("title", "子 agent"), **self._result(child.session.id))
 
-    def build_agent(self, runtime: SessionRuntime) -> AgentRuntime:
+    def build_state(self, runtime: SessionRuntime) -> AgentState:
         config = self.config
         records = runtime.session.events.read()
         catalog = ModelCatalog(config.providers_file)
@@ -94,7 +96,6 @@ class SessionRuntimes:
             if event["type"] == "model.changed":
                 model = event["new"]
         target = catalog.resolve(model["provider"], model["name"])
-        client, provider = catalog.runtime(target)
         prompt = runtime.meta.get("system_prompt", config.system_prompt)
         if runtime.parent_session_id:
             prompt += ("\nYou are an independent child agent. Complete the task and call submit exactly once "
@@ -112,17 +113,23 @@ class SessionRuntimes:
                        "submit 会结束本轮执行，应单独调用，内容须完整、可独立阅读，不必重复过程。\n"
                        "Reuse exact Markdown image URLs from reports to display their images, and use the "
                        "local image_file paths with read_image if you need to inspect them.")
-        tools = ToolRouter(config.workspace, McpRuntime(config.mcp) if config.mcp else None,
+        return {
+            "model": target.as_dict(),
+            "messages": [{"role": "system", "content": prompt.replace("{workspace}", str(config.workspace.resolve()))},
+                         *restore_messages(records)],
+            "execution": None,
+        }
+    def build_agent(self, runtime: SessionRuntime) -> AgentRuntime:
+        config = self.config
+        catalog = ModelCatalog(config.providers_file)
+        tools = ToolRouter(config.workspace, McpClient(config.mcp) if config.mcp else None,
                            delegate=None if runtime.parent_session_id else partial(self.delegate, runtime.session.id),
                            watch=None if runtime.parent_session_id else self.monitor(runtime.session.id).watch)
-        agent = AgentRuntime(client=client, model=target.as_dict(), provider=provider, catalog=catalog,
-                             thinking=target.thinking, session_id=runtime.session.id, spill=config.spill,
-                             workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,
-                             system_prompt=prompt, output=lambda text: None, tools=tools,
-                             control=runtime.control, on_submit=runtime.submitted)
-        agent.messages.extend(HistoryNode(records).messages())
-        agent.state["messages"] = agent.messages
-        return agent
+        return AgentRuntime(state=runtime.state, catalog=catalog,
+                            session_id=runtime.session.id, spill=config.spill,
+                            workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,
+                            output=lambda text: None, tools=tools,
+                            control=runtime.control, on_submit=runtime.submitted)
 
     def delete(self, session_id: str):
         with self.lock:

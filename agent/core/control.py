@@ -6,7 +6,7 @@ from .cancellation import CancellationToken
 CONTROL_ORDER = ["stop"]
 
 
-class ControlState:
+class ExecutionControl:
     def __init__(self):
         self._signals: set[str] = set()
         self._active: CancellationToken | None = None

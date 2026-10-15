@@ -3,7 +3,7 @@ import argparse
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from ..core.session_registry import SessionRuntimes
+from ..core.session_registry import SessionRegistry
 from ..workflow.config import load
 from ..workflow.commands import SwitchModel
 from .images import ImageCommands
@@ -21,7 +21,7 @@ def main() -> None:
         parser.error("--image-name 需要与 --image 一一对应")
 
     config = load()
-    registry = SessionRuntimes(config)
+    registry = SessionRegistry(config)
     session_store = registry.store
     try:
         runtime = registry.get(args.session) if args.session else registry.create()
@@ -38,7 +38,7 @@ def main() -> None:
         print(f"继续会话：{session.directory}")
     else:
         print(f"新会话：{session.directory}")
-    print(f"当前模型：{agent.model}")
+    print(f"当前模型：{agent.state['model']}")
     image_commands = ImageCommands(agent)
     for index, source in enumerate(args.image):
         name = args.image_name[index] if args.image_name else None
@@ -92,7 +92,7 @@ def main() -> None:
                 with runtime.lock:
                     if runtime.busy:
                         raise ValueError("会话正在执行")
-                    target = agent.dispatch(SwitchModel(provider=parts[1], model=parts[2]))
+                    target = runtime.dispatch(SwitchModel(provider=parts[1], model=parts[2]))
                 print(f"已切换模型：{target['provider']}/{target['name']}")
             except Exception as exc:
                 print(f"模型切换失败：{exc}")

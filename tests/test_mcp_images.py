@@ -17,7 +17,7 @@ from PIL import Image
 
 from agent.model.messages import build_tool_message, request_messages
 from agent.storage.images import ImageStore
-from agent.tools.mcp.client import McpRuntime
+from agent.tools.mcp.client import McpClient
 from agent.tools.mcp.results import convert_result
 from agent.tools.result import ToolResult
 from agent.tools.router import ToolRouter
@@ -107,9 +107,9 @@ class ImageTests(unittest.TestCase):
 
     @unittest.skipUnless(os.getenv("CHAT_AI_TEST_SEARCH"), "set CHAT_AI_TEST_SEARCH=1 for live search smoke test")
     def test_existing_search_over_http(self):
-        runtime = McpRuntime({"search": "http://127.0.0.1:8766/mcp"})
-        self.assertIn("mcp_search_search", runtime.tools)
-        response = runtime.call("mcp_search_search", {"query": "injection molding", "limit": 1})
+        runtime = McpClient({"web": "http://127.0.0.1:8766/mcp"})
+        self.assertIn("mcp_web_search", runtime.tools)
+        response = runtime.call("mcp_web_search", {"query": "injection molding", "limit": 1})
         self.assertIsInstance(response, types.CallToolResult)
         result = convert_result(response, self.images)
         self.assertIsInstance(result, str)
@@ -138,7 +138,7 @@ class ImageTests(unittest.TestCase):
                     if process.poll() is not None:
                         self.fail("fixture MCP server exited")
                     time.sleep(0.05)
-            runtime = McpRuntime({"local": f"http://127.0.0.1:{port}/mcp"})
+            runtime = McpClient({"local": f"http://127.0.0.1:{port}/mcp"})
             router = ToolRouter(self.root, runtime, images=self.images)
             router.vision = True
             result = router.call("mcp_local_read_image", {})

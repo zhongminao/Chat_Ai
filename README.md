@@ -2,17 +2,20 @@
 
 ## 开发约定
 
-代码保持简洁，模块职责清晰，功能通过小模块组合。CLI、Web 和核心控制器共用事件流；界面逻辑不进入核心。文档只记录真实行为和必要入口。
+生产代码尽量保持简洁，模块职责清晰，功能通过小模块组合。提高可维护性所需的适当代码增量是合理的，不以减少行数作为唯一目标，也不为拆分而增加无必要的封装。测试代码的行数增量不作为生产代码设计的限制，测试关注有效覆盖和实际行为。
+
+简单的状态操作集中在同一个模块，较大的状态变更逻辑单独成文件。CLI、Web 和核心运行时共用事件流；界面逻辑不进入核心。文档只记录真实行为和必要入口。
 
 ## 当前结构
 
 ```text
-agent/core/       AgentRuntime、状态转移和工具调度
-agent/model/      模型协议、provider、模型目录、图文消息组装
+agent/core/       SessionRuntime、AgentRuntime、会话调度与运行资源
+agent/model/      模型协议、provider、模型目录与客户端复用、图文消息组装
 agent/tools/      本地工具、schema、router、spill
-agent/tools/mcp/  MCP 客户端与 adapter
+agent/tools/mcp/  MCP 客户端与结果转换
+agent/mcp_servers/ 独立 MCP 服务端
 agent/storage/    session、events.jsonl、图片与缩略图
-agent/workflow/   配置、AgentState、HistoryNode、共用输入与命令
+agent/workflow/   state 类型、状态节点、流程路由、历史恢复、配置与输入命令
 agent/cli/        CLI
 agent/web/        FastAPI、SSE、页面
 config.yaml       项目配置
@@ -48,8 +51,14 @@ npm ci
 npm run build
 ```
 
-生产访问 `http://127.0.0.1:8764`；FastAPI 提供 `dist/index.html`、`/assets` 和原有 `/api`。
-8764 是网页服务端口，模型仍由 provider 配置选择，可直接使用 DeepSeek API。
+上述手动启动示例访问 `http://127.0.0.1:8764`；FastAPI 提供 `dist/index.html`、`/assets` 和原有 `/api`。
+服务器当前生产服务为用户级 `chat_ai.service`，监听 `8200`；模型仍由 provider 配置选择。
+
+```bash
+systemctl --user status chat_ai
+systemctl --user restart chat_ai
+journalctl --user -u chat_ai -f
+```
 
 前端开发时保持上述 FastAPI 服务运行，在另一个终端执行：
 
@@ -58,11 +67,12 @@ cd /home/zhong/mydisk/tools/chat_ai/agent/web/frontend
 npm run dev
 ```
 
-访问 `http://127.0.0.1:5173`，Vite 将 `/api` 代理到 `127.0.0.1:8764`。
+访问 `http://127.0.0.1:5173`，Vite 默认将 `/api` 代理到手动启动示例的 `127.0.0.1:8764`。
+若使用现有生产服务作为开发后端，需要将 `vite.config.ts` 中的代理目标调整为 `127.0.0.1:8200`。
 前端检查：`npm test`；`npm run build` 包含 TypeScript 检查。
 
 修改 Python 后端或 provider 适配代码后，需要重启 uvicorn；修改前端后需要重新构建并刷新页面。
-8764 是 chat_ai 网页服务端口；8002 是本地千问的模型服务端口，两者独立启动。
+当前生产网页服务端口为 8200，手动开发示例为 8764；8002 是本地千问的模型服务端口，两者独立启动。
 
 ## 前端模块
 
@@ -75,6 +85,7 @@ agent/web/frontend/src/
 │   ├── sessions/                会话列表与选择
 │   ├── models/                  模型选择器
 │   ├── images/                  上传草稿、图片卡片与名称编辑
+│   ├── watch/                   后台任务状态展示与订阅
 │   └── conversation/            消息列表、输入框与对话状态
 │       └── content/             Markdown、代码、公式与流式显示
 └── ui/                          通用界面组件
@@ -101,7 +112,7 @@ agent/web/frontend/src/
 ## 会话名称
 
 Web 会话列表中的铅笔按钮可修改名称；按 Enter 或点击勾号保存，Esc 或取消按钮放弃修改。
-保存后列表和当前对话页眉一起更新。名称需要 1–80 个字符，前后空白会被移除，不能包含换行或控制字符。
+保存后列表和顶部主／子 agent 导航的悬停说明一起更新。名称需要 1–80 个字符，前后空白会被移除，不能包含换行或控制字符。
 CLI 在当前会话中输入 `/rename 图片识别实验`，也可以修改同一个名称。
 
 Web 的 `PATCH /api/sessions/{id}` 接收 `{"title":"新名称"}`，与 CLI 共用
@@ -315,13 +326,37 @@ curl http://127.0.0.1:8002/v1/models
 需要与字符损坏、缺字和显示异常区分。
 
 ## 状态与运行时
-`agent/core/control.py` 提供运行控制状态。Web 和 CLI 共用 `ControlState`；当前支持停止正在执行的 turn，控制信号不写入 `AgentState`。Web 通过
-`POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使用 `Ctrl+C`。
 
+每个 session 独立持有一份可 JSON 序列化的 `AgentState`，传给自己的 `AgentRuntime` 使用：
 
-`state` 只保存可记录、可回放、可传输的 JSON 数据。`runtime` 保存连接、客户端、线程和回调。MCP 的名称、URL、工具 schema 进入 state；MCP 连接和工具映射留在 runtime。核心只使用统一工具列表和调用接口。
+- `model`：当前 provider、模型名称和 thinking 设置。
+- `messages`：系统提示词、用户与助手消息、工具调用和结果；图片保存资源 ID 引用。
+- `execution`：本轮 ID、状态、阶段、轮次、回复、submit 报告及路径、错误；尚未执行时为 null。
 
-`events.jsonl` 是程序唯一事件流。`HistoryNode` 从事件流恢复消息，CLI 和 Web 使用同一套恢复流程。工具输出过大时写入工作目录 `.spill/<session_id>/`，模型通过 `read_file` 读取。
+状态节点只读取输入数据并返回 `StateUpdate`，不原地修改输入、不创建客户端、不执行工具，也不写日志或文件。
+运行时应用更新、执行 I/O 并发布事件。流程路由由 `after_model`、`after_tools` 决定下一步。
+
+| 模块 | 职责 |
+| --- | --- |
+| `workflow/state.py` | `AgentState`、`ExecutionState` 和 `StateUpdate` 类型 |
+| `workflow/transitions.py` | 简单操作合集：切换模型、执行生命周期、流式回复累积、submit，以及流程路由 |
+| `workflow/messages.py` | 用户输入、模型回复、工具结果、取消时保留部分回复等消息变更 |
+| `workflow/history.py` | 从事件流重建消息，复用统一的助手消息构造逻辑 |
+| `core/session_runtime.py` | 独立持有 state，管理会话队列、线程、忙闲、停止和报告保存 |
+| `core/agent_runtime.py` | 调度本轮模型与工具循环，应用节点更新并发布事件 |
+| `model/catalog.py` | 模型配置校验、视觉能力，以及 `get_binding(target)` 客户端与 provider 复用 |
+
+切换模型只更新 state 并记录事件，不要求初始化 agent 执行器、MCP 或模型客户端。
+实际调用模型时，`get_binding` 按目标模型按需创建资源；同一个 catalog 实例只复用当前模型的一对资源，目标改变后重新创建。
+新资源创建成功后才替换旧绑定。绑定按实例隔离，不跨 session 共享。
+客户端、provider 实例、连接、线程、锁、队列、回调和工具路由留在运行时；工具 schema 和 MCP 配置不复制进 `AgentState`。
+
+`agent/core/control.py` 提供运行控制状态。Web 和 CLI 共用 `ExecutionControl`，控制信号不写入 `AgentState`。
+Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使用 `Ctrl+C`。
+`SessionRuntime.busy` 表示调度器是否有任务在执行，`execution.status` 描述本轮逻辑结果；二者不等同于 watch 的资源状态。
+
+当前不保存 state checkpoint，也不序列化运行资源。`events.jsonl` 保持为持久化事件流，`restore_messages` 从中恢复消息，CLI 和 Web 使用同一套恢复流程。
+工具输出过大时写入工作目录 `.spill/<session_id>/`，模型通过 `read_file` 读取。
 
 ## MCP 与网页工具
 
@@ -329,19 +364,21 @@ curl http://127.0.0.1:8002/v1/models
 
 ```yaml
 mcp:
-  search: http://127.0.0.1:8766/mcp
+  web: http://127.0.0.1:8766/mcp
 ```
 
 搜索桥接请求本地 SearXNG 时保持直连；`fetch_url` 读取 HTTP_PROXY/HTTPS_PROXY 等环境变量访问外部网页。
 使用终端代理时同时设置 `NO_PROXY` 和 `no_proxy` 为 `localhost,127.0.0.1,::1`，避免本地 MCP 和模型接口绕到代理。
 当前用户服务的固定代理配置位于 `~/.config/systemd/user/chat-search-mcp.service.d/20-proxy.conf`；终端的 `proxy_on`/`proxy_off` 不会修改已运行服务的环境。修改服务配置后执行 `systemctl --user daemon-reload` 并重启 `chat-search-mcp.service`。
 
-`agent/tools/mcp/adapter/web_mcp.py` 提供：
+`agent/mcp_servers/web.py` 提供：
+
+配置连接别名为 `web`，工具名为 `mcp_web_search` 和 `mcp_web_fetch_url`。
 
 - `search`：调用本地 SearXNG 搜索网页
 - `fetch_url`：读取公开网页的静态 HTML 文本
 
-SearXNG 是搜索后端；`web_mcp.py` 是 MCP 适配层。`fetch_url` 不执行 JavaScript，也不提供登录和浏览器操作。
+SearXNG 是搜索后端；`web.py` 是独立的 Web MCP 服务端。`fetch_url` 不执行 JavaScript，也不提供登录和浏览器操作。
 
 ## 下一阶段：混合检索
 
@@ -368,14 +405,17 @@ watch 只返回状态、路径及失败原因，不返回报告正文。用现�
 游标是每个调用者的位置，不表示领取或消费报告。网页与模型查询互不影响；一次增量返回每个变化资源的最新状态，可合并短时间内的多次更新。删除以 deleted 标记返回，首次快照不包含已删除资源。
 
 每个主 session 的状态保存在 watch.json。通用 Monitor 只负责版本、资源快照和条件变量通知，不依赖 agent、模型或网页。新增 Bash 等资源只需接入 update，无需改变 watch 协议；本版本尚未增加后台 Bash 工具。
-SessionRuntimes 负责会话查找、创建子任务以及 agent 状态适配；SessionRuntime 只管理单个 session 的串行执行和取消；AgentRuntime 运行模型和工具循环。
+SessionRegistry 负责会话查找、创建子任务以及 agent 状态适配；SessionRuntime 管理单个 session 的 state、串行执行和取消；AgentRuntime 运行模型和工具循环。
 
 子任务完成不会启动主 agent 或修改主对话。主 agent 在新的用户请求中按提示调用 watch；也可在当前执行中显式等待。主回复结束、停止或网页断开均不取消子任务；停止 watch 等待只取消当前主执行。
-网页输入框上方显示后台任务数量，点击“交给主 agent”会产生明确的用户消息。子 session 从顶部导航查看，不出现在主会话历史列表。
+网页顶部主／子 agent 导航末尾显示后台任务数量，不提供手动交付按钮；后台结果由 LLM 通过 watch 查询、按需读取。
+子 agent 较多或空间不足时收进下拉选择框，后台任务标识保持可见。子 session 从顶部导航查看，不出现在左侧主会话历史列表，记录仍保存在各自 session 中。
 
 报告保存为 storage/sessions/<id>/reports/<run_id>.md。show_image 回执提供稳定的 /api/sessions/.../images/.../content 地址；submit 会规范化本轮已展示图片的路径，并补全遗漏的图片引用。报告中的 image_file 注释保留本地路径，供 read_image 使用，网页不渲染这些注释。
 框架不额外运行总结模型。主 agent 可以总结或直接使用子报告中的文字和图片；图片实际内容只有显式读图时才进入视觉模型。
-主 agent 的 submit 会折叠本轮过程并显示用时；普通回复保持原样。每条用户消息或按钮操作均开始新一轮，不合并后台自动回复。
+主 agent 的 submit 会将本轮此前的过程默认折叠到“用时”栏，默认只展示完整、可独立阅读的最终报告；展开后过程与报告连续展示。
+普通问答、澄清和进度说明直接回复。复杂任务需要收起较长的分析和工具过程、呈现整理后的结论时再使用 submit，不按答案字数机械决定。
+submit 会结束本轮，应单独调用。普通回复保持原样；每条用户消息开始新一轮，不合并后台自动回复。
 
 服务重启后恢复已保存的监控状态和报告，未完成的子 agent 标为 failed，不自动重跑。CLI 一次性调用会等待后台子任务结束再退出；交互式 CLI 退出会结束其进程内任务。不要从 CLI 和 Web 同时写同一个 session。
 不同 session 可并发，但模型服务器的并发容量仍然生效。同一 Moldflow study 的仿真需要保持串行。

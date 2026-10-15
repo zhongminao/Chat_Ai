@@ -1,7 +1,7 @@
 # MCP 结果与图片
 
 `client.py` 负责连接、发现工具和调用，返回 SDK 的 `CallToolResult`。
-`results.py` 将文本/结构化数据和内联图片转换成现有的 `ToolResult`；`router.py` 注入会话图片存储和当前模型的视觉配置。控制器、模型消息和 Web 事件复用原有链路。
+`results.py` 将文本/结构化数据和内联图片转换成现有的 `ToolResult`；`router.py` 注入会话图片存储和当前模型的视觉配置。运行时、模型消息和 Web 事件复用原有链路。
 
 图片内容按字节解码，使用 SHA256 复用同一会话中的相同图片；单图限制、格式验证由 `ImageStore` 与转换器执行。图片出现在 `ToolResult.images` 中供界面显示；启用视觉时同时出现在 `model_images` 中，在模型请求边界转换为真实图像。非视觉模型保留界面显示和明确的文本回执，不向模型附加图片。视觉上下文的不同图片数量遵循 provider 配置。
 
@@ -16,3 +16,5 @@ python -m unittest discover -s tests -p 'test_mcp_images.py' -v
 # 同时检查现有搜索 MCP（需要 127.0.0.1:8766 正常运行）：
 CHAT_AI_TEST_SEARCH=1 python -m unittest discover -s tests -p 'test_mcp_images.py' -v
 ```
+
+独立 Web MCP 服务端位于 `agent/mcp_servers/web.py`，本目录只维护客户端与结果转换。

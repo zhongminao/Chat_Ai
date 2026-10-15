@@ -1,21 +1,19 @@
-import json
 import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from ..model.buffer import TextBuffer
-from ..model.catalog import ModelCatalog
-from ..workflow.commands import RenameImage, SwitchModel
+from ..model.catalog import ModelCatalog, ModelTarget
+from ..workflow.commands import RenameImage
 from ..workflow.input import UserInput, normalize_input
-from ..model.messages import build_user_message, build_tool_message, model_image_ids
+from ..model.messages import model_image_ids
 from ..storage.images import ImageStore
-from ..workflow.model_switch import apply as apply_model_switch
-from ..workflow.state import AgentState
+from ..workflow.state import AgentState, StateUpdate
+from ..workflow import messages, transitions
 from .cancellation import ExecutionContext, RunCancelled, CancellationToken
-from .control import ControlState
+from .control import ExecutionControl
 from ..model.openai_compatible import stream
-from ..model.providers import create as create_provider
 from ..storage.event_log import EventLog
 from ..tools.router import ToolRouter
 from ..tools.result import ToolResult, normalize_result
@@ -24,48 +22,34 @@ from ..tools.schema import SUBMIT_SCHEMA, ToolCallAssembler
 
 
 class AgentRuntime:
+    """Execute model and tool steps against the supplied serializable state."""
+
     def __init__(
         self,
-        client: Any,
-        model: dict[str, str],
-        provider: Any,
+        state: AgentState,
         catalog: ModelCatalog,
-        thinking: str,
         session_id: str,
         spill: dict[str, int | bool | str],
         workspace: Path,
         log: EventLog,
         max_rounds: int,
-        system_prompt: str,
         output: Callable[[str], None] | None = None,
         tools: ToolRouter | None = None,
         on_submit: Callable[[str, str], str] | None = None,
-        control: ControlState | None = None,
+        control: ExecutionControl | None = None,
         images: ImageStore | None = None,
         on_tool_result: Callable[[ToolResult], None] | None = None,
     ):
-        self.client = client
-        self.control = control or ControlState()
-        self.model = model
+        self.state = state
+        self.control = control or ExecutionControl()
         self.catalog = catalog
         self.session_id = session_id
         self.spill = spill
         self.max_rounds = max_rounds
-        self.system_prompt = system_prompt
         self.tools = tools or ToolRouter(workspace)
         self.on_submit = on_submit
-        self.submitted_report: str | None = None
         self.tools.submit = self._submit
         self.tools.schemas.append(SUBMIT_SCHEMA)
-        self.state: AgentState = {
-            "model": dict(model),
-            "messages": [],
-            "tools": self.tools.schemas,
-            "mcp_servers": self.tools.mcp_servers,
-            "spill_enabled": bool(spill.get("enabled", True)),
-            "status": "idle",
-        }
-        self.provider = provider or create_provider(model["provider"], model["thinking"])
 
         self.workspace = workspace
         self.log = log
@@ -73,16 +57,12 @@ class AgentRuntime:
         self.tools.images = self.images
         self.on_tool_result = on_tool_result
         self.output = output or (lambda text: print(text, end="", flush=True))
-        self.messages: list[dict[str, Any]] = [
-            {"role": "system", "content": system_prompt.replace("{workspace}", str(workspace.resolve()))},
-        ]
+
+    def apply(self, update: StateUpdate) -> None:
+        self.state.update(update)
 
     def _submit(self, content: str) -> str:
-        if not isinstance(content, str) or not content.strip():
-            raise ValueError("report content must be non-empty text")
-        if self.submitted_report is not None:
-            raise ValueError("a report has already been submitted")
-        self.submitted_report = content.strip()
+        self.apply(transitions.submit(self.state, content))
         return "Report submitted."
 
     def _cancel_pending_tools(self, run_id: str, calls: list[Any]) -> None:
@@ -95,26 +75,12 @@ class AgentRuntime:
                 callId=call.id,
                 result=result,
             )
-            self.messages.append({
-                "role": "tool",
-                "tool_call_id": call.id,
-                "content": result,
-            })
+            self.apply(messages.receive_tool(self.state, call.id, result))
 
-    def dispatch(self, command: SwitchModel | RenameImage) -> dict:
-        if isinstance(command, RenameImage):
-            image = self.images.rename(command.image, command.name)
-            self.log.append("image.renamed", image=image)
-            return image
-        target = self.catalog.resolve(command.provider, command.model)
-        client, provider = self.catalog.runtime(target)
-        old = self.model
-        self.client = client
-        self.provider = provider
-        self.model = target.as_dict()
-        self.state = apply_model_switch(self.state, command, self.model)
-        self.log.append("model.changed", old=old, new=self.model)
-        return self.model
+    def dispatch(self, command: RenameImage) -> dict:
+        image = self.images.rename(command.image, command.name)
+        self.log.append("image.renamed", image=image)
+        return image
 
     def run(
         self,
@@ -123,26 +89,28 @@ class AgentRuntime:
     ) -> str:
         own_token = context is None
         context = context or ExecutionContext(CancellationToken())
+        self.apply(transitions.start(self.state, uuid.uuid4().hex))
         self.control.bind(context.cancellation)
         try:
             return self._run(prompt, context)
         except (RunCancelled, KeyboardInterrupt):
             context.cancellation.cancel()
+            self.apply(messages.cancel(self.state))
             if not own_token:
                 raise
-            answer = getattr(self, "_current_answer", "")
-            if answer:
-                self.messages.append({"role": "assistant", "content": answer})
+            execution = transitions.execution(self.state)
+            answer = execution["answer"]
             self.log.append(
                 "turn.cancelled",
-                runId=getattr(self, "_current_run_id", None),
+                runId=execution["id"],
                 answer=answer,
             )
             print()
             return answer
+        except Exception as exc:
+            self.apply(transitions.fail(self.state, str(exc)))
+            raise
         finally:
-            if own_token:
-                context.cancellation.cancel() if context.cancellation.is_cancelled() else None
             self.control.unbind(context.cancellation)
 
     def _run(
@@ -150,33 +118,32 @@ class AgentRuntime:
         prompt: str | UserInput,
         context: ExecutionContext,
     ) -> str:
-        run_id = uuid.uuid4().hex
-        self._current_run_id = run_id
-        self._current_answer = ""
-        self.submitted_report = None
+        run_id = transitions.execution(self.state)["id"]
         context.cancellation.raise_if_cancelled()
         value = self.prepare_input(prompt)
         assets = [self.images.get(image) for image in value.images]
-        self.messages.append(build_user_message(value.text, value.images))
+        self.apply(messages.receive_user(self.state, value.text, value.images))
         self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
 
         for round_no in range(self.max_rounds):
-            vision, image_limit = self.catalog.vision_options(self.model) if self.catalog else (False, None)
+            self.apply(transitions.start_round(self.state, round_no))
+            model = self.state["model"]
+            client, provider = self.catalog.get_binding(ModelTarget(**model))
+            vision, image_limit = self.catalog.vision_options(model) if self.catalog else (False, None)
             self.tools.vision = vision
             self.tools.image_limit = image_limit
             assembler = ToolCallAssembler()
             text_buffer = TextBuffer()
-            answer: list[str] = []
             finish_reason = None
             usage = None
 
             self.log.append("model.started", runId=run_id, round=round_no)
             for chunk in stream(
-                self.client,
-                self.model["name"],
-                self.messages,
+                client,
+                model["name"],
+                self.state["messages"],
                 self.tools.schemas,
-                provider=self.provider,
+                provider=provider,
                 context=context,
                 images=self.images,
                 read_images=vision,
@@ -184,8 +151,7 @@ class AgentRuntime:
                 context.cancellation.raise_if_cancelled()
 
                 if chunk.content:
-                    answer.append(chunk.content)
-                    self._current_answer = "".join(answer)
+                    self.apply(transitions.append_answer(self.state, chunk.content))
                     self.output(chunk.content)
                     if piece := text_buffer.add(chunk.content):
                         self.log.append(
@@ -230,26 +196,8 @@ class AgentRuntime:
                 )
 
             calls = assembler.finish()
-            full_answer = "".join(answer)
-            assistant: dict[str, Any] = {
-                "role": "assistant",
-                "content": full_answer,
-            }
-            if calls:
-                assistant["tool_calls"] = [
-                    {
-                        "id": call.id,
-                        "type": "function",
-                        "function": {
-                            "name": call.name,
-                            "arguments": json.dumps(
-                                call.arguments, ensure_ascii=False
-                            ),
-                        },
-                    }
-                    for call in calls
-                ]
-            self.messages.append(assistant)
+            full_answer = transitions.execution(self.state)["answer"]
+            self.apply(messages.complete_model(self.state, full_answer, calls))
 
             self.log.append(
                 "model.completed",
@@ -259,7 +207,8 @@ class AgentRuntime:
                 usage=usage,
             )
 
-            if not calls:
+            if transitions.after_model(self.state) == "end":
+                self.apply(transitions.complete(self.state, full_answer))
                 self.log.append(
                     "turn.completed",
                     runId=run_id,
@@ -270,7 +219,7 @@ class AgentRuntime:
 
             completed_call_ids = set()
             for call in calls:
-                if self.submitted_report is None:
+                if transitions.after_tools(self.state) == "model":
                     context.cancellation.raise_if_cancelled()
                 self.log.append(
                     "tool.requested",
@@ -280,15 +229,15 @@ class AgentRuntime:
                     arguments=call.arguments,
                 )
                 try:
-                    self.tools.model_images = model_image_ids(self.messages)
+                    self.tools.model_images = model_image_ids(self.state["messages"])
                     output = normalize_result(
                         "[tool skipped] Report already submitted."
-                        if self.submitted_report is not None
+                        if transitions.after_tools(self.state) == "submit"
                         else self.tools.call(call.name, call.arguments, context)
                     )
                     result = spill_output(
                         output.text,
-                        enabled=self.state.get("spill_enabled", True),
+                        enabled=bool(self.spill.get("enabled", True)),
                         max_inline_chars=int(self.spill.get("max_inline_chars", 12000)),
                         preview_chars=int(self.spill.get("preview_chars", 4000)),
                         workspace=self.workspace,
@@ -312,19 +261,19 @@ class AgentRuntime:
                 )
                 if output.images and self.on_tool_result:
                     self.on_tool_result(output)
-                self.messages.append(build_tool_message(call.id, result, [image["id"] for image in output.model_images]))
+                self.apply(messages.receive_tool(self.state, call.id, result, [image["id"] for image in output.model_images]))
                 completed_call_ids.add(call.id)
-                if self.submitted_report is None:
+                if transitions.after_tools(self.state) == "model":
                     context.cancellation.raise_if_cancelled()
 
-            if self.submitted_report is not None:
-                report = self.submitted_report
+            if transitions.after_tools(self.state) == "submit":
+                report = transitions.execution(self.state)["report"]
                 if self.on_submit:
                     report = self.on_submit(report, run_id)
-                    self.submitted_report = report
                 else:
                     self.log.append("report.submitted", runId=run_id, content=report)
                 self.output(report)
+                self.apply(transitions.complete(self.state, report))
                 self.log.append("turn.completed", runId=run_id, answer=report)
                 return report
 

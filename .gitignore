@@ -16,7 +16,7 @@ node_modules/
 
 .spill/
 workspace/
-storage/sessions/
+/storage/
 *.log
 
 .vscode/
@@ -29,3 +29,4 @@ Thumbs.db
 .ruff_cache/
 .coverage
 htmlcov/
+/tmp/

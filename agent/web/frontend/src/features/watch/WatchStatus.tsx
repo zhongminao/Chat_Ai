@@ -1,6 +1,6 @@
 import { useWatch } from './useWatch';
 
-export function WatchPanel({ sessionId, onChange }: {
+export function WatchStatus({ sessionId, onChange }: {
   sessionId: string | null; onChange: () => void;
 }) {
   const watch = useWatch(sessionId, onChange);

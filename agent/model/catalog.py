@@ -27,6 +27,8 @@ class ModelCatalog:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         self.providers: dict[str, dict[str, Any]] = data.get("providers", {})
         self.default_provider = data.get("default_provider", "deepseek")
+        self._bound_target: ModelTarget | None = None
+        self._binding: tuple[Any, Any] | None = None
 
     def resolve(self, provider_name: str, model_name: str | None = None) -> ModelTarget:
         provider = self.providers.get(provider_name)
@@ -60,7 +62,9 @@ class ModelCatalog:
                 raise ValueError("max_images must be a positive integer")
         return enabled, limit
 
-    def runtime(self, target: ModelTarget):
+    def get_binding(self, target: ModelTarget) -> tuple[Any, Any]:
+        if target == self._bound_target and self._binding is not None:
+            return self._binding
         provider = self.providers[target.provider]
         env_name = provider.get("api_key_env")
         api_key = os.getenv(env_name) if env_name else None
@@ -68,7 +72,9 @@ class ModelCatalog:
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
         from openai import OpenAI
-        return (
+        binding = (
             OpenAI(api_key=api_key, base_url=provider["base_url"]),
             create_provider(target.provider, target.thinking),
         )
+        self._binding, self._bound_target = binding, target
+        return binding

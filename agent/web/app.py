@@ -8,12 +8,12 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from ..core.session_registry import SessionRuntimes
+from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..workflow.config import load
 from ..model.catalog import ModelCatalog
 from ..storage.event_log import EventLog
-from ..workflow.history import HistoryNode
+from ..workflow.history import restore_messages
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
 from ..storage.images import ImageStore
@@ -37,7 +37,7 @@ class SessionName(BaseModel):
 app = FastAPI(title="chat_ai")
 frontend_dist = Path(__file__).parent / "frontend" / "dist"
 app.mount("/assets", StaticFiles(directory=frontend_dist / "assets", check_dir=False), name="assets")
-registry = SessionRuntimes()
+registry = SessionRegistry()
 session_store = registry.store
 
 
@@ -143,9 +143,9 @@ def conversation(session_id: str):
         if event["type"] == "model.changed":
             target = event["new"]
     if rt and rt._agent is not None:
-        target = rt.agent.model
+        target = rt.agent.state["model"]
     return {
-        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": HistoryNode(records).messages(),
+        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": restore_messages(records),
         "seq": records[-1]["seq"] if records else 0,
         "busy": bool(rt and rt.busy), "model": target,
         "images": ImageStore(directory_for(session_id)).list(),
@@ -168,12 +168,12 @@ def models():
 def switch_model(session_id: str, request: ModelRequest):
     rt = runtime(session_id)
     with rt.lock:
-        if rt.busy or rt.parent_session_id:
-            raise HTTPException(409, "This session is running or is a read-only child session")
         try:
-            model = rt.agent.dispatch(
+            model = rt.dispatch(
                 SwitchModel(provider=request.provider, model=request.model)
             )
+        except SessionBusy as exc:
+            raise HTTPException(409, str(exc)) from exc
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(400, str(exc))
     return {"model": model}

@@ -8,7 +8,7 @@ from mcp.client.streamable_http import streamable_http_client
 from ...core.cancellation import ExecutionContext, RunCancelled
 
 
-class McpRuntime:
+class McpClient:
     def __init__(self, servers: dict[str, str]):
         self.servers = dict(servers)
         self.tools: dict[str, tuple[str, str]] = {}

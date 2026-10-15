@@ -6,13 +6,13 @@ from ..storage.images import ImageStore
 from .executor import execute
 from .images import read_image, show_image
 from .result import ToolResult
-from .mcp.client import McpRuntime
+from .mcp.client import McpClient
 from .mcp.results import convert_result
 from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, TOOL_SCHEMAS
 
 
 class ToolRouter:
-    def __init__(self, workspace, mcp: McpRuntime | None = None, delegate=None, watch=None, images: ImageStore | None = None):
+    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None):
         self.workspace = workspace
         self.mcp = mcp
         self.delegate = delegate

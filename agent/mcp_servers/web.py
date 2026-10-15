@@ -7,7 +7,7 @@ import httpx
 from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, Field
 
-server = MCPServer("search")
+server = MCPServer("web")
 SEARCH_URL = getenv("SEARXNG_URL", "http://127.0.0.1:8888")
 
 

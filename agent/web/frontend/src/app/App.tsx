@@ -5,7 +5,7 @@ import { useConversation } from '../features/conversation/useConversation';
 import { MessageList } from '../features/conversation/MessageList';
 import { Composer } from '../features/conversation/Composer';
 import { Icon } from '../ui/Icon';
-import { WatchPanel } from '../features/watch/WatchPanel';
+import { WatchStatus } from '../features/watch/WatchStatus';
 import { AgentTabs } from '../features/sessions/AgentTabs';
 
 export function App() {
@@ -29,7 +29,7 @@ export function App() {
       <header className="workspace-header">
         <button className="icon-button mobile-only" aria-label="打开会话列表" onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
         <AgentTabs sessions={sessions.sessions} selected={sessions.selected} onSelect={sessions.select}>
-          <WatchPanel sessionId={current?.parent_session_id ?? sessions.selected}
+          <WatchStatus sessionId={current?.parent_session_id ?? sessions.selected}
             onChange={() => { void sessions.refresh(); }} />
         </AgentTabs>
       </header>
