@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from agent.model.catalog import ModelCatalog, ModelTarget
 
@@ -24,10 +24,11 @@ class ModelBindingTests(unittest.TestCase):
         self.two = self.catalog.resolve('test', 'two')
 
     def tearDown(self):
+        self.catalog.close()
         self.temp.cleanup()
 
     def test_reuses_only_current_binding_and_keeps_instances_independent(self):
-        with patch('openai.OpenAI') as clients, patch('agent.model.catalog.create_provider') as providers:
+        with patch('agent.model.catalog.ModelRequest') as clients, patch('agent.model.catalog.create_provider') as providers:
             first = self.catalog.get_binding(self.one)
             self.assertIs(self.catalog.get_binding(ModelTarget(**self.one.as_dict())), first)
             self.assertEqual(clients.call_count, 1)
@@ -41,8 +42,8 @@ class ModelBindingTests(unittest.TestCase):
             self.assertEqual(clients.call_count, 4)
 
     def test_creation_failure_preserves_previous_binding_and_allows_retry(self):
-        with patch('openai.OpenAI', side_effect=[object(), RuntimeError('creation failed'), object()]) as clients, \
-             patch('agent.model.catalog.create_provider', side_effect=[object(), object()]):
+        with patch('agent.model.catalog.ModelRequest', side_effect=[Mock(), RuntimeError('creation failed'), Mock()]) as clients, \
+             patch('agent.model.catalog.create_provider', side_effect=[object(), object(), object()]):
             first = self.catalog.get_binding(self.one)
             with self.assertRaisesRegex(RuntimeError, 'creation failed'):
                 self.catalog.get_binding(self.two)

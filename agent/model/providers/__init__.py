@@ -9,6 +9,6 @@ def create(name: str, thinking: str = "disabled") -> Any:
         return DeepSeekProvider(thinking=thinking)
     if name == "local-qwen3p5-9b":
         return LocalQwenProvider(thinking=thinking)
-    if name in {"qwen", "gpt"}:
+    if name in {"qwen", "gpt", "local-qwen3-coder-30b"}:
         return QwenProvider()
     raise ValueError(f"unknown provider: {name}")

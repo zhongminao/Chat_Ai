@@ -1,7 +1,8 @@
 from collections.abc import Iterator
+from contextlib import closing
 from typing import Any, Protocol
 
-from ..core.cancellation import ExecutionContext, RunCancelled
+from ..core.cancellation import ExecutionContext
 from .protocol import ModelChunk, ToolCallDelta
 from .messages import request_messages
 from ..storage.images import ImageStore
@@ -65,21 +66,6 @@ def stream(
     }
     options.update(provider.request_options())
 
-    response = client.chat.completions.create(**options)
-    remove_callback = (
-        context.cancellation.add_callback(
-            lambda: getattr(response, "close", lambda: None)()
-        )
-        if context else lambda: None
-    )
-    try:
+    with closing(client.stream(options, context)) as response:
         for raw in response:
-            if context:
-                context.cancellation.raise_if_cancelled()
             yield provider.parse_chunk(raw)
-    except RunCancelled:
-        getattr(response, "close", lambda: None)()
-        raise
-    finally:
-        remove_callback()
-        getattr(response, "close", lambda: None)()

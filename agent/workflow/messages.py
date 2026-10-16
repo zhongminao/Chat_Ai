@@ -35,6 +35,13 @@ def receive_tool(state: AgentState, call_id: str, text: str, images: Sequence[st
     return {'messages': [*state['messages'], build_tool_message(call_id, text, images)]}
 
 
+def remind_completion(state: AgentState, content: str) -> StateUpdate:
+    return {
+        'messages': [*state['messages'], {'role': 'system', 'content': content}],
+        **update_execution(state, completion_reminders=execution(state)['completion_reminders'] + 1),
+    }
+
+
 def cancel(state: AgentState) -> StateUpdate:
     current = execution(state)
     update = update_execution(state, status='cancelled', phase='done')

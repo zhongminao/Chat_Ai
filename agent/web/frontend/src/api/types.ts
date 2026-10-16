@@ -60,6 +60,7 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'model.changed'; new: Model }
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }
+  | { type: 'completion.reminded'; content: string }
   | { type: 'turn.completed'; answer?: string }
   | { type: 'turn.cancelled'; answer?: string }
   | { type: 'turn.failed'; reason: string }

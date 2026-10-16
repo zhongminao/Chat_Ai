@@ -1,0 +1,13 @@
+{
+  "page_errors": [
+    "require is not defined"
+  ],
+  "console_errors": [],
+  "checks": {
+    "canvas_576x384": true,
+    "corrected_default_seed_visible": true,
+    "browser_game_initialized": false
+  },
+  "title": "星港回收站",
+  "body_text": "星港回收站\nHP: 5\n能量: 12\n芯片: 0/3\n回合: 0\n重开游戏\n加载种子\n保存到槽位1\n从槽位1读取\n↑\n←\n↓\n→\n等待(Z)\n回放控制\n导出回放 导入回放 "
+}

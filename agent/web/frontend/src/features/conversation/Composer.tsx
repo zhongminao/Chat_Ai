@@ -83,7 +83,7 @@ export function Composer(props: Props) {
     </form>
     <div className="composer-hint connection-status" role="status">
       <span className={`connection-dot ${props.connected ? 'connected' : ''}`} />
-      {props.pending === 'stop' ? '正在请求停止…' : props.status}
+      {props.pending === 'stop' ? '正在停止…' : props.status}
     </div>
   </div>;
 }

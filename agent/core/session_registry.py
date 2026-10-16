@@ -1,21 +1,14 @@
 """Session lookup, child creation and the agent producer for the generic monitor."""
 import json
 import threading
-from functools import partial
 from pathlib import Path
 
-from .agent_runtime import AgentRuntime
 from .monitor import Monitor
 from .session_runtime import SessionBusy, SessionRuntime
-from ..model.catalog import ModelCatalog
 from ..storage.session import SessionStore
 from ..storage import reports
-from ..tools.mcp.client import McpClient
-from ..tools.router import ToolRouter
 from ..workflow.config import load
-from ..workflow.history import restore_messages
 from ..workflow.input import UserInput
-from ..workflow.state import AgentState
 
 
 class SessionRegistry:
@@ -65,12 +58,12 @@ class SessionRegistry:
         return {"status": "cancelled" if last.get("type") == "turn.cancelled" else "failed",
                 "error": last.get("reason", "Execution was interrupted before submitting a report.")}
 
-    def delegate(self, parent_id: str, system_prompt: str, user_prompt: str) -> str:
-        if not all(isinstance(value, str) and value.strip() for value in (system_prompt, user_prompt)):
-            raise ValueError("system_prompt and user_prompt must be non-empty text")
+    def delegate(self, parent_id: str, user_prompt: str) -> str:
+        if not isinstance(user_prompt, str) or not user_prompt.strip():
+            raise ValueError("user_prompt must be non-empty text")
         parent = self.get(parent_id)
         monitor = self.monitor(parent_id)
-        child = self.create(parent_session_id=parent_id, system_prompt=system_prompt.strip(),
+        child = self.create(parent_session_id=parent_id,
                             model=dict(parent.state["model"]), title=" ".join(user_prompt.split())[:40])
         monitor.update(f"agent:{child.session.id}", kind="agent", session_id=child.session.id,
                        title=child.meta["title"], status="running")
@@ -79,57 +72,17 @@ class SessionRegistry:
                                      runId=execution["id"] if execution else None)
         child.start(UserInput(user_prompt))
         return json.dumps({"id": f"agent:{child.session.id}", "session_id": child.session.id,
-                           "status": "running", "hint": "已纳入 watch 监控。先调用 watch() 获取快照；"
-                           "再用返回的 cursor 和 timeout>0 等待变化。完成后用 read_file 读取 result_path。"}, ensure_ascii=False)
+                           "status": "running", "hint": "子任务已在后台独立运行。需要查看状态时调用 watch() 获取全部资源快照。"
+                           "返回的 cursor 是当前主会话全部监控资源的版本号，不是 agent 编号；"
+                           "等待变化时原样传入最近一次 watch 的 cursor：watch(cursor=<返回值>, timeout=60)。"
+                           "每次使用最新返回的 cursor；超时没有变化时保持不变。"
+                           "completed 时用 read_file 读取 result_path；failed/cancelled 时按 error 判断原因。"
+                           "停止当前回复不会停止子任务；结果不会自动写入主对话。"}, ensure_ascii=False)
 
     def finished(self, child: SessionRuntime):
         self.monitor(child.parent_session_id).update(
             f"agent:{child.session.id}", kind="agent", session_id=child.session.id,
             title=child.meta.get("title", "子 agent"), **self._result(child.session.id))
-
-    def build_state(self, runtime: SessionRuntime) -> AgentState:
-        config = self.config
-        records = runtime.session.events.read()
-        catalog = ModelCatalog(config.providers_file)
-        model = runtime.meta.get("model") or catalog.default().as_dict()
-        for event in records:
-            if event["type"] == "model.changed":
-                model = event["new"]
-        target = catalog.resolve(model["provider"], model["name"])
-        prompt = runtime.meta.get("system_prompt", config.system_prompt)
-        if runtime.parent_session_id:
-            prompt += ("\nYou are an independent child agent. Complete the task and call submit exactly once "
-                       "with your final Markdown report. Ordinary text does not submit it. Use show_image "
-                       "to publish images and retain its Markdown URLs and local image paths in the report.")
-        else:
-            prompt += ("\nAt the start of each user request, query watch() for background resources. "
-                       "Delegate independent work with delegate; it keeps running after your turn ends. "
-                       "Use watch(cursor=<last watch cursor>, timeout=60) when waiting for changes. "
-                       "A completed resource contains result_path; read it with read_file when useful. "
-                       "Decide whether results are sufficient, whether to keep working, or wait again. "
-                       "\n普通问答、澄清和进度说明直接回复，无需调用 submit。"
-                       "完成复杂任务后，若需要收起较长的分析和工具执行过程，再调用 submit 提交整理后的最终结论。"
-                       "网页会将本轮此前的过程默认折叠，只展示 submit 内容。"
-                       "submit 会结束本轮执行，应单独调用，内容须完整、可独立阅读，不必重复过程。\n"
-                       "Reuse exact Markdown image URLs from reports to display their images, and use the "
-                       "local image_file paths with read_image if you need to inspect them.")
-        return {
-            "model": target.as_dict(),
-            "messages": [{"role": "system", "content": prompt.replace("{workspace}", str(config.workspace.resolve()))},
-                         *restore_messages(records)],
-            "execution": None,
-        }
-    def build_agent(self, runtime: SessionRuntime) -> AgentRuntime:
-        config = self.config
-        catalog = ModelCatalog(config.providers_file)
-        tools = ToolRouter(config.workspace, McpClient(config.mcp) if config.mcp else None,
-                           delegate=None if runtime.parent_session_id else partial(self.delegate, runtime.session.id),
-                           watch=None if runtime.parent_session_id else self.monitor(runtime.session.id).watch)
-        return AgentRuntime(state=runtime.state, catalog=catalog,
-                            session_id=runtime.session.id, spill=config.spill,
-                            workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,
-                            output=lambda text: None, tools=tools,
-                            control=runtime.control, on_submit=runtime.submitted)
 
     def delete(self, session_id: str):
         with self.lock:

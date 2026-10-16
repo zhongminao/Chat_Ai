@@ -6,6 +6,7 @@ from typing import Any
 import yaml
 
 from .providers import create as create_provider
+from .request import ModelRequest
 
 
 @dataclass(frozen=True)
@@ -71,10 +72,16 @@ class ModelCatalog:
         api_key = api_key or provider.get("api_key_default")
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
-        from openai import OpenAI
-        binding = (
-            OpenAI(api_key=api_key, base_url=provider["base_url"]),
-            create_provider(target.provider, target.thinking),
-        )
+        adapter = create_provider(target.provider, target.thinking)
+        binding = (ModelRequest(api_key=api_key, base_url=provider["base_url"]), adapter)
+        previous = self._binding
         self._binding, self._bound_target = binding, target
+        if previous:
+            previous[0].close()
         return binding
+
+    def close(self) -> None:
+        if self._binding:
+            self._binding[0].close()
+            self._binding = None
+            self._bound_target = None

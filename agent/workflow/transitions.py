@@ -24,7 +24,7 @@ def switch_model(state: AgentState, model: dict[str, str]) -> StateUpdate:
 def start(state: AgentState, run_id: str) -> StateUpdate:
     return {'execution': {
         'id': run_id, 'status': 'running', 'phase': 'model', 'round': 0,
-        'answer': '', 'report': None, 'report_path': None, 'error': None,
+        'answer': '', 'report': None, 'report_path': None, 'error': None, 'completion_reminders': 0,
     }}
 
 

@@ -7,6 +7,7 @@ class ExecutionState(TypedDict):
     status: Literal['running', 'completed', 'cancelled', 'failed']
     phase: Literal['model', 'tools', 'done']
     round: int
+    completion_reminders: int
     answer: str
     report: str | None
     report_path: str | None
@@ -14,6 +15,7 @@ class ExecutionState(TypedDict):
 
 
 class AgentState(TypedDict):
+    role: Literal['main', 'child']
     model: dict[str, str]
     messages: list[dict[str, Any]]
     execution: ExecutionState | None

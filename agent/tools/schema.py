@@ -5,19 +5,20 @@ from typing import Any
 
 DELEGATE_SCHEMA = {"type": "function", "function": {
     "name": "delegate",
-    "description": "Start an independent child session asynchronously. Returns its session_id immediately. It is registered with watch. Call watch() for a snapshot, then watch(cursor=..., timeout=60) to wait for changes. Read result_path with read_file when completed. No automatic reply or result injection occurs. The child gets only these prompts, its own history and the shared workspace. Stopping your reply does not stop it.",
+    "description": "Start an independent child task asynchronously and return its session_id immediately. Provide only user_prompt: the framework supplies the child's system instructions. The child receives this task, its own history and the shared workspace, and must submit a final report. It keeps running after your reply ends or is stopped. To check progress call watch() for all monitored resources, then reuse the latest watch cursor to wait. Results are not automatically injected into your conversation.",
     "parameters": {"type": "object", "properties": {
-        "system_prompt": {"type": "string", "description": "Child role and task-specific instructions."},
-        "user_prompt": {"type": "string", "description": "Complete task and all necessary context, including exact paths."}},
-        "required": ["system_prompt", "user_prompt"], "additionalProperties": False}}}
+        "user_prompt": {"type": "string", "description": "Complete task, role if useful, necessary context, exact paths and expected deliverables."}},
+        "required": ["user_prompt"], "additionalProperties": False}}}
 
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query monitored background resources. Without cursor returns a snapshot. With cursor returns changed resources only; timeout>0 waits for any change. Use the cursor from the last watch result, not from a spawn call. A completed agent gives result_path: read that file using read_file, then decide to continue, wait again or submit. Returns status/references, not report contents. Querying does not consume results. Other resource kinds may be monitored later.",
+    "description": "Query all registered background resources in this main session, across resource kinds. watch() immediately returns a full snapshot. One cursor covers the entire monitor, not one agent. watch(cursor=<latest returned cursor>, timeout=60) returns resources changed since that version, waiting for any change if needed. Always reuse the latest returned cursor; timeouts return empty changes and leave it unchanged. Each changed resource contains its latest state, not a full event history. Querying does not consume results; other readers keep independent cursors. For completed agents read result_path using read_file. For failed/cancelled agents inspect error before deciding what to do. Returns references/status, not report contents.",
     "parameters": {"type": "object", "properties": {
-        "cursor": {"type": ["integer", "null"], "minimum": 0},
-        "timeout": {"type": "number", "minimum": 0, "maximum": 120, "default": 0}},
+        "cursor": {"type": ["integer", "null"], "minimum": 0,
+                   "description": "The exact cursor from your latest watch result: a version of this main session's entire monitor, never an agent index or session ID. Omit/null for a full snapshot."},
+        "timeout": {"type": "number", "minimum": 0, "maximum": 120, "default": 0,
+                    "description": "Maximum seconds to wait for any resource change when cursor is provided. Without cursor, the snapshot returns immediately."}},
         "additionalProperties": False}}}
 
 

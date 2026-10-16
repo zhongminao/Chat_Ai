@@ -94,31 +94,17 @@ def rename_session(session_id: str, request: SessionName):
 
 @app.get("/api/sessions")
 def sessions():
-    root = session_store.root
     result = []
-    for directory in root.glob("*"):
-        meta_path = directory / "session.json"
-        if not meta_path.is_file():
-            continue
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        records = EventLog(directory / "events.jsonl").read()
-        first_event = next((e for e in records if e["type"] == "turn.started"), {})
-        first = first_event.get("prompt", "")
-        rt = registry.items.get(directory.name)
-        terminal = next((e for e in reversed(records) if e["type"] in
-                         {"report.submitted", "turn.failed", "turn.cancelled"}), {})
-        result.append({
-            "id": directory.name,
-            "parent_session_id": meta.get("parent_session_id"),
-            "busy": bool(rt and rt.busy),
-            "status": "running" if rt and rt.busy else {
-                "report.submitted": "submitted", "turn.failed": "failed", "turn.cancelled": "cancelled",
-            }.get(terminal.get("type"), "idle"),
-            "title": meta.get("title") or " ".join(first.split())[:40] or ("图片对话" if first_event.get("images") else "新会话"),
-            "empty": not bool(first_event),
-            "createdAt": meta.get("createdAt"),
-            "updatedAt": records[-1]["time"] / 1e9 if records else meta_path.stat().st_mtime,
-        })
+    for meta_path in session_store.root.glob("*/session.json"):
+        try:
+            item = session_store.summary(meta_path.parent.name)
+        except FileNotFoundError:
+            continue  # Another client may delete a session while the list is being read.
+        rt = registry.items.get(item["id"])
+        item["busy"] = bool(rt and rt.busy)
+        if item["busy"]:
+            item["status"] = "running"
+        result.append(item)
     result.sort(key=lambda item: item["updatedAt"], reverse=True)
     return {"sessions": result}
 

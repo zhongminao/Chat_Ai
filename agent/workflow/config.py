@@ -19,6 +19,7 @@ class Config:
     mcp: dict[str, str]
     max_rounds: int
     system_prompt: str
+    child_system_prompt: str
 
 
 def _path(root: Path, value: str) -> Path:
@@ -33,9 +34,12 @@ def load(path: Path | None = None) -> Config:
     max_rounds = data.get("max_rounds", 200)
     if type(max_rounds) is not int or max_rounds < 1:
         raise ValueError("config.yaml: max_rounds 必须是正整数")
-    system_prompt = data.get("system_prompt")
-    if not isinstance(system_prompt, str) or not system_prompt.strip():
-        raise ValueError("config.yaml: system_prompt 必须是非空文本")
+    prompts = {}
+    for name in ("system_prompt", "child_system_prompt"):
+        value = data.get(name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"config.yaml: {name} 必须是非空文本")
+        prompts[name] = value.strip()
 
     providers_file = _path(
         root,
@@ -53,5 +57,5 @@ def load(path: Path | None = None) -> Config:
         spill=data.get("spill", {}),
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,
-        system_prompt=system_prompt.strip(),
+        **prompts,
     )

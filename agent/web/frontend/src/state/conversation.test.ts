@@ -86,6 +86,16 @@ describe('existing event protocol -> conversation', () => {
     expect(view.items).toHaveLength(1);
   });
 
+  it('keeps a submit reminder internal and leaves the original turn running', () => {
+    const view = replay([start, modelStart, text,
+      { seq: 4, type: 'completion.reminded', content: 'Call submit with the final report.' }], snapshot(4, true));
+    expect(view.seq).toBe(4);
+    expect(view.busy).toBe(true);
+    expect(view.error).toBeNull();
+    expect(view.items).toMatchObject([{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'partial' }]);
+    expect(view.items).toHaveLength(2);
+  });
+
   it('handles a new empty session and fully clears state on a session change', () => {
     expect(replay([]).ready).toBe(true);
     expect(reduce(replay([start, modelStart, text]), { type: 'reset' })).toEqual(emptyConversation());

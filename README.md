@@ -9,7 +9,7 @@
 ## 当前结构
 
 ```text
-agent/core/       SessionRuntime、AgentRuntime、会话调度与运行资源
+agent/core/       AgentFactory、SessionRuntime、AgentRuntime、会话调度与运行资源
 agent/model/      模型协议、provider、模型目录与客户端复用、图文消息组装
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与结果转换
@@ -70,6 +70,8 @@ npm run dev
 访问 `http://127.0.0.1:5173`，Vite 默认将 `/api` 代理到手动启动示例的 `127.0.0.1:8764`。
 若使用现有生产服务作为开发后端，需要将 `vite.config.ts` 中的代理目标调整为 `127.0.0.1:8200`。
 前端检查：`npm test`；`npm run build` 包含 TypeScript 检查。
+后端检查（项目根目录、py313 环境）：`python -m unittest discover -s tests -v`。
+取消回归使用本地模拟 HTTP 端点覆盖等待响应、等待流数据、部分输出后停止及会话后续执行，不需要真实模型请求。
 
 修改 Python 后端或 provider 适配代码后，需要重启 uvicorn；修改前端后需要重新构建并刷新页面。
 当前生产网页服务端口为 8200，手动开发示例为 8764；8002 是本地千问的模型服务端口，两者独立启动。
@@ -105,8 +107,16 @@ agent/web/frontend/src/
 正在生成的助手回复通过 `content/useStreamingText.ts` 按文本到达速率柔和显现，
 原始消息状态保持完整，历史消息立即展示；代码和表格在自身区域横向滚动。
 事件订阅使用现有 `after`/`Last-Event-ID` 协议，切换会话会关闭旧连接；首屏从现有事件流回放历史。
-点击新会话时优先复用没有消息且未运行的空会话，找不到才创建；
-是否为空通过原有 conversation 接口确认，连续点击不会反复创建空记录。
+首次打开或刷新网页默认进入空会话，不再自动恢复上次选中的历史；历史会话由用户从侧栏点击打开。
+初次加载和新建按钮共用空会话选择逻辑，优先复用没有消息且未运行的主会话，找不到才创建；
+根据已加载的摘要筛选候选，再通过 conversation 接口确认是否仍为空，连续点击不会反复创建空记录。
+新建不再先查询一次完整列表，选中空会话后在后台刷新列表，不阻塞输入框加载。
+
+会话列表由 SessionStore.summary() 提供标题、状态、是否为空和更新时间等摘要，不重建消息历史。
+每个会话的 summary.json 是可重建的列表缓存，包含事件文件标识、大小、修改时间和完整行读取位置；
+未变化时直接复用，日志追加时仅解析新增完整事件。旧历史首次生成一次摘要，服务重启后仍可复用；
+缓存损坏、日志截断或替换时重建，自定义标题仍读取 session.json。摘要不是 AgentState checkpoint。
+仅点击具体会话时通过现有 conversation/events 接口读取和恢复完整历史；会话删除会一并删除摘要。
 纯文本调用与旧事件兼容，图片引用通过同一消息和事件流程处理。
 
 ## 会话名称
@@ -117,7 +127,7 @@ CLI 在当前会话中输入 `/rename 图片识别实验`，也可以修改同�
 
 Web 的 `PATCH /api/sessions/{id}` 接收 `{"title":"新名称"}`，与 CLI 共用
 `agent/storage/session.py` 的 `SessionStore.rename(session_id, title)`，统一校验并原子写入 `session.json`。
-自定义标题保存在会话元数据中；没有自定义标题的旧会话继续根据首条消息生成名称。
+自定义标题保存在会话元数据中；没有自定义标题的会话根据首条用户消息生成名称。收到 turn.started 后立即刷新列表，命名不等待模型回复结束；空会话显示“新会话”，自定义标题优先。
 改名不会修改会话 ID、历史消息或模型上下文；名称可重复，运行中也可修改。
 CLI 修改名称后，Web 刷新页面或重新加载会话列表即可看到。空会话的复用依据实际消息判断。
 前端的单行展示和编辑位于 `features/sessions/SessionRow.tsx`，保存状态由 `useSessions.ts` 管理。
@@ -142,13 +152,17 @@ max_rounds: 200
 system_prompt: |
   You are a small coding assistant. Use the provided tools when needed.
   Workspace directory: {workspace}
+child_system_prompt: |
+  You are an independent child assistant. Complete the assigned task.
+  Call submit alone with your complete final Markdown report.
+  Workspace directory: {workspace}
 ```
 
 主 Agent 每次用户请求、子 Agent 每次委派任务各自最多执行 `max_rounds` 轮模型调用，默认均为 200；一轮可包含多个工具调用。
-子 Agent 使用 delegate 传入的 system_prompt 和 user_prompt，继承模型与轮数上限。达到上限会结束该任务并更新 watch 状态。
-`max_rounds` 必须为正整数；`system_prompt` 必须为非空文本。实际默认提示词还包含图片工具的使用规则，修改时可直接编辑 YAML 多行文本。
+delegate 只接受 user_prompt，包含完整任务、角色要求、上下文和路径；子 Agent 使用配置中的 child_system_prompt，继承模型与轮数上限。达到上限会结束该任务并更新 watch 状态。
+`max_rounds` 必须为正整数；`system_prompt` 和 `child_system_prompt` 均必须为非空文本。两者是主、子 Agent 各自完整的系统提示词，包含各自工具和结束规则，可直接编辑 YAML 多行文本；框架不再额外拼接系统提示词。
 提示词中的 `{workspace}` 替换为实际工作区绝对路径，其他花括号原样保留，支持直接写入 JSON 示例。
-配置在创建 Agent 时加载；修改后重启 Web 和 CLI，即可让新旧会话使用最新配置，不改写历史日志。
+配置在创建运行资源时加载；修改后重启 Web 和 CLI，即可让新旧会话按主、子角色使用最新配置，不改写历史日志。旧子会话元数据中的 system_prompt 保留，但不再覆盖配置。
 
 ## 图片输入与名称
 
@@ -329,9 +343,10 @@ curl http://127.0.0.1:8002/v1/models
 
 每个 session 独立持有一份可 JSON 序列化的 `AgentState`，传给自己的 `AgentRuntime` 使用：
 
+- `role`：`main` 或 `child`，根据会话父子关系初始化，不新增持久化身份字段。
 - `model`：当前 provider、模型名称和 thinking 设置。
 - `messages`：系统提示词、用户与助手消息、工具调用和结果；图片保存资源 ID 引用。
-- `execution`：本轮 ID、状态、阶段、轮次、回复、submit 报告及路径、错误；尚未执行时为 null。
+- `execution`：本轮 ID、状态、阶段、轮次、回复、submit 报告及路径、补交提醒次数 completion_reminders、错误；尚未执行时为 null。
 
 状态节点只读取输入数据并返回 `StateUpdate`，不原地修改输入、不创建客户端、不执行工具，也不写日志或文件。
 运行时应用更新、执行 I/O 并发布事件。流程路由由 `after_model`、`after_tools` 决定下一步。
@@ -339,20 +354,25 @@ curl http://127.0.0.1:8002/v1/models
 | 模块 | 职责 |
 | --- | --- |
 | `workflow/state.py` | `AgentState`、`ExecutionState` 和 `StateUpdate` 类型 |
+| `workflow/completion.py` | 根据 role 和本轮状态判断结束、一次补交提醒或失败；不执行 I/O |
 | `workflow/transitions.py` | 简单操作合集：切换模型、执行生命周期、流式回复累积、submit，以及流程路由 |
 | `workflow/messages.py` | 用户输入、模型回复、工具结果、取消时保留部分回复等消息变更 |
 | `workflow/history.py` | 从事件流重建消息，复用统一的助手消息构造逻辑 |
-| `core/session_runtime.py` | 独立持有 state，管理会话队列、线程、忙闲、停止和报告保存 |
+| `core/agent_factory.py` | 构建初始 state、选择主子提示词、配置工具和装配 AgentRuntime |
+| `core/session_runtime.py` | 独立持有 state，管理会话队列、线程、忙闲、停止、报告保存和退出清理 |
 | `core/agent_runtime.py` | 调度本轮模型与工具循环，应用节点更新并发布事件 |
-| `model/catalog.py` | 模型配置校验、视觉能力，以及 `get_binding(target)` 客户端与 provider 复用 |
+| `model/catalog.py` | 模型配置校验、视觉能力，以及 `get_binding(target)` 请求资源与 provider 复用 |
+| `model/request.py` | 可取消的模型 HTTP 请求；异步网络 I/O 适配现有同步模型流接口 |
 
 切换模型只更新 state 并记录事件，不要求初始化 agent 执行器、MCP 或模型客户端。
 实际调用模型时，`get_binding` 按目标模型按需创建资源；同一个 catalog 实例只复用当前模型的一对资源，目标改变后重新创建。
-新资源创建成功后才替换旧绑定。绑定按实例隔离，不跨 session 共享。
+新资源创建成功后才替换并关闭旧绑定。绑定按实例隔离，不跨 session 共享。模型请求资源持有独立事件循环，由现有 session worker 驱动，不另建后台线程；worker 退出时关闭资源。
 客户端、provider 实例、连接、线程、锁、队列、回调和工具路由留在运行时；工具 schema 和 MCP 配置不复制进 `AgentState`。
 
 `agent/core/control.py` 提供运行控制状态。Web 和 CLI 共用 `ExecutionControl`，控制信号不写入 `AgentState`。
 Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使用 `Ctrl+C`。
+模型请求在建立连接、等待响应和读取流时均接入取消；停止会取消本次网络操作、关闭对应流并等待本地清理，再发出 turn.cancelled。Web 在此之前显示“正在停止”，收到终止事件后恢复输入。
+已请求停止导致的请求异常按取消处理，未请求停止的网络异常仍为失败。这里的“已停止”只表示本地本轮执行已结束；使用标准请求取消和连接关闭向请求接收端传达中断，不查询或确认模型服务端是否停止生成，也不关闭其他会话的请求。
 `SessionRuntime.busy` 表示调度器是否有任务在执行，`execution.status` 描述本轮逻辑结果；二者不等同于 watch 的资源状态。
 
 当前不保存 state checkpoint，也不序列化运行资源。`events.jsonl` 保持为持久化事件流，`restore_messages` 从中恢复消息，CLI 和 Web 使用同一套恢复流程。
@@ -397,9 +417,11 @@ SearXNG 是搜索后端；`web.py` 是独立的 Web MCP 服务端。`fetch_url` 
 
 ## Watch 多 agent
 
-- `delegate(system_prompt, user_prompt)`：创建独立子 session，立即返回 ID 和 watch 使用提示。
+- `delegate(user_prompt)`：创建独立子 session，立即返回 ID 和 watch 使用提示。子 Agent 系统提示词由 config.yaml 的 child_system_prompt 提供，不接受主 Agent 覆盖。
 - `watch(cursor=None, timeout=0)`：无 cursor 返回资源快照；有 cursor 返回其后变化的资源；timeout>0 时等待任意变化，最多 120 秒。超时返回空 changes，游标不变。
 - `submit(content)`：保存本轮最终 Markdown 报告并结束执行。子 agent 必须提交，主 agent 可选。
+
+cursor 是当前主会话整个 Monitor 的版本号，不是第几个 agent，也不是单个资源的编号。一个调用只接收一个 cursor，但它覆盖该 Monitor 内全部已登记资源和 kind；不同主会话使用不同 Monitor，当前不提供跨主会话查询。无 cursor（包括传 timeout）均立即返回全部未删除资源快照；带 cursor 返回该版本之后变化资源的最新状态。
 
 watch 只返回状态、路径及失败原因，不返回报告正文。用现有 read_file 读取 result_path；是否汇总、是否继续工作、是否等待由 LLM 决定。
 游标是每个调用者的位置，不表示领取或消费报告。网页与模型查询互不影响；一次增量返回每个变化资源的最新状态，可合并短时间内的多次更新。删除以 deleted 标记返回，首次快照不包含已删除资源。
@@ -407,7 +429,9 @@ watch 只返回状态、路径及失败原因，不返回报告正文。用现�
 每个主 session 的状态保存在 watch.json。通用 Monitor 只负责版本、资源快照和条件变量通知，不依赖 agent、模型或网页。新增 Bash 等资源只需接入 update，无需改变 watch 协议；本版本尚未增加后台 Bash 工具。
 SessionRegistry 负责会话查找、创建子任务以及 agent 状态适配；SessionRuntime 管理单个 session 的 state、串行执行和取消；AgentRuntime 运行模型和工具循环。
 
-子任务完成不会启动主 agent 或修改主对话。主 agent 在新的用户请求中按提示调用 watch；也可在当前执行中显式等待。主回复结束、停止或网页断开均不取消子任务；停止 watch 等待只取消当前主执行。
+子 Agent 普通文本结束却没有 submit 时，workflow/completion.py 根据 state.role 决定是否补交：尚未提醒且总轮数还有余量时，原 AgentRuntime 加入一次内部提醒并继续同一任务；仍未提交则失败。提醒次数记录在 execution，不另建 session，不由主 Agent 或总结模型代交，且仍受 max_rounds 总预算限制。completion.reminded 事件用于重建模型上下文，不产生新的用户消息或 turn.started；通过完成规则后才发 turn.completed。异常和主动取消不会触发补交。
+
+子任务完成不会启动主 agent 或修改主对话。主 agent 仅在需要相关后台任务的进展或结果时调用 watch，也可在当前执行中显式等待。普通问候和无需工具的问题直接回复，不强制每条用户消息查询；没有相关任务时不重复查询或等待。主回复结束、停止或网页断开均不取消子任务；停止 watch 等待只取消当前主执行。
 网页顶部主／子 agent 导航末尾显示后台任务数量，不提供手动交付按钮；后台结果由 LLM 通过 watch 查询、按需读取。
 子 agent 较多或空间不足时收进下拉选择框，后台任务标识保持可见。子 session 从顶部导航查看，不出现在左侧主会话历史列表，记录仍保存在各自 session 中。
 

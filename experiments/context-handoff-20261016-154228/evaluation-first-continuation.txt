@@ -1,0 +1,147 @@
+TAP version 13
+# Subtest: baseline: corrected default seed and original player/grid settings survive
+ok 1 - baseline: corrected default seed and original player/grid settings survive
+  ---
+  duration_ms: 2.290613
+  ...
+# Subtest: baseline: string seeds produce deterministic maps and complete reachable objectives
+not ok 2 - baseline: string seeds produce deterministic maps and complete reachable objectives
+  ---
+  duration_ms: 3.418609
+  location: '/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" not to be strictly deep-equal to:
+    
+    [
+      7,
+      8
+    ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 7
+    1: 8
+  actual:
+    0: 7
+    1: 8
+  operator: 'notDeepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:49:14)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: baseline: blocked movement consumes no turn or energy
+ok 3 - baseline: blocked movement consumes no turn or energy
+  ---
+  duration_ms: 0.398608
+  ...
+# Subtest: baseline: waiting recovers energy and advances one turn
+ok 4 - baseline: waiting recovers energy and advances one turn
+  ---
+  duration_ms: 0.337504
+  ...
+# Subtest: baseline: third chip alone does not win; exit is required
+ok 5 - baseline: third chip alone does not win; exit is required
+  ---
+  duration_ms: 0.297384
+  ...
+# Subtest: baseline: restore preserves future actions as well as current state
+ok 6 - baseline: restore preserves future actions as well as current state
+  ---
+  duration_ms: 0.733246
+  ...
+# Subtest: handoff: full dash moves two cells for two energy in one turn
+not ok 7 - handoff: full dash moves two cells for two energy in one turn
+  ---
+  duration_ms: 0.681509
+  location: '/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:97:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:99:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: handoff: first blocked dash cell does not act
+not ok 8 - handoff: first blocked dash cell does not act
+  ---
+  duration_ms: 0.294156
+  location: '/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:104:1'
+  failureType: 'testCodeFailure'
+  error: 'game.dash is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:107:8)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: handoff: second blocked dash cell retains partial movement and one energy cost
+not ok 9 - handoff: second blocked dash cell retains partial movement and one energy cost
+  ---
+  duration_ms: 0.519337
+  location: '/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:111:1'
+  failureType: 'testCodeFailure'
+  error: 'game.dash is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:114:8)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: handoff: enemy acts once for the entire dash
+not ok 10 - handoff: enemy acts once for the entire dash
+  ---
+  duration_ms: 0.384165
+  location: '/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:118:1'
+  failureType: 'testCodeFailure'
+  error: 'game.dash is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/evaluation.cjs:121:8)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 5
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 70.548631

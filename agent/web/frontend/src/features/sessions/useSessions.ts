@@ -3,9 +3,24 @@ import { api, ApiError } from '../../api/client';
 import type { ModelGroup, SessionSummary } from '../../api/types';
 import { errorMessage } from '../conversation/useConversation';
 
-const savedSession = () => {
-  try { return localStorage.getItem('chat.session'); } catch { return null; }
-};
+export async function findOrCreateEmptySession(sessions: SessionSummary[], preferred?: string | null): Promise<string> {
+  const candidates = sessions
+    .filter(session => !session.parent_session_id && session.empty && !session.busy)
+    .sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
+  for (const candidate of candidates) {
+    try {
+      const snapshot = await api.snapshot(candidate.id);
+      if (!snapshot.busy && snapshot.messages?.length === 0) return candidate.id;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 404)) throw error;
+    }
+  }
+  return (await api.createSession()).id;
+}
+
+const emptySummary = (id: string): SessionSummary => ({
+  id, title: '新会话', empty: true, busy: false, createdAt: null, updatedAt: Date.now() / 1000,
+});
 
 export function useSessions() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
@@ -36,48 +51,26 @@ export function useSessions() {
     Promise.all([api.sessions(abort.signal), api.models(abort.signal)]).then(async ([list, catalog]) => {
       if (!active) return;
       setModels(catalog.models); setSessions(list.sessions);
-      const saved = savedSession();
-      let id = list.sessions.find(item => item.id === saved)?.id ?? list.sessions[0]?.id;
-      // Do not create a session from a StrictMode effect that has already been cleaned up.
-      if (!id) {
-        id = (await api.createSession()).id;
-        if (!active) return;
-        await refresh();
-      }
-      if (active) setSelected(id);
+      const id = await findOrCreateEmptySession(list.sessions);
+      if (!active) return;
+      setSessions(items => items.some(item => item.id === id) ? items : [emptySummary(id), ...items]);
+      setSelected(id);
+      void refresh();
     }).catch(error => { if (active && !abort.signal.aborted) setError(errorMessage(error)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; abort.abort(); };
   }, [attempt, refresh]);
 
-  useEffect(() => {
-    if (selected) { try { localStorage.setItem('chat.session', selected); } catch { /* Storage may be unavailable. */ } }
-  }, [selected]);
-
   async function create() {
     if (creatingRef.current) return;
     creatingRef.current = true; setCreating(true); setError(null);
     try {
-      const latest = await api.sessions();
-      const candidates = latest.sessions
-        .filter(session => !session.parent_session_id && (session.empty ?? (session.title === '新会话')))
-        .sort((a, b) => Number(b.id === selected) - Number(a.id === selected));
-      let id: string | undefined;
-      for (const candidate of candidates) {
-        try {
-          const snapshot = await api.snapshot(candidate.id);
-          if (!snapshot.busy && snapshot.messages?.length === 0) {
-            id = candidate.id;
-            break;
-          }
-        } catch (error) {
-          // A session deleted by another client is no longer a candidate.
-          if (!(error instanceof ApiError && error.status === 404)) throw error;
-        }
-      }
-      id ??= (await api.createSession()).id;
+      const id = await findOrCreateEmptySession(sessions, selected);
+      // Show the selected empty session immediately; list refresh is not on this path.
+      ++listVersion.current;
+      setSessions(items => items.some(item => item.id === id) ? items : [emptySummary(id), ...items]);
       setSelected(id);
-      await refresh();
+      void refresh();
     } catch (error) { setError(errorMessage(error)); }
     finally { creatingRef.current = false; setCreating(false); }
   }

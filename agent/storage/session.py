@@ -50,6 +50,54 @@ class SessionStore:
     def metadata(self, session_id: str) -> dict:
         return json.loads((self.path(session_id) / "session.json").read_text(encoding="utf-8"))
 
+    def summary(self, session_id: str) -> dict:
+        """Cache list metadata; read only appended complete events when the log grows."""
+        directory = self.path(session_id)
+        meta_path, log_path = directory / "session.json", directory / "events.jsonl"
+        cache_path = directory / "summary.json"
+        with FileLock(str(directory / "summary.lock")):
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            stat = log_path.stat() if log_path.exists() else None
+            source = [stat.st_ino, stat.st_size, stat.st_mtime_ns] if stat else [0, 0, 0]
+            try:
+                cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, ValueError):
+                cached = {}
+            if cached.get("source") != source:
+                old = cached.get("source", [None, 0, 0])
+                if old[0] != source[0] or source[1] <= old[1]:
+                    cached = {}
+                cached = cached or {"offset": 0, "title": "新会话", "empty": True,
+                                    "status": "idle", "updatedAt": None}
+                if stat:
+                    with log_path.open("rb") as file:
+                        file.seek(cached["offset"])
+                        while file.tell() < source[1]:
+                            line = file.readline(source[1] - file.tell())
+                            if not line.endswith(b"\n"):
+                                break
+                            event = json.loads(line)
+                            if event["type"] == "turn.started" and cached["empty"]:
+                                cached["empty"] = False
+                                cached["title"] = (" ".join(event.get("prompt", "").split())[:40]
+                                                   or ("图片对话" if event.get("images") else "新会话"))
+                            status = {"report.submitted": "submitted", "turn.failed": "failed",
+                                      "turn.cancelled": "cancelled"}.get(event["type"])
+                            if status:
+                                cached["status"] = status
+                            cached["updatedAt"] = event["time"] / 1e9
+                            cached["offset"] = file.tell()
+                cached["source"] = source
+                temporary = cache_path.with_suffix(".tmp")
+                temporary.write_text(json.dumps(cached, ensure_ascii=False) + "\n", encoding="utf-8")
+                temporary.replace(cache_path)
+            return {
+                "id": session_id, "parent_session_id": meta.get("parent_session_id"),
+                "title": meta.get("title") or cached["title"], "empty": cached["empty"],
+                "status": cached["status"], "createdAt": meta.get("createdAt"),
+                "updatedAt": cached["updatedAt"] or meta_path.stat().st_mtime,
+            }
+
     def children(self, session_id: str) -> list[str]:
         return [path.parent.name for path in self.root.glob("*/session.json")
                 if json.loads(path.read_text(encoding="utf-8")).get("parent_session_id") == session_id]

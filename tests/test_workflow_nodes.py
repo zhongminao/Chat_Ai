@@ -7,7 +7,7 @@ from agent.workflow import messages, transitions
 
 class WorkflowNodeTests(unittest.TestCase):
     def setUp(self):
-        self.state = {'model': {'provider': 'test', 'name': 'model', 'thinking': 'disabled'},
+        self.state = {'role': 'main', 'model': {'provider': 'test', 'name': 'model', 'thinking': 'disabled'},
                       'messages': [], 'execution': None}
 
     def apply(self, node, *args):

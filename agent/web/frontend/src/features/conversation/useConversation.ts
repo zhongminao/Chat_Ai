@@ -6,16 +6,17 @@ import { conversationReducer, emptyConversation } from '../../state/conversation
 
 export const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export function useConversation(id: string | null, onTurnEnded: () => void) {
+export function useConversation(id: string | null, onSessionsChanged: () => void) {
   const [state, dispatch] = useReducer(conversationReducer, undefined, emptyConversation);
   const [connected, setConnected] = useState(false);
+  const [stopRequested, setStopRequested] = useState(false);
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [pending, setPending] = useState<'send' | 'stop' | 'model' | 'image' | null>(null);
   const generation = useRef(0);
   const commandPending = useRef(false);
   const renameBarrier = useRef<Promise<boolean>>(Promise.resolve(true));
-  const ended = useRef(onTurnEnded);
-  ended.current = onTurnEnded;
+  const changed = useRef(onSessionsChanged);
+  changed.current = onSessionsChanged;
 
   useEffect(() => {
     const version = ++generation.current;
@@ -23,7 +24,7 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     let close: (() => void) | undefined;
     const current = () => version === generation.current;
     dispatch({ type: 'reset' });
-    setLoadedId(null); setConnected(false); setPending(null); commandPending.current = false;
+    setLoadedId(null); setConnected(false); setPending(null); setStopRequested(false); commandPending.current = false;
     renameBarrier.current = Promise.resolve(true);
     if (id) {
       api.snapshot(id, abort.signal).then(snapshot => {
@@ -36,9 +37,11 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
           events: events => {
             if (!current()) return;
             dispatch({ type: 'events', events });
-            // Replaying historical events should not refresh the sidebar for every old turn.
             if (events.some(event => event.seq > snapshot.seq &&
-              ['turn.completed', 'turn.cancelled', 'turn.failed', 'agent.created'].includes(event.type))) ended.current();
+              ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))) setStopRequested(false);
+            // Refresh the first-message title immediately, without waiting for model completion.
+            if (events.some(event => event.seq > snapshot.seq &&
+              ['turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed', 'agent.created'].includes(event.type))) changed.current();
           },
         });
       }).catch(error => {
@@ -53,13 +56,15 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     const version = generation.current;
     commandPending.current = true;
     setPending(kind); dispatch({ type: 'error', error: null });
-    if (kind === 'send') dispatch({ type: 'busy', busy: true });
+    if (kind === 'send') { setStopRequested(false); dispatch({ type: 'busy', busy: true }); }
+    if (kind === 'stop') setStopRequested(true);
     try {
       await operation(id);
       return version === generation.current;
     } catch (error) {
       if (version === generation.current) {
         if (kind === 'send') dispatch({ type: 'busy', busy: false });
+        if (kind === 'stop') setStopRequested(false);
         dispatch({ type: 'error', error: errorMessage(error) });
       }
       return false;
@@ -91,7 +96,7 @@ export function useConversation(id: string | null, onTurnEnded: () => void) {
     ...state,
     ready: state.ready && loadedId === id,
     connected: connected && loadedId === id,
-    pending,
+    pending: pending ?? (state.busy && stopRequested ? 'stop' : null),
     send: sendMessage,
     registerImage: (image: ImageAsset) => dispatch({ type: 'image', image }),
     renameImage,

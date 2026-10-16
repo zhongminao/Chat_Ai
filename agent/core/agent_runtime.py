@@ -10,7 +10,7 @@ from ..workflow.input import UserInput, normalize_input
 from ..model.messages import model_image_ids
 from ..storage.images import ImageStore
 from ..workflow.state import AgentState, StateUpdate
-from ..workflow import messages, transitions
+from ..workflow import completion, messages, transitions
 from .cancellation import ExecutionContext, RunCancelled, CancellationToken
 from .control import ExecutionControl
 from ..model.openai_compatible import stream
@@ -57,6 +57,9 @@ class AgentRuntime:
         self.tools.images = self.images
         self.on_tool_result = on_tool_result
         self.output = output or (lambda text: print(text, end="", flush=True))
+
+    def close(self) -> None:
+        self.catalog.close()
 
     def apply(self, update: StateUpdate) -> None:
         self.state.update(update)
@@ -208,6 +211,14 @@ class AgentRuntime:
             )
 
             if transitions.after_model(self.state) == "end":
+                decision = completion.decide(self.state, self.max_rounds)
+                if decision == "remind":
+                    context.cancellation.raise_if_cancelled()
+                    self.apply(messages.remind_completion(self.state, completion.REMINDER))
+                    self.log.append("completion.reminded", runId=run_id, content=completion.REMINDER)
+                    continue
+                if decision == "fail":
+                    raise RuntimeError(completion.MISSING_SUBMIT)
                 self.apply(transitions.complete(self.state, full_answer))
                 self.log.append(
                     "turn.completed",
@@ -277,7 +288,6 @@ class AgentRuntime:
                 self.log.append("turn.completed", runId=run_id, answer=report)
                 return report
 
-        self.log.append("turn.failed", runId=run_id, reason="max_rounds")
         raise RuntimeError("maximum model rounds reached")
 
     def prepare_input(self, prompt: str | UserInput) -> UserInput:

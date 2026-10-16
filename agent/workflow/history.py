@@ -45,6 +45,8 @@ def restore_messages(events: list[dict]) -> list[dict]:
             if calls:
                 pending.update(call.id for call in calls)
             messages.append(message)
+        elif kind == "completion.reminded":
+            messages.append({"role": "system", "content": event["content"]})
         elif kind == "turn.cancelled":
             close_pending()
             content = event.get("answer") or "".join(text)

@@ -4,6 +4,7 @@ import threading
 
 from .bus import EventBus
 from .control import ExecutionControl
+from .agent_factory import build_agent, build_state
 from ..storage import reports
 from ..model.catalog import ModelCatalog
 from ..workflow.commands import SwitchModel
@@ -38,7 +39,7 @@ class SessionRuntime:
     def state(self) -> AgentState:
         with self._state_lock:
             if self._state is None:
-                self._state = self.registry.build_state(self)
+                self._state = build_state(self.registry.config, self.meta, self.session.events.read())
             return self._state
 
     def apply(self, update: StateUpdate) -> None:
@@ -59,7 +60,7 @@ class SessionRuntime:
     def agent(self):
         with self._agent_lock:
             if self._agent is None:
-                self._agent = self.registry.build_agent(self)
+                self._agent = build_agent(self)
             return self._agent
 
     def enqueue(self, content):
@@ -92,15 +93,14 @@ class SessionRuntime:
         while True:
             content = self.queue.get()
             if content is None:
-                self.queue.task_done()
+                try:
+                    if self._agent is not None:
+                        self._agent.close()
+                finally:
+                    self.queue.task_done()
                 return
             try:
                 self.agent.run(content)
-                execution = self.state["execution"]
-                if self.parent_session_id and execution["report"] is None and execution["status"] != "cancelled":
-                    reason = "Child ended without calling submit."
-                    self.apply(transitions.fail(self.state, reason))
-                    self.session.events.append("turn.failed", reason=reason)
             except Exception as exc:
                 self.session.events.append("turn.failed", reason=str(exc))
             finally:

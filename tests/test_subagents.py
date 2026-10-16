@@ -68,8 +68,8 @@ class SubagentTests(unittest.TestCase):
         parent = self.registry.create()
 
         def stream(client, model, messages, schemas, **kwargs):
-            if messages[0]['content'].startswith('child-'):
-                entered.add(messages[0]['content'].splitlines()[0])
+            if messages[1]['content'].startswith('child-'):
+                entered.add(messages[1]['content'])
                 tokens.append(kwargs['context'].cancellation)
                 self.assertNotIn('delegate', [s['function']['name'] for s in schemas])
                 while not release.wait(0.01):
@@ -88,7 +88,7 @@ class SubagentTests(unittest.TestCase):
                 else:
                     yield ModelChunk(content='Main finished its reply.')
             elif prompt == 'spawn':
-                yield calls(*[('delegate', {'system_prompt': f'child-{i}', 'user_prompt': 'work'}) for i in range(2)])
+                yield calls(*[('delegate', {'user_prompt': f'child-{i}'}) for i in range(2)])
             elif prompt == 'wait':
                 cursor = self.registry.monitor(parent.session.id).watch()['cursor']
                 yield calls(('watch', {'cursor': cursor, 'timeout': 120}))
@@ -158,7 +158,7 @@ class SubagentTests(unittest.TestCase):
         entered = threading.Event()
         parent = self.registry.create()
         def stream(client, model, messages, schemas, **kwargs):
-            prompt = messages[0]['content']
+            prompt = messages[1]['content']
             if prompt.startswith('crash'):
                 raise RuntimeError('intentional crash')
             if prompt.startswith('cancel'):
@@ -170,7 +170,7 @@ class SubagentTests(unittest.TestCase):
             yield ModelChunk(content='ordinary text without submit')
         with patch('agent.core.agent_runtime.stream', side_effect=stream):
             for name in ['crash', 'missing', 'cancel']:
-                receipt = json.loads(self.registry.delegate(parent.session.id, name, 'work'))
+                receipt = json.loads(self.registry.delegate(parent.session.id, name))
                 self.assertIn('watch', receipt['hint'])
                 child = self.registry.get(receipt['session_id'])
                 if name == 'cancel':
@@ -192,6 +192,72 @@ class SubagentTests(unittest.TestCase):
         self.assertEqual(states[-1]['session_id'], interrupted.id)
         self.assertEqual(states[-1]['status'], 'failed')
         self.assertEqual(restored.items, {}, 'reading the monitor must not start sessions or models')
+
+    def test_configured_child_role_retry_and_history_without_false_completion(self):
+        self.registry.config = replace(self.config, system_prompt='main {workspace}',
+                                       child_system_prompt='child instructions {workspace}')
+        parent = self.registry.create()
+        self.assertEqual(parent.state['role'], 'main')
+        self.assertTrue(parent.state['messages'][0]['content'].startswith('main '))
+        self.assertIn('delegate', [s['function']['name'] for s in parent.agent.tools.schemas])
+        child = self.registry.create(parent_session_id=parent.session.id, system_prompt='legacy override')
+        observed = []
+
+        def stream(client, model, messages, schemas, **kwargs):
+            observed.append(list(messages))
+            self.assertEqual(messages[0]['content'], f'child instructions {self.root}')
+            self.assertNotIn('delegate', [s['function']['name'] for s in schemas])
+            self.assertNotIn('watch', [s['function']['name'] for s in schemas])
+            if len(observed) == 1:
+                yield ModelChunk(content='Finished work, but forgot to submit.')
+            else:
+                self.assertEqual(messages[-1]['role'], 'system')
+                yield calls(('submit', {'content': '# Submitted after reminder'}))
+
+        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+            child.start('work')
+            self.registry.wait()
+        events = child.session.events.read()
+        self.assertEqual(child.state['role'], 'child')
+        self.assertEqual(child.state['execution']['completion_reminders'], 1)
+        self.assertEqual(child.state['execution']['status'], 'completed')
+        for kind in ['turn.started', 'completion.reminded', 'report.submitted', 'turn.completed']:
+            self.assertEqual(sum(e['type'] == kind for e in events), 1)
+        self.assertFalse(any(e['type'] == 'turn.failed' for e in events))
+        history = [{k: v for k, v in m.items() if k != 'name'} for m in restore_messages(events)]
+        self.assertEqual(child.state['messages'][1:], history)
+        self.assertEqual(len([m for m in history if m['role'] == 'user']), 1)
+
+    def test_missing_submit_has_one_reminder_and_obeys_total_round_budget(self):
+        for budget, expected_calls, reminders in [(12, 2, 1), (1, 1, 0)]:
+            self.registry.config = replace(self.config, max_rounds=budget)
+            parent = self.registry.create()
+            with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: iter([ModelChunk(content='draft')])) as model:
+                receipt = json.loads(self.registry.delegate(parent.session.id, 'work'))
+                self.registry.wait()
+            child = self.registry.get(receipt['session_id'])
+            events = child.session.events.read()
+            self.assertEqual(model.call_count, expected_calls)
+            self.assertEqual(child.state['execution']['completion_reminders'], reminders)
+            self.assertEqual(sum(e['type'] == 'turn.failed' for e in events), 1)
+            self.assertFalse(any(e['type'] == 'turn.completed' for e in events))
+            self.assertEqual(self.registry.monitor(parent.session.id).watch()['changes'][0]['status'], 'failed')
+
+    def test_delegate_only_accepts_task_and_does_not_store_custom_system_prompt(self):
+        parent = self.registry.create()
+        schema = next(s['function'] for s in parent.agent.tools.schemas if s['function']['name'] == 'delegate')
+        self.assertEqual(schema['parameters']['required'], ['user_prompt'])
+        self.assertEqual(set(schema['parameters']['properties']), {'user_prompt'})
+        with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: iter([calls(('submit', {'content': 'done'}))])):
+            receipt = json.loads(self.registry.delegate(parent.session.id, 'complete task context'))
+            self.registry.wait()
+        child = self.registry.get(receipt['session_id'])
+        self.assertNotIn('system_prompt', child.meta)
+        self.assertEqual(child.state['messages'][1]['content'], 'complete task context')
+        count = len(self.registry.items)
+        result = parent.agent.tools.call('delegate', {'system_prompt': 'override', 'user_prompt': 'work'})
+        self.assertIn('[tool error]', result)
+        self.assertEqual(len(self.registry.items), count)
 
     def test_report_rewrites_local_image_paths_without_duplicating_images(self):
         session = self.registry.store.create()
