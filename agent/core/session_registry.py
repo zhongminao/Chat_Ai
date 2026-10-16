@@ -14,7 +14,7 @@ from ..workflow.input import UserInput
 class SessionRegistry:
     def __init__(self, config=None):
         self.config = config or load()
-        self.store = SessionStore(self.config.event_log.parent)
+        self.store = SessionStore(self.config.storage_dir)
         self.items: dict[str, SessionRuntime] = {}
         self.monitors: dict[str, Monitor] = {}
         self.lock = threading.RLock()

@@ -1,5 +1,0 @@
-现在暂停游戏开发，只整理上下文。本轮不要继续修复、实现、测试或delegate。
-请先用read_file读取整理skill：/home/zhong/mydisk/tools/chat_ai/skills/context-handoff/SKILL.md，再读取分组与文件清单：/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/manifest.json。
-完整冻结快照位于/home/zhong/mydisk/tools/chat_ai/experiments/context-handoff-20261016-154228/snapshot.json，你已有的对话记录用于理解进展；仅必要时分页读取快照。
-按skill的JSON格式，用write_file把交接计划写入工作区相对路径context-handoff-game-20261016-154228/handoff-plan.json。摘要请准确记录当前未完成的阶段2和阶段3、用户后续修正、当前真实测试结果和已知失败，不要声称中断中的工作已经完成。
-files请选择当前最有价值的少量代码，先用run_bash的wc -l核对实际行数；总交接输入预算16K token，不要把全部历史和全部文件原样塞入。用户原始输入由脚本完整保留。写完JSON后只简短报告路径并结束本轮。

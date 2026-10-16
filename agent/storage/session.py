@@ -50,7 +50,7 @@ class SessionStore:
     def metadata(self, session_id: str) -> dict:
         return json.loads((self.path(session_id) / "session.json").read_text(encoding="utf-8"))
 
-    def summary(self, session_id: str) -> dict:
+    def read_list_summary(self, session_id: str) -> dict:
         """Cache list metadata; read only appended complete events when the log grows."""
         directory = self.path(session_id)
         meta_path, log_path = directory / "session.json", directory / "events.jsonl"
@@ -120,10 +120,3 @@ class SessionStore:
             finally:
                 temporary.unlink(missing_ok=True)
         return title
-
-
-def create(
-    root: Path,
-    on_event: Callable[[dict[str, Any]], None] | None = None,
-) -> Session:
-    return SessionStore(root).create(on_event)

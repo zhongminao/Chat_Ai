@@ -27,7 +27,7 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     setLoadedId(null); setConnected(false); setPending(null); setStopRequested(false); commandPending.current = false;
     renameBarrier.current = Promise.resolve(true);
     if (id) {
-      api.snapshot(id, abort.signal).then(snapshot => {
+      api.getConversationSnapshot(id, abort.signal).then(snapshot => {
         if (!current()) return;
         dispatch({ type: 'snapshot', snapshot });
         setLoadedId(id);

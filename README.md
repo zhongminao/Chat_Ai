@@ -9,7 +9,7 @@
 ## 当前结构
 
 ```text
-agent/core/       AgentFactory、SessionRuntime、AgentRuntime、会话调度与运行资源
+agent/core/       Agent 装配、SessionRuntime、AgentRuntime、会话调度与运行资源
 agent/model/      模型协议、provider、模型目录与客户端复用、图文消息组装
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与结果转换
@@ -19,6 +19,7 @@ agent/workflow/   state 类型、状态节点、流程路由、历史恢复、�
 agent/cli/        CLI
 agent/web/        FastAPI、SSE、页面
 config.yaml       项目配置
+prompts/          框架实际加载的模型提示词
 ```
 
 ## 运行
@@ -112,7 +113,7 @@ agent/web/frontend/src/
 根据已加载的摘要筛选候选，再通过 conversation 接口确认是否仍为空，连续点击不会反复创建空记录。
 新建不再先查询一次完整列表，选中空会话后在后台刷新列表，不阻塞输入框加载。
 
-会话列表由 SessionStore.summary() 提供标题、状态、是否为空和更新时间等摘要，不重建消息历史。
+会话列表由 SessionStore.read_list_summary() 提供标题、状态、是否为空和更新时间等摘要，不重建消息历史。
 每个会话的 summary.json 是可重建的列表缓存，包含事件文件标识、大小、修改时间和完整行读取位置；
 未变化时直接复用，日志追加时仅解析新增完整事件。旧历史首次生成一次摘要，服务重启后仍可复用；
 缓存损坏、日志截断或替换时重建，自定义标题仍读取 session.json。摘要不是 AgentState checkpoint。
@@ -145,22 +146,20 @@ CLI 修改名称后，Web 刷新页面或重新加载会话列表即可看到。
 
 ## Agent 轮数与系统提示词
 
-CLI 和 Web 共用根目录 `config.yaml` 的运行配置：
+CLI 和 Web 共用根目录 `config.yaml` 的运行配置。`storage_dir: ./storage` 指定存储根目录，实际日志位于 `storage/sessions/<id>/events.jsonl`；旧的 `event_log` 配置键已改为 `storage_dir`，使用自定义配置时也需更新，不移动已有数据。
+
+运行轮数和提示词配置：
 
 ```yaml
 max_rounds: 200
-system_prompt: |
-  You are a small coding assistant. Use the provided tools when needed.
-  Workspace directory: {workspace}
-child_system_prompt: |
-  You are an independent child assistant. Complete the assigned task.
-  Call submit alone with your complete final Markdown report.
-  Workspace directory: {workspace}
+system_prompt_file: ./prompts/main_agent.md
+child_system_prompt_file: ./prompts/child_agent.md
 ```
 
 主 Agent 每次用户请求、子 Agent 每次委派任务各自最多执行 `max_rounds` 轮模型调用，默认均为 200；一轮可包含多个工具调用。
-delegate 只接受 user_prompt，包含完整任务、角色要求、上下文和路径；子 Agent 使用配置中的 child_system_prompt，继承模型与轮数上限。达到上限会结束该任务并更新 watch 状态。
-`max_rounds` 必须为正整数；`system_prompt` 和 `child_system_prompt` 均必须为非空文本。两者是主、子 Agent 各自完整的系统提示词，包含各自工具和结束规则，可直接编辑 YAML 多行文本；框架不再额外拼接系统提示词。
+delegate 只接受 user_prompt，包含完整任务、角色要求、上下文和路径；子 Agent 使用配置指定的 child_agent.md，继承模型与轮数上限。达到上限会结束该任务并更新 watch 状态。
+`max_rounds` 必须为正整数；`system_prompt_file`、`child_system_prompt_file` 指向主、子 Agent 完整提示词文件。
+路径以 config.yaml 所在目录为基准，也支持绝对路径；文件必须是非空 UTF-8 文本。直接编辑 prompts/main_agent.md、prompts/child_agent.md，框架不再额外拼接系统提示词。
 提示词中的 `{workspace}` 替换为实际工作区绝对路径，其他花括号原样保留，支持直接写入 JSON 示例。
 配置在创建运行资源时加载；修改后重启 Web 和 CLI，即可让新旧会话按主、子角色使用最新配置，不改写历史日志。旧子会话元数据中的 system_prompt 保留，但不再覆盖配置。
 
@@ -179,7 +178,7 @@ Web 支持选图、粘贴和拖入静态 PNG/JPEG/WebP；每张最多 10 MB、20
 ```text
 agent/storage/images.py     图片文件、缩略图、默认名称与重命名
 agent/workflow/input.py     CLI/Web 共用的 UserInput
-agent/model/messages.py     图片说明与模型消息组装
+agent/model/request_messages.py     图片说明与模型消息组装
 ```
 
 原文件及名称保存在 session 的 attachments/ 中；events.jsonl 和 state 只保存引用及元数据，
@@ -265,8 +264,8 @@ Web 和 CLI 使用相同工具及模型请求流程，不增加手动操作入�
 切换到非视觉模型后，历史读图引用保留，请求中不附加其图像内容。
 本地千问的 8 张上限计算整个模型上下文（含用户图片和此前主动读图）；达到上限后可使用新会话，代码不会自动裁剪历史。
 
-实现入口：`agent/tools/images.py`、`agent/tools/result.py`；消息组装位于 `agent/model/messages.py`，
-能力配置读取位于 `agent/model/catalog.py`，历史恢复位于 `agent/workflow/history.py`。
+实现入口：`agent/tools/images.py`、`agent/tools/result.py`；消息组装位于 `agent/model/request_messages.py`，
+能力配置读取位于 `agent/model/catalog.py`，历史恢复位于 `agent/workflow/message_replay.py`。
 
 ## 模型配置与本地服务
 
@@ -280,7 +279,7 @@ Web 和 CLI 使用相同工具及模型请求流程，不增加手动操作入�
 
 远程模型 API 密钥由 provider 配置中的 `api_key_env` 指定，例如 `DEEPSEEK_API_KEY`、`GPT_API_KEY`。
 测试图片时，在模型选择器中切换到本地 `local-qwen3p5-9b`。
-图文请求使用共用的 `agent/model/messages.py`；本地 Qwen 适配位于 `agent/model/providers/qwen.py`。
+图文请求使用共用的 `agent/model/request_messages.py`。通用 `OpenAICompatibleAdapter` 位于 `model/openai_compatible.py`，供 GPT、Qwen 等使用；`providers/qwen.py` 的 `QwenChatTemplateAdapter` 专门配置 Qwen 模板的思考开关。
 本地请求根据 provider 的 `thinking` 配置传递 `chat_template_kwargs.enable_thinking`，当前为 `disabled`。
 思考过程的前端展示尚未实现。
 
@@ -356,13 +355,14 @@ curl http://127.0.0.1:8002/v1/models
 | `workflow/state.py` | `AgentState`、`ExecutionState` 和 `StateUpdate` 类型 |
 | `workflow/completion.py` | 根据 role 和本轮状态判断结束、一次补交提醒或失败；不执行 I/O |
 | `workflow/transitions.py` | 简单操作合集：切换模型、执行生命周期、流式回复累积、submit，以及流程路由 |
-| `workflow/messages.py` | 用户输入、模型回复、工具结果、取消时保留部分回复等消息变更 |
-| `workflow/history.py` | 从事件流重建消息，复用统一的助手消息构造逻辑 |
+| `workflow/message_updates.py` | 用户输入、模型回复、工具结果、取消时保留部分回复等消息变更 |
+| `workflow/context_compaction.py` | 上下文整理条件、保留范围、摘要替换及大小校验，返回 StateUpdate |
+| `workflow/message_replay.py` | `restore_display_messages` 恢复完整展示历史；`restore_model_messages` 恢复模型上下文 |
 | `core/agent_factory.py` | 构建初始 state、选择主子提示词、配置工具和装配 AgentRuntime |
 | `core/session_runtime.py` | 独立持有 state，管理会话队列、线程、忙闲、停止、报告保存和退出清理 |
 | `core/agent_runtime.py` | 调度本轮模型与工具循环，应用节点更新并发布事件 |
 | `model/catalog.py` | 模型配置校验、视觉能力，以及 `get_binding(target)` 请求资源与 provider 复用 |
-| `model/request.py` | 可取消的模型 HTTP 请求；异步网络 I/O 适配现有同步模型流接口 |
+| `model/http_client.py` | `ModelHttpClient` 复用模型连接，执行可取消 HTTP 请求并关闭资源；异步网络 I/O 适配同步模型流接口 |
 
 切换模型只更新 state 并记录事件，不要求初始化 agent 执行器、MCP 或模型客户端。
 实际调用模型时，`get_binding` 按目标模型按需创建资源；同一个 catalog 实例只复用当前模型的一对资源，目标改变后重新创建。
@@ -375,8 +375,50 @@ Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使
 已请求停止导致的请求异常按取消处理，未请求停止的网络异常仍为失败。这里的“已停止”只表示本地本轮执行已结束；使用标准请求取消和连接关闭向请求接收端传达中断，不查询或确认模型服务端是否停止生成，也不关闭其他会话的请求。
 `SessionRuntime.busy` 表示调度器是否有任务在执行，`execution.status` 描述本轮逻辑结果；二者不等同于 watch 的资源状态。
 
-当前不保存 state checkpoint，也不序列化运行资源。`events.jsonl` 保持为持久化事件流，`restore_messages` 从中恢复消息，CLI 和 Web 使用同一套恢复流程。
+当前不保存整个 state checkpoint，也不序列化运行资源。`events.jsonl` 保持为持久化事件流；
+CLI 和 Web 共用运行时，模型输入由 `restore_model_messages` 恢复，网页完整历史由 `restore_display_messages` 恢复。
 工具输出过大时写入工作目录 `.spill/<session_id>/`，模型通过 `read_file` 读取。
+
+## 自动上下文整理
+
+CLI、Web、主子 Agent 共用每次业务模型请求前的检查入口，覆盖新用户输入、整组工具结果和补交提醒之后。
+默认在 110592 token（120K 的 90%，即 108K，K=1024）时整理：
+
+```yaml
+context:
+  enabled: true
+  trigger_tokens: 110592
+  prompt_file: ./prompts/context_compaction.md
+```
+
+`trigger_tokens` 必须是正整数，修改后重启服务。
+不再设置 `target_tokens`、`summary_max_tokens`，提示词也不规定字数；模型按当前任务需要决定摘要详略。
+`prompts/context_compaction.md` 是发给摘要模型的纯提示词；本节 README 是给操作者看的说明，不作为模型输入。
+框架不传摘要输出 token 上限，模型服务自身的上下文窗口和输出限制仍然有效。
+关闭 `enabled` 后不统计、不调用摘要模型，已保存的整理结果仍正常恢复。
+统计包括系统提示词、消息和工具定义。30B provider 配置 `token_counter: llama_cpp`，通过服务端
+`/apply-template` 和 `/tokenize` 实际计数；其他 provider 暂按 UTF-8 字节约三分之一及每图 4096 token 估算，
+估算不是模型硬上限，视觉费用也可能不同。token_counter 是 provider 能力，触发阈值仍在 config.yaml。
+
+`workflow/context_compaction.py` 是整理状态更新入口，不创建客户端或写文件；它保留系统提示词、最新用户原文（含图片引用）
+以及最近完整的助手／工具组，其余历史交给当前模型生成摘要。长工具循环在同一用户轮次内也能整理。
+`model/context_summary.py` 使用独立提示词、无工具的单次可取消请求，不递归运行 AgentRuntime，不消费业务模型轮数，
+不修改 answer、report 或 submit 提醒状态，也不重新读取文件或图片。摘要保留观察结论与引用，必要时业务模型再读取。
+摘要准确性取决于模型，结构与大小校验通过不表示语义无损。
+
+Runtime 在校验成功后先写入 `context.compacted` 事件中的完整 messages，再 apply 更新，不新建会话、不改写旧事件。
+`message_replay.restore_model_messages` 从最新整理结果恢复，再追加后续事件；配置未变化时与保存的上下文一致。
+显式修改角色系统提示词仍会更新恢复后的首条系统消息，沿用原配置行为。
+网页 conversation 接口继续使用 `restore_display_messages` 还原完整原始历史，模型摘要不冒充用户消息显示。
+整理后须确实缩小且低于触发阈值，以免下一轮立即再次整理；不要求固定大小或压缩比例。
+摘要失败、截断、未缩小、仍达到触发阈值或落盘前取消均不替换原上下文，不无限重试；失败结束本轮并保留错误供用户处理。
+当前输入或最后工具组过大、没有可整理历史时明确报错，不静默裁剪。
+
+共享反馈事件为 `context.compaction.started`、`context.compacted`、`context.compaction.failed`、`context.compaction.cancelled`。
+Web 整理时显示“正在自动压缩上下文”，成功后留下灰色“上下文已自动压缩”标识，刷新和历史回放可恢复，
+submit 折叠过程时标识仍可见；失败或取消显示对应状态，重启后的未完成整理显示中断。
+CLI 消费同样事件输出文本。摘要正文不进入普通 message.delta，避免混入回复或历史气泡。
+旧的跨会话交接实验代码已删除。生产整理由 agent/workflow/context_compaction.py 返回状态更新，Runtime 调用摘要、持久化并应用更新；不运行外部脚本或加载 skill。
 
 ## MCP 与网页工具
 
@@ -386,6 +428,14 @@ Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使
 mcp:
   web: http://127.0.0.1:8766/mcp
 ```
+
+MCP 工具在 Agent 创建时按服务分别发现；每个服务的连接、初始化和工具发现合计最多等待 1 秒。
+连接失败或超时只记录该服务的告警并跳过其工具，继续注册其他服务，不阻止普通对话和本地工具使用。
+已经注册的 MCP 工具在调用时断开，返回对应工具错误，不终止整个会话。
+ToolRouter 以本轮已注册工具列表为准；模型再次调用历史中已不可用的 MCP 工具或其他未注册工具时，
+返回“当前工具不可用”的工具回执，后续工具和模型循环继续，不改写历史调用记录。
+当前不增加后台重试或连接管理器；服务恢复后新建会话，或重启 Web／CLI 重新打开原会话，可重新发现工具。
+告警在 CLI stderr 或 Web 服务日志中查看。
 
 搜索桥接请求本地 SearXNG 时保持直连；`fetch_url` 读取 HTTP_PROXY/HTTPS_PROXY 等环境变量访问外部网页。
 使用终端代理时同时设置 `NO_PROXY` 和 `no_proxy` 为 `localhost,127.0.0.1,::1`，避免本地 MCP 和模型接口绕到代理。
@@ -417,7 +467,7 @@ SearXNG 是搜索后端；`web.py` 是独立的 Web MCP 服务端。`fetch_url` 
 
 ## Watch 多 agent
 
-- `delegate(user_prompt)`：创建独立子 session，立即返回 ID 和 watch 使用提示。子 Agent 系统提示词由 config.yaml 的 child_system_prompt 提供，不接受主 Agent 覆盖。
+- `delegate(user_prompt)`：创建独立子 session，立即返回 ID 和 watch 使用提示。子 Agent 系统提示词由 config.yaml 的 child_system_prompt_file 指定，不接受主 Agent 覆盖。
 - `watch(cursor=None, timeout=0)`：无 cursor 返回资源快照；有 cursor 返回其后变化的资源；timeout>0 时等待任意变化，最多 120 秒。超时返回空 changes，游标不变。
 - `submit(content)`：保存本轮最终 Markdown 报告并结束执行。子 agent 必须提交，主 agent 可选。
 

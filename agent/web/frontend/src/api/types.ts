@@ -28,7 +28,7 @@ export interface ModelGroup {
   models: { id: string; name: string; enabled: boolean }[];
 }
 
-export interface Snapshot {
+export interface ConversationSnapshot {
   id: string;
   seq: number;
   busy: boolean;
@@ -61,6 +61,10 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }
   | { type: 'completion.reminded'; content: string }
+  | { type: 'context.compaction.started'; compactionId: string; beforeTokens: number }
+  | { type: 'context.compacted'; compactionId: string; beforeTokens: number; afterTokens: number }
+  | { type: 'context.compaction.failed'; compactionId: string; reason: string }
+  | { type: 'context.compaction.cancelled'; compactionId: string }
   | { type: 'turn.completed'; answer?: string }
   | { type: 'turn.cancelled'; answer?: string }
   | { type: 'turn.failed'; reason: string }

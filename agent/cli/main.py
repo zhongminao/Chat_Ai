@@ -7,7 +7,7 @@ from ..core.session_registry import SessionRegistry
 from ..workflow.config import load
 from ..workflow.commands import SwitchModel
 from .images import ImageCommands
-from .output import render_tool_result
+from .output import render_context_event, render_tool_result
 
 
 def main() -> None:
@@ -33,6 +33,12 @@ def main() -> None:
     agent = runtime.agent
     agent.output = lambda text: print(text, end="", flush=True)
     agent.on_tool_result = render_tool_result
+
+    def on_event(event):
+        runtime.bus.publish(event)
+        render_context_event(event)
+
+    session.events.on_append = on_event
 
     if args.session:
         print(f"继续会话：{session.directory}")

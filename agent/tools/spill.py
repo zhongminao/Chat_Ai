@@ -12,7 +12,7 @@ def _redact(text: str) -> str:
     return _SECRET.sub(r"\1[redacted]", text)
 
 
-def handle(
+def spill_tool_output(
     text: str,
     *,
     enabled: bool,

@@ -23,6 +23,7 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
   useLayoutEffect(() => { if (follow.current) bottom(); }, [items, busy]);
 
   const hasItems = items.length > 0;
+  const compacting = items.some(item => item.kind === 'context' && item.status === 'running');
   useEffect(() => {
     const content = contentBox.current;
     if (!content) return;
@@ -57,8 +58,14 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
           ? <ReportCard key={item.id} item={item} onInspect={() => { follow.current = false; }}>
             {item.process.map(renderExecution)}
           </ReportCard>
-          : renderExecution(item))}
-          {busy && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
+          : item.kind === 'context'
+            ? <div key={item.id} className="context-marker" role="status" title={item.reason}>
+              {item.status === 'running' ? <span className="loading-dot" /> : <Icon name="compact" size={16} />}
+              {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
+                cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
+            </div>
+            : renderExecution(item))}
+          {busy && !compacting && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
         </div>}
     </div>
     {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}

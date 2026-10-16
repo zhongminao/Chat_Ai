@@ -1,10 +1,11 @@
-import type { AgentEvent, ImageAsset, Model, Snapshot } from '../api/types';
+import type { AgentEvent, ImageAsset, Model, ConversationSnapshot } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[] };
 export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' };
 export type ExecutionItem = TextItem | ToolItem;
+export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
-export type Item = ExecutionItem | ReportItem;
+export type Item = ExecutionItem | ReportItem | ContextCompactionItem;
 export interface Conversation {
   items: Item[];
   images: ImageAsset[];
@@ -14,7 +15,7 @@ export interface Conversation {
   ready: boolean;
   model: Model | null;
   error: string | null;
-  snapshot: Snapshot | null;
+  snapshot: ConversationSnapshot | null;
   execution: { startIndex: number; startedAt?: number } | null;
 }
 
@@ -25,7 +26,7 @@ export const emptyConversation = (): Conversation => ({
 
 export type Action =
   | { type: 'reset' }
-  | { type: 'snapshot'; snapshot: Snapshot }
+  | { type: 'snapshot'; snapshot: ConversationSnapshot }
   | { type: 'events'; events: AgentEvent[] }
   | { type: 'busy'; busy: boolean }
   | { type: 'model'; model: Model }
@@ -46,6 +47,21 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       if (event.seq > (state.snapshot?.seq ?? 0)) next.images = upsertImage(state.images, event.image);
       break;
     case 'model.started': next.assistantId = null; break;
+    case 'context.compaction.started':
+      next.assistantId = null;
+      next.items = [...state.items, { id: `context:${event.compactionId}`, kind: 'context', status: 'running' }];
+      break;
+    case 'context.compacted':
+    case 'context.compaction.failed':
+    case 'context.compaction.cancelled': {
+      const id = `context:${event.compactionId}`;
+      const item: ContextCompactionItem = { id, kind: 'context',
+        status: event.type === 'context.compacted' ? 'completed' : event.type === 'context.compaction.failed' ? 'failed' : 'cancelled',
+        reason: event.type === 'context.compaction.failed' ? event.reason : undefined };
+      next.items = state.items.some(entry => entry.id === id)
+        ? state.items.map(entry => entry.id === id ? item : entry) : [...state.items, item];
+      break;
+    }
     case 'message.delta': {
       const id = state.assistantId ?? `assistant:${event.seq}`;
       const exists = state.items.some(item => item.id === id);
@@ -74,9 +90,10 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     case 'report.submitted': {
       const startIndex = state.execution?.startIndex ?? state.items.length;
       const startedAt = state.execution?.startedAt;
-      next.items = [...state.items.slice(0, startIndex), {
+      next.items = [...state.items.slice(0, startIndex),
+        ...state.items.slice(startIndex).filter(item => item.kind === 'context'), {
         id: `report:${event.seq}`, kind: 'report', content: event.content,
-        process: state.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind !== 'report'),
+        process: state.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind === 'text' || item.kind === 'tool'),
         durationSeconds: startedAt !== undefined && event.time !== undefined
           ? Math.max(0, Math.floor((event.time - startedAt) / 1e9)) : null,
       }];
@@ -89,11 +106,11 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     case 'error':
       next.error = event.type === 'turn.failed' ? event.reason : event.reason ?? event.message;
       // Failed and cancelled runs cannot leave a tool card marked as running.
-      next.items = state.items.map(item => item.kind === 'tool' && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
+      next.items = interruptPending(state.items);
       next.busy = false; next.assistantId = null; next.execution = null;
       break;
     case 'turn.cancelled':
-      next.items = state.items.map(item => item.kind === 'tool' && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
+      next.items = interruptPending(state.items);
       next.busy = false; next.assistantId = null; next.execution = null;
       break;
     case 'turn.completed': next.busy = false; next.assistantId = null; break;
@@ -112,10 +129,15 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     next.model = state.snapshot.model;
     if (next.seq === state.snapshot.seq) next.busy = state.snapshot.busy;
     if (!next.busy) {
-      next.items = next.items.map(item => item.kind === 'tool' && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
+      next.items = interruptPending(next.items);
     }
   }
   return next;
+}
+
+function interruptPending(items: Item[]): Item[] {
+  return items.map(item => (item.kind === 'tool' || item.kind === 'context') && item.status === 'running'
+    ? { ...item, status: 'interrupted' } : item);
 }
 
 export function conversationReducer(state: Conversation, action: Action): Conversation {

@@ -28,16 +28,14 @@ class ToolRouter:
         if watch:
             self.schemas.append(WATCH_SCHEMA)
 
-    @property
-    def mcp_servers(self) -> dict[str, str]:
-        return self.mcp.servers if self.mcp else {}
-
     def call(
         self,
         name: str,
         arguments: dict[str, Any],
         context: ExecutionContext | None = None,
     ) -> str | ToolResult:
+        if not any(schema["function"]["name"] == name for schema in self.schemas):
+            return f"[tool error] 当前工具不可用：{name}"
         if name in {"show_image", "read_image"}:
             try:
                 if self.images is None:

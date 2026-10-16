@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import threading
 from typing import Any
 
@@ -8,13 +9,22 @@ from mcp.client.streamable_http import streamable_http_client
 from ...core.cancellation import ExecutionContext, RunCancelled
 
 
+DISCOVERY_TIMEOUT = 1.0
+logger = logging.getLogger(__name__)
+
+
 class McpClient:
     def __init__(self, servers: dict[str, str]):
         self.servers = dict(servers)
         self.tools: dict[str, tuple[str, str]] = {}
         self.schemas: list[dict[str, Any]] = []
         for name, url in self.servers.items():
-            for tool in self._list(url):
+            try:
+                tools = self._list(url)
+            except Exception as exc:
+                logger.warning("MCP %s unavailable; skipping its tools: %r", name, exc)
+                continue
+            for tool in tools:
                 tool_name = f"mcp_{name}_{tool.name}"
                 self.tools[tool_name] = (name, tool.name)
                 self.schemas.append({
@@ -28,10 +38,11 @@ class McpClient:
 
     def _list(self, url: str):
         async def request():
-            async with streamable_http_client(url) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    return (await session.list_tools()).tools
+            async with asyncio.timeout(DISCOVERY_TIMEOUT):
+                async with streamable_http_client(url) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        return (await session.list_tools()).tools
         return asyncio.run(request())
 
     def call(

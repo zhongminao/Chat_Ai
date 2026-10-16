@@ -5,19 +5,21 @@ from typing import Any
 
 from ..model.buffer import TextBuffer
 from ..model.catalog import ModelCatalog, ModelTarget
+from ..model.tokens import count_request_tokens
+from ..model.context_summary import summarize_context
 from ..workflow.commands import RenameImage
 from ..workflow.input import UserInput, normalize_input
-from ..model.messages import model_image_ids
+from ..model.request_messages import model_image_ids
 from ..storage.images import ImageStore
 from ..workflow.state import AgentState, StateUpdate
-from ..workflow import completion, messages, transitions
+from ..workflow import context_compaction, completion, message_updates, transitions
 from .cancellation import ExecutionContext, RunCancelled, CancellationToken
 from .control import ExecutionControl
 from ..model.openai_compatible import stream
 from ..storage.event_log import EventLog
 from ..tools.router import ToolRouter
 from ..tools.result import ToolResult, normalize_result
-from ..tools.spill import handle as spill_output
+from ..tools.spill import spill_tool_output
 from ..tools.schema import SUBMIT_SCHEMA, ToolCallAssembler
 
 
@@ -39,6 +41,7 @@ class AgentRuntime:
         control: ExecutionControl | None = None,
         images: ImageStore | None = None,
         on_tool_result: Callable[[ToolResult], None] | None = None,
+        context_config: dict | None = None,
     ):
         self.state = state
         self.control = control or ExecutionControl()
@@ -46,6 +49,7 @@ class AgentRuntime:
         self.session_id = session_id
         self.spill = spill
         self.max_rounds = max_rounds
+        self.context_config = context_config or {}
         self.tools = tools or ToolRouter(workspace)
         self.on_submit = on_submit
         self.tools.submit = self._submit
@@ -78,7 +82,7 @@ class AgentRuntime:
                 callId=call.id,
                 result=result,
             )
-            self.apply(messages.receive_tool(self.state, call.id, result))
+            self.apply(message_updates.receive_tool(self.state, call.id, result))
 
     def dispatch(self, command: RenameImage) -> dict:
         image = self.images.rename(command.image, command.name)
@@ -98,7 +102,7 @@ class AgentRuntime:
             return self._run(prompt, context)
         except (RunCancelled, KeyboardInterrupt):
             context.cancellation.cancel()
-            self.apply(messages.cancel(self.state))
+            self.apply(message_updates.cancel(self.state))
             if not own_token:
                 raise
             execution = transitions.execution(self.state)
@@ -125,7 +129,7 @@ class AgentRuntime:
         context.cancellation.raise_if_cancelled()
         value = self.prepare_input(prompt)
         assets = [self.images.get(image) for image in value.images]
-        self.apply(messages.receive_user(self.state, value.text, value.images))
+        self.apply(message_updates.receive_user(self.state, value.text, value.images))
         self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
 
         for round_no in range(self.max_rounds):
@@ -135,6 +139,7 @@ class AgentRuntime:
             vision, image_limit = self.catalog.vision_options(model) if self.catalog else (False, None)
             self.tools.vision = vision
             self.tools.image_limit = image_limit
+            self._compact(client, provider, vision, context)
             assembler = ToolCallAssembler()
             text_buffer = TextBuffer()
             finish_reason = None
@@ -200,7 +205,7 @@ class AgentRuntime:
 
             calls = assembler.finish()
             full_answer = transitions.execution(self.state)["answer"]
-            self.apply(messages.complete_model(self.state, full_answer, calls))
+            self.apply(message_updates.complete_model(self.state, full_answer, calls))
 
             self.log.append(
                 "model.completed",
@@ -214,7 +219,7 @@ class AgentRuntime:
                 decision = completion.decide(self.state, self.max_rounds)
                 if decision == "remind":
                     context.cancellation.raise_if_cancelled()
-                    self.apply(messages.remind_completion(self.state, completion.REMINDER))
+                    self.apply(message_updates.remind_completion(self.state, completion.REMINDER))
                     self.log.append("completion.reminded", runId=run_id, content=completion.REMINDER)
                     continue
                 if decision == "fail":
@@ -246,7 +251,7 @@ class AgentRuntime:
                         if transitions.after_tools(self.state) == "submit"
                         else self.tools.call(call.name, call.arguments, context)
                     )
-                    result = spill_output(
+                    result = spill_tool_output(
                         output.text,
                         enabled=bool(self.spill.get("enabled", True)),
                         max_inline_chars=int(self.spill.get("max_inline_chars", 12000)),
@@ -272,7 +277,7 @@ class AgentRuntime:
                 )
                 if output.images and self.on_tool_result:
                     self.on_tool_result(output)
-                self.apply(messages.receive_tool(self.state, call.id, result, [image["id"] for image in output.model_images]))
+                self.apply(message_updates.receive_tool(self.state, call.id, result, [image["id"] for image in output.model_images]))
                 completed_call_ids.add(call.id)
                 if transitions.after_tools(self.state) == "model":
                     context.cancellation.raise_if_cancelled()
@@ -289,6 +294,41 @@ class AgentRuntime:
                 return report
 
         raise RuntimeError("maximum model rounds reached")
+
+    def _compact(self, client, provider, vision: bool, context: ExecutionContext) -> None:
+        config = self.context_config
+        context.cancellation.raise_if_cancelled()
+        if not config.get("enabled", False):
+            return
+        method = self.catalog.token_counter(self.state["model"])
+
+        def measure(value):
+            return count_request_tokens(client, value, self.tools.schemas, context, method=method,
+                                images=self.images, read_images=vision)
+
+        before = measure(self.state["messages"])
+        identifiers = {"runId": transitions.execution(self.state)["id"], "compactionId": uuid.uuid4().hex}
+        try:
+            selected = context_compaction.plan(self.state, before, config)
+            if selected is None:
+                return
+            self.log.append("context.compaction.started", **identifiers, beforeTokens=before, counter=method)
+            summary = summarize_context(client, self.state["model"]["name"], provider, selected, config, context)
+            update = context_compaction.build_update(selected, summary)
+            after = measure(update["messages"])
+            context_compaction.validate_compacted_size(before, after, config)
+            context.cancellation.raise_if_cancelled()
+            # Commit the exact replacement before mutating memory. No await or
+            # cancellation check may split durable commit from applying it.
+            self.log.append("context.compacted", **identifiers, messages=update["messages"],
+                            beforeTokens=before, afterTokens=after, counter=method)
+            self.apply(update)
+        except (RunCancelled, KeyboardInterrupt):
+            self.log.append("context.compaction.cancelled", **identifiers)
+            raise
+        except Exception as exc:
+            self.log.append("context.compaction.failed", **identifiers, reason=str(exc))
+            raise
 
     def prepare_input(self, prompt: str | UserInput) -> UserInput:
         value = normalize_input(prompt)

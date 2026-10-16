@@ -13,12 +13,12 @@ from PIL import Image
 
 from agent.core.session_registry import SessionRegistry
 from agent.core.session_runtime import SessionBusy
-from agent.model.messages import request_messages
+from agent.model.request_messages import request_messages
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.storage.images import ImageStore
 from agent.web.images import image_router
 from agent.workflow.config import load
-from agent.workflow.history import restore_messages
+from agent.workflow.message_replay import restore_display_messages
 
 
 def calls(*items):
@@ -39,7 +39,7 @@ class SubagentTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        self.config = replace(load(), workspace=self.root, event_log=self.root / 'events.jsonl', mcp={}, max_rounds=12)
+        self.config = replace(load(), workspace=self.root, storage_dir=self.root, mcp={}, max_rounds=12)
         self.registry = SessionRegistry(self.config)
         self.releases = []
         self.clients = patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object()))
@@ -144,7 +144,7 @@ class SubagentTests(unittest.TestCase):
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(response.headers['content-type'].startswith('image/png'))
-            history = restore_messages(parent.session.events.read())
+            history = restore_display_messages(parent.session.events.read())
             self.assertNotIn('agent', [m['role'] for m in history])
             self.assertEqual([m['role'] for m in history], [m['role'] for m in parent.agent.state['messages'][1:]])
             request_messages(history, parent.agent.images)
@@ -224,7 +224,7 @@ class SubagentTests(unittest.TestCase):
         for kind in ['turn.started', 'completion.reminded', 'report.submitted', 'turn.completed']:
             self.assertEqual(sum(e['type'] == kind for e in events), 1)
         self.assertFalse(any(e['type'] == 'turn.failed' for e in events))
-        history = [{k: v for k, v in m.items() if k != 'name'} for m in restore_messages(events)]
+        history = [{k: v for k, v in m.items() if k != 'name'} for m in restore_display_messages(events)]
         self.assertEqual(child.state['messages'][1:], history)
         self.assertEqual(len([m for m in history if m['role'] == 'user']), 1)
 

@@ -6,7 +6,7 @@ from typing import Any
 import yaml
 
 from .providers import create as create_provider
-from .request import ModelRequest
+from .http_client import ModelHttpClient
 
 
 @dataclass(frozen=True)
@@ -73,12 +73,17 @@ class ModelCatalog:
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
         adapter = create_provider(target.provider, target.thinking)
-        binding = (ModelRequest(api_key=api_key, base_url=provider["base_url"]), adapter)
+        binding = (ModelHttpClient(api_key=api_key, base_url=provider["base_url"]), adapter)
         previous = self._binding
         self._binding, self._bound_target = binding, target
         if previous:
             previous[0].close()
         return binding
+
+    def token_counter(self, model: dict[str, str]) -> str:
+        provider = self.providers[model["provider"]]
+        entry = next((item for item in provider.get("models", []) if item["id"] == model["name"]), {})
+        return entry.get("token_counter", provider.get("token_counter", "estimate"))
 
     def close(self) -> None:
         if self._binding:

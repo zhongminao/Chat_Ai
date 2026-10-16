@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { AgentEvent, Snapshot } from '../api/types';
+import type { AgentEvent, ConversationSnapshot } from '../api/types';
 import { conversationReducer as reduce, emptyConversation, type Conversation } from './conversation';
 
 const model = { provider: 'deepseek', name: 'deepseek-chat' };
-const snapshot = (seq: number, busy = false): Snapshot => ({ id: 'test', seq, busy, model });
+const snapshot = (seq: number, busy = false): ConversationSnapshot => ({ id: 'test', seq, busy, model });
 const start: AgentEvent = { seq: 1, type: 'turn.started', prompt: 'hello', runId: 'run' };
 const modelStart: AgentEvent = { seq: 2, type: 'model.started', round: 0, runId: 'run' };
 const text: AgentEvent = { seq: 3, type: 'message.delta', text: 'partial', round: 0, runId: 'run' };
@@ -99,6 +99,34 @@ describe('existing event protocol -> conversation', () => {
   it('handles a new empty session and fully clears state on a session change', () => {
     expect(replay([]).ready).toBe(true);
     expect(reduce(replay([start, modelStart, text]), { type: 'reset' })).toEqual(emptyConversation());
+  });
+
+  it('replays context progress and keeps the completed marker outside submitted process', () => {
+    const events: AgentEvent[] = [start,
+      { seq: 2, type: 'context.compaction.started', compactionId: 'compact', beforeTokens: 33000 },
+      { seq: 3, type: 'context.compacted', compactionId: 'compact', beforeTokens: 33000, afterTokens: 9000 },
+      { ...modelStart, seq: 4 }, { ...text, seq: 5 },
+      { seq: 6, type: 'report.submitted', content: 'final' }, { seq: 7, type: 'turn.completed' }];
+    const view = replay(events);
+    expect(view.items).toMatchObject([{ role: 'user' }, { kind: 'context', status: 'completed' },
+      { kind: 'report', content: 'final', process: [{ kind: 'text', content: 'partial' }] }]);
+    const live = events.reduce((state, event) => reduce(state, { type: 'events', events: [event] }),
+      reduce(emptyConversation(), { type: 'snapshot', snapshot: snapshot(7) }));
+    expect(live).toEqual(view);
+    expect(reduce(view, { type: 'events', events })).toEqual(view);
+  });
+
+  it('shows active compression only while running and settles interrupted replay', () => {
+    const progress: AgentEvent = { seq: 2, type: 'context.compaction.started', compactionId: 'compact', beforeTokens: 33000 };
+    expect(replay([start, progress], snapshot(2, true)).items[1]).toMatchObject({ status: 'running' });
+    expect(replay([start, progress], snapshot(2, false)).items[1]).toMatchObject({ status: 'interrupted' });
+    for (const ending of [
+      { seq: 3, type: 'context.compaction.cancelled', compactionId: 'compact' },
+      { seq: 3, type: 'context.compaction.failed', compactionId: 'compact', reason: 'invalid summary' },
+    ] as AgentEvent[]) {
+      const view = replay([start, progress, ending]);
+      expect(view.items[1]).toMatchObject({ status: ending.type === 'context.compaction.cancelled' ? 'cancelled' : 'failed' });
+    }
   });
 
   it('renders submit as one report without a duplicate tool card, including replay', () => {

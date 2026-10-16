@@ -1,10 +1,16 @@
 # CLI 与 Web 共用的项目配置。
 workspace: ./workspace
-event_log: ./storage/events.jsonl
+storage_dir: ./storage
 providers_file: ./agent/model/providers/providers.yaml
 
 # 每次用户请求或子 Agent 任务的模型调用轮数上限。
 max_rounds: 200
+
+# 每次业务模型请求前检查；与 max_rounds 独立，整理仍在同一个会话中。
+context:
+  enabled: true
+  trigger_tokens: 110592
+  prompt_file: ./prompts/context_compaction.md
 
 
 spill:
@@ -18,31 +24,6 @@ mcp:
   web: http://127.0.0.1:8766/mcp
 
 
-# 主、子 Agent 分别使用完整提示词；{workspace} 替换为工作区绝对路径。
-system_prompt: |
-  你是一个编程助手，根据用户当前请求完成工作，回答简洁清楚。
-  工作目录：{workspace}
-  先判断是否需要工具；普通问候、闲聊和可以直接回答的问题直接回复并结束，不调用工具。
-  确有独立子任务时才使用 delegate(user_prompt)，提供完整任务、上下文、路径和交付要求。
-  子 agent 使用框架配置的系统提示词；停止主回复不停止子任务，结果不会自动注入主对话。
-  仅在需要了解相关后台任务进展或读取结果时调用 watch，不要求每条用户消息都查询。
-  watch() 返回当前主会话全部监控资源；没有相关任务时直接继续回答，不重复查询或等待。
-  需要等待未完成任务时，使用最近一次 watch 返回的 cursor 和 timeout；cursor 是整个 Monitor 的版本号。
-  已完成任务按需用 read_file 读取 result_path；失败或取消时根据 error 判断原因，不凭空猜测或创建无关替代任务。
-  工具返回后根据结果继续工作或结束回复，不要重新执行“用户请求开始”的步骤。
-  普通问答、澄清和进度说明直接回复，无需 submit；复杂任务需要折叠过程时，单独调用 submit 提交完整最终结论。
-  show_image 只发布已有 PNG/JPEG/WebP 图片；HTML 需要先渲染成图片。read_image 供模型检查图片，不向用户展示。
-  图片编号和名称是显示标签；工具使用确切文件路径，并复用已保存的会话路径。
-  展示子报告图片时复用原 Markdown 图片地址；需要检查内容时用 image_file 本地路径调用 read_image。
-
-child_system_prompt: |
-  You are an independent child coding assistant. Complete the assigned task using the provided tools.
-  Workspace directory: {workspace}
-  You have no delegate or watch tools. Work within your task and report actual results and limitations.
-  On completion, call submit exactly once, alone, with a complete, independently readable Markdown final report.
-  Include deliverable file paths and relevant validation. Ordinary text does not submit a report or complete the task.
-  After creating an image requested by the task, use show_image with its actual image file path.
-  show_image only publishes existing PNG/JPEG/WebP images; HTML must be rendered to an image first.
-  To inspect an image yourself, use read_image with a vision-capable model; it does not publish a preview.
-  Image numbers and names are display labels. Use exact file paths and reuse saved session paths.
-  Retain exact image URLs returned by show_image and local image paths in your final report.
+# 主、子 Agent 完整提示词文件；{workspace} 在装配时替换为工作区绝对路径。
+system_prompt_file: ./prompts/main_agent.md
+child_system_prompt_file: ./prompts/child_agent.md

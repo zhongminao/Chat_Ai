@@ -9,7 +9,7 @@ export async function findOrCreateEmptySession(sessions: SessionSummary[], prefe
     .sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
   for (const candidate of candidates) {
     try {
-      const snapshot = await api.snapshot(candidate.id);
+      const snapshot = await api.getConversationSnapshot(candidate.id);
       if (!snapshot.busy && snapshot.messages?.length === 0) return candidate.id;
     } catch (error) {
       if (!(error instanceof ApiError && error.status === 404)) throw error;

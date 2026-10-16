@@ -1,10 +1,11 @@
 from collections.abc import Iterator
+from dataclasses import dataclass
 from contextlib import closing
 from typing import Any, Protocol
 
 from ..core.cancellation import ExecutionContext
 from .protocol import ModelChunk, ToolCallDelta
-from .messages import request_messages
+from .request_messages import request_messages
 from ..storage.images import ImageStore
 
 
@@ -47,6 +48,15 @@ def parse_chunk(raw: Any, reasoning_field: str = "reasoning_content") -> ModelCh
     )
 
 
+@dataclass(frozen=True)
+class OpenAICompatibleAdapter:
+    def request_options(self) -> dict[str, Any]:
+        return {}
+
+    def parse_chunk(self, raw: Any) -> ModelChunk:
+        return parse_chunk(raw, reasoning_field="reasoning_content")
+
+
 def stream(
     client: Any,
     model: str,
@@ -65,6 +75,8 @@ def stream(
         "stream_options": {"include_usage": True},
     }
     options.update(provider.request_options())
+    if not tools:
+        options.pop("tools", None)
 
     with closing(client.stream(options, context)) as response:
         for raw in response:

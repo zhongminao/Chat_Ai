@@ -1,6 +1,0 @@
-这是一次真实的长任务与上下文交接实验。请独立开发一个可玩的离线浏览器游戏《星港回收站》，所有文件只写入工作区相对目录 context-handoff-game-20261016-154228/，不修改其他项目，不使用 delegate，不访问网络、不安装依赖。
-完整目标分三个阶段：阶段1纯逻辑引擎与测试；阶段2浏览器界面、存档与回放；阶段3冲刺动作、完善交互和最终验证。当前只完成阶段1，完成后停止等待后续要求，不提前做阶段2/3。
-长期约束：界面和说明使用中文；原生HTML/CSS/JS，无CDN和外部素材；引擎使用CommonJS文件engine.cjs，既支持Node require又能通过浏览器script加载（条件导出）；Node内置node:test，不使用npm依赖；棋盘18列12行、每格32像素。默认种子MOON-731，伪随机必须可重复。
-规则：回合制网格探索，玩家HP初始5、能量初始12，收集3个芯片后到出口获胜；地图包含墙、芯片、补给、敌人，生成时保证初始位置到芯片和出口可达。成功移动和等待才推进一个回合、敌人行动一次，撞墙或越界不扣能量也不推进回合；移动通常耗能1；能量耗尽时可以等待恢复1。敌人接触造成伤害，同一回合避免重复伤害。支持方向键/WASD和Z等待，视野半径3。
-引擎契约：导出Game类；new Game({seed,width,height})默认18x12；公开player={x,y,hp,energy}、enemies、chips、collected、turn、status(playing/won/lost)、grid、seed；move(dx,dy)、wait()执行动作；serialize()返回JSON字符串；Game.fromJSON(string)恢复。serialize/fromJSON必须包含当前随机数生成器状态，恢复后同一动作序列得到相同结果。后续阶段3再增加dash(dx,dy)。
-阶段1请实现engine.cjs、engine.test.cjs以及简短设计说明DESIGN.md。先简洁规划，再实际写文件、运行node --test；测试覆盖种子复现、可达性、无效移动不推进、等待和序列化一致性。不要只给出代码文本。阶段1结束时用submit提交文件路径、真实测试结果、已知限制和后续待办。

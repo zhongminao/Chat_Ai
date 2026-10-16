@@ -13,24 +13,24 @@ from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..workflow.config import load
 from ..model.catalog import ModelCatalog
 from ..storage.event_log import EventLog
-from ..workflow.history import restore_messages
+from ..workflow.message_replay import restore_display_messages
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
 from ..storage.images import ImageStore
 from .images import image_router
 
 
-class Message(BaseModel):
+class SendMessageRequest(BaseModel):
     content: str = ""
     images: list[str] = Field(default_factory=list)
 
 
-class ModelRequest(BaseModel):
+class SwitchModelRequest(BaseModel):
     provider: str
     model: str
 
 
-class SessionName(BaseModel):
+class RenameSessionRequest(BaseModel):
     title: str
 
 
@@ -82,7 +82,7 @@ def delete_session(session_id: str):
 
 
 @app.patch("/api/sessions/{session_id}")
-def rename_session(session_id: str, request: SessionName):
+def rename_session(session_id: str, request: RenameSessionRequest):
     try:
         title = session_store.rename(session_id, request.title)
     except FileNotFoundError as exc:
@@ -97,7 +97,7 @@ def sessions():
     result = []
     for meta_path in session_store.root.glob("*/session.json"):
         try:
-            item = session_store.summary(meta_path.parent.name)
+            item = session_store.read_list_summary(meta_path.parent.name)
         except FileNotFoundError:
             continue  # Another client may delete a session while the list is being read.
         rt = registry.items.get(item["id"])
@@ -131,7 +131,7 @@ def conversation(session_id: str):
     if rt and rt._agent is not None:
         target = rt.agent.state["model"]
     return {
-        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": restore_messages(records),
+        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": restore_display_messages(records),
         "seq": records[-1]["seq"] if records else 0,
         "busy": bool(rt and rt.busy), "model": target,
         "images": ImageStore(directory_for(session_id)).list(),
@@ -151,7 +151,7 @@ def models():
 
 
 @app.post("/api/sessions/{session_id}/model")
-def switch_model(session_id: str, request: ModelRequest):
+def switch_model(session_id: str, request: SwitchModelRequest):
     rt = runtime(session_id)
     with rt.lock:
         try:
@@ -166,7 +166,7 @@ def switch_model(session_id: str, request: ModelRequest):
 
 
 @app.post("/api/sessions/{session_id}/messages")
-def send(session_id: str, message: Message):
+def send(session_id: str, message: SendMessageRequest):
     try:
         runtime(session_id).enqueue(UserInput(message.content, tuple(message.images)))
     except SessionBusy as exc:

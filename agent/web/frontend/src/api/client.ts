@@ -1,4 +1,4 @@
-import type { ImageAsset, Model, ModelGroup, SessionSummary, Snapshot, WatchResult } from './types';
+import type { ImageAsset, Model, ModelGroup, SessionSummary, ConversationSnapshot, WatchResult } from './types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -33,7 +33,7 @@ export const api = {
   renameSession: (id: string, title: string) => request<{ id: string; title: string }>(
     sessionPath(id), { ...post({ title }), method: 'PATCH' },
   ),
-  snapshot: (id: string, signal?: AbortSignal) => request<Snapshot>(`${sessionPath(id)}/conversation`, { signal }),
+  getConversationSnapshot: (id: string, signal?: AbortSignal) => request<ConversationSnapshot>(`${sessionPath(id)}/conversation`, { signal }),
   send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),
   uploadImage: (id: string, file: File) => {
     const body = new FormData(); body.append('file', file);

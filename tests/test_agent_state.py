@@ -10,14 +10,14 @@ from agent.core.session_registry import SessionRegistry
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.workflow.commands import SwitchModel
 from agent.workflow.config import load
-from agent.workflow.history import restore_messages
+from agent.workflow.message_replay import restore_display_messages
 
 
 class AgentStateTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         root = Path(self.temp.name)
-        config = replace(load(), workspace=root, event_log=root / 'events.jsonl', mcp={}, max_rounds=2)
+        config = replace(load(), workspace=root, storage_dir=root, mcp={}, max_rounds=2)
         self.registry = SessionRegistry(config)
         self.clients = patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object()))
         self.runtime_factory = self.clients.start()
@@ -135,7 +135,7 @@ class AgentStateTests(unittest.TestCase):
             self.registry.wait()
         execution = self.serializable()['execution']
         self.assertEqual((execution['status'], execution['phase']), ('cancelled', 'done'))
-        history = restore_messages(self.session.session.events.read())
+        history = restore_display_messages(self.session.session.events.read())
         self.assertEqual(self.agent.state['messages'][1:],
                          [{key: value for key, value in message.items() if key != 'name'} for message in history])
 

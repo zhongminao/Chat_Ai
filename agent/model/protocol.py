@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -25,14 +25,5 @@ class ModelChunk:
     content: str = ""
     reasoning: str = ""
     tool_deltas: tuple[ToolCallDelta, ...] = ()
-    finish_reason: str | None = None
-    usage: dict[str, Any] | None = None
-
-
-@dataclass(frozen=True)
-class ModelResult:
-    content: str
-    reasoning: str = ""
-    tool_calls: tuple[dict[str, Any], ...] = field(default_factory=tuple)
     finish_reason: str | None = None
     usage: dict[str, Any] | None = None

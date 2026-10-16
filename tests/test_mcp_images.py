@@ -15,7 +15,7 @@ from unittest.mock import Mock
 from mcp import types
 from PIL import Image
 
-from agent.model.messages import build_tool_message, request_messages
+from agent.model.request_messages import build_tool_message, request_messages
 from agent.storage.images import ImageStore
 from agent.tools.mcp.client import McpClient
 from agent.tools.mcp.results import convert_result
@@ -69,7 +69,7 @@ class ImageTests(unittest.TestCase):
 
     def test_malformed_image_is_reported_by_router(self):
         mcp = Mock()
-        mcp.schemas = []
+        mcp.schemas = [{"type": "function", "function": {"name": "mcp_local_read_image", "parameters": {}}}]
         mcp.tools = {"mcp_local_read_image": ("local", "read_image")}
         mcp.call.return_value = types.CallToolResult(content=[
             types.ImageContent(type="image", data="not base64!", mime_type="image/png")])
@@ -96,7 +96,7 @@ class ImageTests(unittest.TestCase):
 
     def test_router_reaches_converter(self):
         mcp = Mock()
-        mcp.schemas = []
+        mcp.schemas = [{"type": "function", "function": {"name": "mcp_local_read_image", "parameters": {}}}]
         mcp.tools = {"mcp_local_read_image": ("local", "read_image")}
         mcp.call.return_value = types.CallToolResult(content=[picture()])
         router = ToolRouter(self.root, mcp, images=self.images)
@@ -138,7 +138,12 @@ class ImageTests(unittest.TestCase):
                     if process.poll() is not None:
                         self.fail("fixture MCP server exited")
                     time.sleep(0.05)
-            runtime = McpClient({"local": f"http://127.0.0.1:{port}/mcp"})
+            with socket.socket() as offline:
+                offline.bind(("127.0.0.1", 0))
+                offline_port = offline.getsockname()[1]
+            with self.assertLogs("agent.tools.mcp.client", level="WARNING"):
+                runtime = McpClient({"offline": f"http://127.0.0.1:{offline_port}/mcp",
+                                     "local": f"http://127.0.0.1:{port}/mcp"})
             router = ToolRouter(self.root, runtime, images=self.images)
             router.vision = True
             result = router.call("mcp_local_read_image", {})

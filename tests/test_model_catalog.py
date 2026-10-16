@@ -28,7 +28,7 @@ class ModelBindingTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_reuses_only_current_binding_and_keeps_instances_independent(self):
-        with patch('agent.model.catalog.ModelRequest') as clients, patch('agent.model.catalog.create_provider') as providers:
+        with patch('agent.model.catalog.ModelHttpClient') as clients, patch('agent.model.catalog.create_provider') as providers:
             first = self.catalog.get_binding(self.one)
             self.assertIs(self.catalog.get_binding(ModelTarget(**self.one.as_dict())), first)
             self.assertEqual(clients.call_count, 1)
@@ -42,7 +42,7 @@ class ModelBindingTests(unittest.TestCase):
             self.assertEqual(clients.call_count, 4)
 
     def test_creation_failure_preserves_previous_binding_and_allows_retry(self):
-        with patch('agent.model.catalog.ModelRequest', side_effect=[Mock(), RuntimeError('creation failed'), Mock()]) as clients, \
+        with patch('agent.model.catalog.ModelHttpClient', side_effect=[Mock(), RuntimeError('creation failed'), Mock()]) as clients, \
              patch('agent.model.catalog.create_provider', side_effect=[object(), object(), object()]):
             first = self.catalog.get_binding(self.one)
             with self.assertRaisesRegex(RuntimeError, 'creation failed'):

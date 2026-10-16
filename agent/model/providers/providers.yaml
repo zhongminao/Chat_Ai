@@ -52,6 +52,7 @@ providers:
     api_key_default: local
     base_url: http://127.0.0.1:18080/v1
     thinking: disabled
+    token_counter: llama_cpp
     default_model: qwen3-coder-30b
     models:
       - id: qwen3-coder-30b

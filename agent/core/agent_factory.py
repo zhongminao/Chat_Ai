@@ -5,7 +5,7 @@ from .agent_runtime import AgentRuntime
 from ..model.catalog import ModelCatalog
 from ..tools.mcp.client import McpClient
 from ..tools.router import ToolRouter
-from ..workflow.history import restore_messages
+from ..workflow.message_replay import restore_model_messages
 from ..workflow.state import AgentState
 
 
@@ -21,8 +21,9 @@ def build_state(config, metadata: dict, records: list[dict]) -> AgentState:
     return {
         "role": role,
         "model": target.as_dict(),
-        "messages": [{"role": "system", "content": prompt.replace("{workspace}", str(config.workspace.resolve()))},
-                     *restore_messages(records)],
+        "messages": restore_model_messages(records, {
+            "role": "system", "content": prompt.replace("{workspace}", str(config.workspace.resolve())),
+        }),
         "execution": None,
     }
 
@@ -38,4 +39,4 @@ def build_agent(runtime) -> AgentRuntime:
                         session_id=runtime.session.id, spill=config.spill,
                         workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,
                         output=lambda text: None, tools=tools,
-                        control=runtime.control, on_submit=runtime.submitted)
+                        control=runtime.control, on_submit=runtime.submitted, context_config=config.context)

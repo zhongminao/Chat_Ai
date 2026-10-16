@@ -16,7 +16,7 @@ from agent.model.protocol import ModelChunk
 class SessionApiTests(unittest.TestCase):
     def test_model_switch_changes_state_without_initializing_mcp_or_model_clients(self):
         with tempfile.TemporaryDirectory() as directory:
-            config = replace(load(), event_log=Path(directory) / 'events.jsonl', mcp={'offline': 'http://127.0.0.1:1/mcp'})
+            config = replace(load(), storage_dir=Path(directory), mcp={'offline': 'http://127.0.0.1:1/mcp'})
             registry = SessionRegistry(config)
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:
                 identifier = client.post('/api/sessions').json()['id']
@@ -42,7 +42,7 @@ class SessionApiTests(unittest.TestCase):
     def test_first_message_title_is_available_while_reply_is_still_running(self):
         entered, release = threading.Event(), threading.Event()
         with tempfile.TemporaryDirectory() as directory:
-            config = replace(load(), event_log=Path(directory) / 'events.jsonl', mcp={})
+            config = replace(load(), storage_dir=Path(directory), mcp={})
             registry = SessionRegistry(config)
 
             def stream(*args, **kwargs):
@@ -74,14 +74,14 @@ class SessionApiTests(unittest.TestCase):
 
     def test_list_uses_summaries_without_reconstructing_conversations(self):
         with tempfile.TemporaryDirectory() as directory:
-            config = replace(load(), event_log=Path(directory) / 'events.jsonl', mcp={})
+            config = replace(load(), storage_dir=Path(directory), mcp={})
             registry = SessionRegistry(config)
             runtime = registry.create()
             runtime.session.events.append('turn.started', prompt='list title', images=[])
             try:
                 with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), \
                      patch('agent.web.app.EventLog', side_effect=AssertionError('list must not load full history')), \
-                     patch('agent.web.app.restore_messages', side_effect=AssertionError('list must not restore messages')), \
+                     patch('agent.web.app.restore_display_messages', side_effect=AssertionError('list must not restore messages')), \
                      TestClient(web.app) as client:
                     item = client.get('/api/sessions').json()['sessions'][0]
                     self.assertEqual(item['title'], 'list title')
@@ -98,7 +98,7 @@ class SessionApiTests(unittest.TestCase):
 
     def test_status_queries_do_not_start_inference_and_keep_independent_cursors(self):
         with tempfile.TemporaryDirectory() as directory:
-            config = replace(load(), event_log=Path(directory) / 'events.jsonl', mcp={})
+            config = replace(load(), storage_dir=Path(directory), mcp={})
             registry = SessionRegistry(config)
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:
                 identifier = client.post('/api/sessions').json()['id']

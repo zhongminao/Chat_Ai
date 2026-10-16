@@ -9,7 +9,7 @@ from ..storage.images import ImageStore, MAX_IMAGE_BYTES
 from ..workflow.commands import RenameImage
 
 
-class ImageName(BaseModel):
+class RenameImageRequest(BaseModel):
     name: str
 
 
@@ -49,7 +49,7 @@ def image_router(sessions, runtime) -> APIRouter:
             raise HTTPException(404, str(exc)) from exc
 
     @router.patch("/{image_id}")
-    def rename(session_id: str, image_id: str, request: ImageName):
+    def rename(session_id: str, image_id: str, request: RenameImageRequest):
         rt = runtime(session_id)
         with rt.lock:
             if rt.busy:
