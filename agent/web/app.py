@@ -2,11 +2,12 @@ import asyncio
 import json
 import queue
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool
 
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
@@ -32,6 +33,14 @@ class SwitchModelRequest(BaseModel):
 
 class RenameSessionRequest(BaseModel):
     title: str
+
+
+class ApprovalDecisionRequest(BaseModel):
+    approved: StrictBool
+
+
+class AccessModeRequest(BaseModel):
+    mode: Literal["audit", "full_access"]
 
 
 app = FastAPI(title="chat_ai")
@@ -116,6 +125,31 @@ async def watch(session_id: str, cursor: int | None = None, timeout: float = Que
         return await asyncio.to_thread(registry.monitor(session_id).watch, cursor, timeout)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/api/sessions/{session_id}/approvals")
+def approvals(session_id: str):
+    return runtime(session_id).approvals.snapshot()
+
+
+@app.post("/api/sessions/{session_id}/approvals/{approval_id}")
+def decide_approval(session_id: str, approval_id: str, request: ApprovalDecisionRequest):
+    gate = runtime(session_id).approvals
+    try:
+        gate.resolve(approval_id, request.approved)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return gate.snapshot()
+
+
+@app.post("/api/sessions/{session_id}/access")
+def access_mode(session_id: str, request: AccessModeRequest):
+    gate = runtime(session_id).approvals
+    try:
+        gate.set_mode(request.mode)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return gate.snapshot()
 
 
 @app.get("/api/sessions/{session_id}/conversation")

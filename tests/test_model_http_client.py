@@ -15,6 +15,7 @@ from agent.core.session_registry import SessionRegistry
 from agent.model.openai_compatible import stream
 from agent.model.openai_compatible import OpenAICompatibleAdapter
 from agent.model.http_client import ModelHttpClient
+from agent.model.providers import create as create_provider
 from agent.workflow.config import load
 
 
@@ -36,6 +37,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', '0')
                 self.end_headers()
                 return
+            if mode == 'gpt_tools' and body.get('reasoning_effort') != ('low' if body['model'] == 'gpt-6-astra' else 'none'):
+                self.send_response(400)
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+                return
             if mode == 'json':
                 payload = json.dumps({'path': self.path, 'body': body}).encode()
                 self.send_response(200)
@@ -51,6 +57,12 @@ class Handler(BaseHTTPRequestHandler):
             if mode == 'partial':
                 chunk = {'id': 'test', 'object': 'chat.completion.chunk', 'created': 0, 'model': 'test',
                          'choices': [{'index': 0, 'delta': {'content': 'partial'}, 'finish_reason': None}]}
+                self.wfile.write(('data: ' + json.dumps(chunk) + '\n\n').encode())
+                self.wfile.flush()
+            if mode == 'gpt_tools':
+                chunk = {'id': 'test', 'object': 'chat.completion.chunk', 'created': 0, 'model': body['model'],
+                         'choices': [{'index': 0, 'delta': {'tool_calls': [{'index': 0, 'id': 'call', 'type': 'function',
+                             'function': {'name': 'report_status', 'arguments': '{"text":"OK"}'}}]}, 'finish_reason': 'tool_calls'}]}
                 self.wfile.write(('data: ' + json.dumps(chunk) + '\n\n').encode())
                 self.wfile.flush()
             ready.set()
@@ -78,6 +90,22 @@ class ModelHttpClientTests(unittest.TestCase):
         self.server.shutdown()
         self.server.server_close()
         self.thread.join(5)
+
+    def test_gpt_chat_adapter_can_stream_function_calls_with_required_reasoning_mode(self):
+        self.server.mode = 'gpt_tools'
+        self.server.release.set()
+        request = ModelHttpClient(api_key='test', base_url=self.url, max_retries=0)
+        tools = [{'type': 'function', 'function': {'name': 'report_status', 'parameters': {'type': 'object'}}}]
+        try:
+            for name in ['gpt-6-sol', 'gpt-6-astra']:
+                with self.subTest(model=name):
+                    chunks = list(stream(request, name, [{'role': 'user', 'content': 'report OK'}], tools,
+                                         create_provider('gpt', model=name)))
+                    self.assertEqual(chunks[0].finish_reason, 'tool_calls')
+                    self.assertEqual(chunks[0].tool_deltas[0].name, 'report_status')
+                    self.assertEqual(json.loads(chunks[0].tool_deltas[0].arguments), {'text': 'OK'})
+        finally:
+            request.close()
 
     def test_cancel_waiting_for_headers_and_stream_data(self):
         for mode in ['headers', 'body', 'partial']:
@@ -160,7 +188,7 @@ providers:
     default_model: test
     models: [{{id: test}}]
 """)
-            config = replace(load(), providers_file=providers, workspace=root,
+            config = replace(load(), approval_mode="full_access", providers_file=providers, workspace=root,
                              storage_dir=root, mcp={})
             registry = SessionRegistry(config)
             runtime = registry.create()

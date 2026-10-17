@@ -72,7 +72,7 @@ class ModelCatalog:
         api_key = api_key or provider.get("api_key_default")
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
-        adapter = create_provider(target.provider, target.thinking)
+        adapter = create_provider(target.provider, target.thinking, model=target.name)
         binding = (ModelHttpClient(api_key=api_key, base_url=provider["base_url"]), adapter)
         previous = self._binding
         self._binding, self._bound_target = binding, target

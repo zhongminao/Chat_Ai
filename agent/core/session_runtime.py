@@ -10,6 +10,7 @@ from ..model.catalog import ModelCatalog
 from ..workflow.commands import SwitchModel
 from ..workflow.state import AgentState, StateUpdate
 from ..workflow import transitions
+from ..tools.approval import ApprovalGate
 
 
 class SessionBusy(ValueError):
@@ -23,6 +24,12 @@ class SessionRuntime:
         self.session = registry.store.open(session_id, self.bus.publish)
         self.meta = registry.store.metadata(session_id)
         self.parent_session_id = self.meta.get("parent_session_id")
+        if self.parent_session_id:
+            self.approvals = registry.get(self.parent_session_id).approvals
+        else:
+            mode = next((e["mode"] for e in reversed(self.session.events.read())
+                         if e["type"] == "approval.mode.changed"), registry.config.approval_mode)
+            self.approvals = ApprovalGate(mode, self.session.events.append)
         self.control = ExecutionControl()
         self.lock = threading.RLock()
         self._agent_lock = threading.Lock()

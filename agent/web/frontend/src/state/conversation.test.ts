@@ -15,6 +15,10 @@ function replay(events: AgentEvent[], snap = snapshot(events.at(-1)?.seq ?? 0)):
 }
 
 describe('existing event protocol -> conversation', () => {
+  it('keeps rejected operations distinct from executed tools on replay', () => {
+    const view = replay([start, requested, { ...completed, result: '[tool denied] 用户拒绝本次操作' }]);
+    expect(view.items[1]).toMatchObject({ status: 'rejected' });
+  });
   it('restores partial output while the same turn is still running', () => {
     const view = replay([start, modelStart, text], snapshot(3, true));
     expect(view.ready).toBe(true);

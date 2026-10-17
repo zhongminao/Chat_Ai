@@ -1,11 +1,14 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { ImageAsset, Model, ModelGroup } from '../../api/types';
+import type { ReactNode } from 'react';
+import type { AccessMode, ImageAsset, Model, ModelGroup } from '../../api/types';
 import { Icon } from '../../ui/Icon';
 import { ModelPicker } from '../models/ModelPicker';
 import { useImageDraft } from '../images/useImageDraft';
 import { ImageAttachments } from '../images/ImageAttachments';
 
 interface Props {
+  accessMode: AccessMode; accessDisabled: boolean; approvals: ReactNode;
+  onAccessChange: (mode: AccessMode) => void;
   ready: boolean; connected: boolean; busy: boolean;
   status: string; readOnly: boolean;
   pending: 'send' | 'stop' | 'model' | 'image' | null;
@@ -44,6 +47,7 @@ export function Composer(props: Props) {
   }
 
   return <div className="composer-wrap">
+    {props.approvals}
     <form className="composer" onSubmit={event => { event.preventDefault(); void submit(); }}
       onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
       onDrop={event => {
@@ -72,13 +76,18 @@ export function Composer(props: Props) {
       <div className="composer-actions"><div className="composer-left-actions">
         <button type="button" className="icon-button image-upload-button" aria-label="添加图片" title="选择图片，也可粘贴或拖入图片"
           disabled={!canEditImages || draft.ids.length >= 8} onClick={() => fileInput.current?.click()}><Icon name="image" /></button>
+        <select className={`access-picker ${props.accessMode}`} aria-label="访问模式" value={props.accessMode}
+          disabled={props.accessDisabled} onChange={event => props.onAccessChange(event.target.value as AccessMode)}>
+          <option value="audit">审计</option><option value="full_access">完全访问</option>
+        </select>
+        </div><div className="composer-right-actions">
         <ModelPicker groups={props.models} model={props.model}
         disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
-        </div>
         <button type="submit" className={`send-button ${props.busy ? 'stop-button' : ''}`} disabled={disabled}
           aria-label={props.busy ? '停止执行' : '发送消息'} title={props.busy ? '停止执行' : '发送消息'}>
           {props.busy ? <span className="stop-square" /> : <Icon name="arrow" size={20} />}
         </button>
+        </div>
       </div>
     </form>
     <div className="composer-hint connection-status" role="status">

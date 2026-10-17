@@ -17,7 +17,7 @@ class AgentStateTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         root = Path(self.temp.name)
-        config = replace(load(), workspace=root, storage_dir=root, mcp={}, max_rounds=2)
+        config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root, mcp={}, max_rounds=2)
         self.registry = SessionRegistry(config)
         self.clients = patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object()))
         self.runtime_factory = self.clients.start()

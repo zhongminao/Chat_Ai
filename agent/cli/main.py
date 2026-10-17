@@ -8,12 +8,14 @@ from ..workflow.config import load
 from ..workflow.commands import SwitchModel
 from .images import ImageCommands
 from .output import render_context_event, render_tool_result
+from .approval import handle_approval_command, render_approval_event, wait_for_execution
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("prompt", nargs="?", help="one-shot user prompt")
     parser.add_argument("--session", help="继续已有 session")
+    parser.add_argument("--access", choices=["audit", "full_access"], help="本会话及子 Agent 的访问模式")
     parser.add_argument("--image", action="append", default=[], help="图片文件，可重复指定")
     parser.add_argument("--image-name", action="append", default=[], help="图片名称；提供时与 --image 一一对应")
     args = parser.parse_args()
@@ -37,28 +39,33 @@ def main() -> None:
     def on_event(event):
         runtime.bus.publish(event)
         render_context_event(event)
+        render_approval_event(event)
 
     session.events.on_append = on_event
+    if args.access:
+        runtime.approvals.set_mode(args.access)
+    prompt_session = PromptSession()
 
     if args.session:
         print(f"继续会话：{session.directory}")
     else:
         print(f"新会话：{session.directory}")
     print(f"当前模型：{agent.state['model']}")
+    print("访问模式：" + ("审计" if runtime.approvals.snapshot()["mode"] == "audit" else "完全访问"))
     image_commands = ImageCommands(agent)
     for index, source in enumerate(args.image):
         name = args.image_name[index] if args.image_name else None
         image_commands.add(source, name)
     if args.prompt or args.image:
         runtime.enqueue(image_commands.take_input(args.prompt or ""))
-        registry.wait()
+        wait_for_execution(registry, runtime, prompt_session, include_children=True)
         print()
         return
 
     print("输入 /model provider model 切换模型；输入 /exit 或 /quit 退出。")
     print("输入 /rename 新名称 修改当前会话名称。")
     print("图片：/image 文件路径；/image-name 会话图片路径 新名称；/images；/send；/clear-images。")
-    prompt_session = PromptSession()
+    print("审批：/access audit|full_access；/approvals；/approve <审批ID>；/reject <审批ID>；/stop <会话ID>。")
     while True:
         try:
             with patch_stdout():
@@ -71,6 +78,13 @@ def main() -> None:
         if text in {"/exit", "/quit"}:
             break
         if not text:
+            continue
+
+        try:
+            if handle_approval_command(text, runtime.approvals, lambda identifier: registry.get(identifier).stop()):
+                continue
+        except ValueError as exc:
+            print(f"审批操作失败：{exc}")
             continue
 
         parts = text.split(maxsplit=1)
@@ -106,7 +120,7 @@ def main() -> None:
 
         try:
             runtime.enqueue(image_commands.take_input(text))
-            runtime.queue.join()
+            wait_for_execution(registry, runtime, prompt_session)
         except KeyboardInterrupt:
             runtime.stop()
             print("\n本轮已请求停止。")

@@ -6,6 +6,10 @@ providers_file: ./agent/model/providers/providers.yaml
 # 每次用户请求或子 Agent 任务的模型调用轮数上限。
 max_rounds: 200
 
+# 新主会话默认使用审计；可在 Web 或 CLI 切换，共用于该会话的子 Agent。
+approval:
+  mode: audit
+
 # 每次业务模型请求前检查；与 max_rounds 独立，整理仍在同一个会话中。
 context:
   enabled: true

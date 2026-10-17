@@ -249,7 +249,7 @@ class AgentRuntime:
                     output = normalize_result(
                         "[tool skipped] Report already submitted."
                         if transitions.after_tools(self.state) == "submit"
-                        else self.tools.call(call.name, call.arguments, context)
+                        else self.tools.call(call.name, call.arguments, context, run_id=run_id, call_id=call.id)
                     )
                     result = spill_tool_output(
                         output.text,

@@ -11,7 +11,8 @@
 - agent/core/monitor.py：通用资源快照、增量游标、条件变量等待；不调用模型，不操作对话。
 - agent/storage/reports.py：保存报告，规范化已展示图片的 Markdown 引用。
 - agent/storage/session.py 的 read_list_summary()：维护可重建的 summary.json 列表缓存；未变化复用，追加日志只读新增完整行，正文按需加载，不是 state checkpoint。
-- agent/tools/router.py：统一工具路由。
+- agent/tools/router.py：统一工具路由；执行受控工具前调用共享审批入口。
+- agent/tools/approval.py：规则、待审批状态、一次性决定与可取消等待。SessionRuntime 持有主子共用的实例，factory 注入；不放入 AgentState。
 - agent/workflow/transitions.py：简单状态节点与流程路由；节点只返回 StateUpdate。
 - agent/workflow/message_updates.py：消息状态变更；agent/workflow/message_replay.py 的 restore_display_messages 从事件重建消息。
 - agent/workflow/context_compaction.py：独立的整理状态更新规则；model/tokens.py 的 count_request_tokens 统计请求大小，model/context_summary.py 执行无工具摘要请求。Runtime 在每次模型请求前检查，先记录 context.compacted 的完整 messages，再 apply。
@@ -64,4 +65,12 @@ show_image 返回图片的稳定网页地址；报告保存时补全已展示图
 MCP：remote_windows http://127.0.0.1:8767/mcp；web http://127.0.0.1:8766/mcp（mcp_web_search / mcp_web_fetch_url）。
 McpClient 按服务发现工具，单服务连接／初始化／发现合计超时 1 秒；失败记录告警，只跳过该服务工具，不阻塞普通对话、本地工具和其他 MCP。调用期间断开仍返回工具错误。不加后台重试；恢复后新建会话或重启应用重新发现。
 ToolRouter 只执行本轮已注册的工具；旧 MCP 工具或其他未注册工具返回“当前工具不可用”的工具回执，继续后续工具与模型循环，不改写历史。
-DEEPSEEK_API_KEY 由 ~/.config/chat_ai/chat.env 提供，不在仓库中保存。
+DEEPSEEK_API_KEY 和 GPT_API_KEY 均由 ~/.config/chat_ai/chat.env 提供，修改后重启服务，不在仓库中保存；仅配置 .bashrc 不会让 systemd 自动继承。
+GPT 默认 gpt-6-sol，保留原模型 ID 以便历史切换；2026-10-16 网关的 gpt-5.5 返回 503 无通道。providers/gpt.py 的 GPTChatAdapter 按型号传 Chat Completions reasoning_effort：gpt-6-astra 为 low，其余当前 GPT 型号为 none；Qwen 与 DeepSeek 请求不受影响。
+
+## 工具审批
+
+config.yaml 的 approval.mode 默认 audit；可切换 full_access。受控范围是本地 write_file/edit_file/run_bash 与所有已注册 MCP 工具，包括 MCP 读取。批准绑定当次工具参数副本；拒绝回工具回执，停止唤醒等待且执行前再次检查取消。主子 Agent 共用规则、模式和待审批列表；根会话事件记录 requested/resolved/bypassed/mode.changed，带来源 sessionId/runId/callId。EventLog 实例锁保护并发追加。
+Web 输入区左侧模式切换，模型位于发送左侧；features/approvals 每秒读取运行时快照，主页面显示子任务请求，刷新可继续审批，卡片支持批准本次/拒绝本次/停止来源任务。CLI approval.py 在主线程处理输入，支持 --access、/access、/approvals、/approve、/reject、/stop。待审批时禁止切换模式。切换模式落事件，重开恢复；服务重启后旧请求失效，不恢复许可、不重跑任务。
+
+技能发现与渐进式加载的待实现方案见 skill_readme.md。Windows RemoteWindowsMCP 源码在 D:/local_mcp；root 仅为路径起点，跨目录访问不再被固定根目录拦截。MCP 权限统一由 chat_ai 后端 ApprovalGate 控制，Windows 端不重复审批；直接连接 MCP 的其他客户端不经过此审批。

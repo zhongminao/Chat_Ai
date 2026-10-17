@@ -1,4 +1,5 @@
 import type { ImageAsset, Model, ModelGroup, SessionSummary, ConversationSnapshot, WatchResult } from './types';
+import type { AccessMode, ApprovalSnapshot } from './types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -24,6 +25,10 @@ const post = (body?: unknown): RequestInit => ({
 });
 
 export const api = {
+  approvals: (id: string, signal?: AbortSignal) => request<ApprovalSnapshot>(`${sessionPath(id)}/approvals`, { signal }),
+  decideApproval: (id: string, approval: string, approved: boolean) => request<ApprovalSnapshot>(
+    `${sessionPath(id)}/approvals/${encodeURIComponent(approval)}`, post({ approved })),
+  accessMode: (id: string, mode: AccessMode) => request<ApprovalSnapshot>(`${sessionPath(id)}/access`, post({ mode })),
   sessions: (signal?: AbortSignal) => request<{ sessions: SessionSummary[] }>('/api/sessions', { signal }),
   watch: (id: string, cursor?: number, timeout = 0, signal?: AbortSignal) => request<WatchResult>(
     `${sessionPath(id)}/watch?timeout=${timeout}${cursor === undefined ? '' : `&cursor=${cursor}`}`, { signal }),

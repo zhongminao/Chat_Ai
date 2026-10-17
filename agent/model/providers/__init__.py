@@ -1,15 +1,18 @@
 from typing import Any
 
 from .deepseek import DeepSeekProvider
+from .gpt import GPTChatAdapter
 from ..openai_compatible import OpenAICompatibleAdapter
 from .qwen import QwenChatTemplateAdapter
 
 
-def create(name: str, thinking: str = "disabled") -> Any:
+def create(name: str, thinking: str = "disabled", *, model: str = "") -> Any:
     if name == "deepseek":
         return DeepSeekProvider(thinking=thinking)
     if name == "local-qwen3p5-9b":
         return QwenChatTemplateAdapter(thinking=thinking)
-    if name in {"qwen", "gpt", "local-qwen3-coder-30b"}:
+    if name == "gpt":
+        return GPTChatAdapter(model)
+    if name in {"qwen", "local-qwen3-coder-30b"}:
         return OpenAICompatibleAdapter()
     raise ValueError(f"unknown provider: {name}")

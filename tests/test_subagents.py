@@ -39,7 +39,7 @@ class SubagentTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        self.config = replace(load(), workspace=self.root, storage_dir=self.root, mcp={}, max_rounds=12)
+        self.config = replace(load(), approval_mode="full_access", workspace=self.root, storage_dir=self.root, mcp={}, max_rounds=12)
         self.registry = SessionRegistry(self.config)
         self.releases = []
         self.clients = patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object()))

@@ -143,7 +143,7 @@ class CompactionRuntimeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         root = Path(self.temp.name)
-        self.config = replace(load(), workspace=root, storage_dir=root, mcp={},
+        self.config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root, mcp={},
             context={**load().context, "enabled": True, "trigger_tokens": 100})
         self.registry = SessionRegistry(self.config)
         self.binding = patch("agent.model.catalog.ModelCatalog.get_binding", return_value=(object(), object()))

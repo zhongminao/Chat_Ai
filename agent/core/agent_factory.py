@@ -34,7 +34,9 @@ def build_agent(runtime) -> AgentRuntime:
     main = runtime.state["role"] == "main"
     tools = ToolRouter(config.workspace, McpClient(config.mcp) if config.mcp else None,
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
-                       watch=registry.monitor(runtime.session.id).watch if main else None)
+                       watch=registry.monitor(runtime.session.id).watch if main else None,
+                       approval=partial(runtime.approvals.request, session_id=runtime.session.id,
+                                        workspace=str(config.workspace)))
     return AgentRuntime(state=runtime.state, catalog=ModelCatalog(config.providers_file),
                         session_id=runtime.session.id, spill=config.spill,
                         workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,

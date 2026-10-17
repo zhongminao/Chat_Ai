@@ -1,7 +1,7 @@
 import type { AgentEvent, ImageAsset, Model, ConversationSnapshot } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[] };
-export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' };
+export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
@@ -80,7 +80,8 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       if (event.tool === 'submit') break;
       const id = `tool:${event.callId}`;
       const exists = state.items.some(item => item.id === id);
-      const status = String(event.result).startsWith('[tool cancelled]') ? 'interrupted' : 'completed';
+      const result = String(event.result);
+      const status = result.startsWith('[tool cancelled]') ? 'interrupted' : result.startsWith('[tool denied]') ? 'rejected' : 'completed';
       const images = event.images?.map(image => image.id);
       next.items = exists
         ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, images: images ?? item.images, status } : item)

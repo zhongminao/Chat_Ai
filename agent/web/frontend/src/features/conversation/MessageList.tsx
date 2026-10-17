@@ -7,10 +7,11 @@ import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
 
-export function MessageList({ items, busy, loading, assistantId, sessionId, images, onRenameImage, editingImage }: {
+export function MessageList({ items, busy, loading, assistantId, sessionId, images, onRenameImage, editingImage, waitingCallIds = [] }: {
   items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
   sessionId: string | null; images: ImageAsset[]; editingImage: boolean;
   onRenameImage: (id: string, name: string) => Promise<boolean>;
+  waitingCallIds?: string[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const contentBox = useRef<HTMLDivElement>(null);
@@ -36,7 +37,7 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
   }, [loading, hasItems]);
 
   const renderExecution = (item: ExecutionItem) => item.kind === 'tool'
-    ? <ToolCallCard key={item.id} item={item} sessionId={sessionId} images={images} />
+    ? <ToolCallCard key={item.id} item={item} sessionId={sessionId} images={images} waiting={waitingCallIds.some(id => item.id === `tool:${id}`)} />
     : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId}
         disabled={busy || editingImage} onRename={onRenameImage} /> : null}
@@ -65,7 +66,7 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
                 cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
             </div>
             : renderExecution(item))}
-          {busy && !compacting && <div className="run-indicator" role="status"><span className="loading-dot" />正在执行…</div>}
+          {busy && !compacting && <div className="run-indicator" role="status"><span className="loading-dot" />{waitingCallIds.length ? '等待审批…' : '正在执行…'}</div>}
         </div>}
     </div>
     {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}

@@ -274,12 +274,14 @@ Web 和 CLI 使用相同工具及模型请求流程，不增加手动操作入�
 | Provider | 当前用途 | 接口 |
 | --- | --- | --- |
 | `deepseek` | 默认模型 `deepseek-flash` | DeepSeek API |
-| `gpt` | GPT 模型选择 | passion8 网关 |
+| `gpt` | GPT 模型选择，默认 `gpt-6-sol` | passion8 网关 |
 | `local-qwen3p5-9b` | 本地千问 9B，图片识别 | `http://127.0.0.1:8002/v1` |
 
 远程模型 API 密钥由 provider 配置中的 `api_key_env` 指定，例如 `DEEPSEEK_API_KEY`、`GPT_API_KEY`。
+Web 的 systemd 服务从 `~/.config/chat_ai/chat.env` 加载这两个变量；`.bashrc` 中的 export 仅对相应终端生效，不会自动进入服务进程。修改 chat.env 后重启 chat_ai，密钥不写入仓库或网页。
+GPT 模型列表已包含 `gpt-6-sol`；2026-10-16 实测网关的 `gpt-5.5` 返回 503 model_not_found（无可用通道），原模型 ID 保留以便历史会话切换，使用时请选择当前可用模型。
 测试图片时，在模型选择器中切换到本地 `local-qwen3p5-9b`。
-图文请求使用共用的 `agent/model/request_messages.py`。通用 `OpenAICompatibleAdapter` 位于 `model/openai_compatible.py`，供 GPT、Qwen 等使用；`providers/qwen.py` 的 `QwenChatTemplateAdapter` 专门配置 Qwen 模板的思考开关。
+图文请求使用共用的 `agent/model/request_messages.py`。通用 `OpenAICompatibleAdapter` 位于 `model/openai_compatible.py`；GPT 使用 `providers/gpt.py` 的 `GPTChatAdapter`，按型号设置 Chat Completions 参数：`gpt-6-astra` 使用最低可用的 `low`，其余当前配置 GPT 模型使用 `none`，参见 [OpenAI Docs](https://developers.openai.com/api/docs/models/gpt-6-sol)；`providers/qwen.py` 的 `QwenChatTemplateAdapter` 专门配置 Qwen 模板的思考开关。
 本地请求根据 provider 的 `thinking` 配置传递 `chat_template_kwargs.enable_thinking`，当前为 `disabled`。
 思考过程的前端展示尚未实现。
 
@@ -379,6 +381,30 @@ Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使
 CLI 和 Web 共用运行时，模型输入由 `restore_model_messages` 恢复，网页完整历史由 `restore_display_messages` 恢复。
 工具输出过大时写入工作目录 `.spill/<session_id>/`，模型通过 `read_file` 读取。
 
+## 工具审批与访问模式
+
+默认使用“审计”模式。`write_file`、`edit_file`、全部 `run_bash` 命令以及本轮已注册的全部 MCP 工具（含读取、搜索）在执行前等待批准。其他本地读取、图片工具、delegate/watch/submit 不需要审批；子 Agent 的受控工具仍经过同一入口。框架内部报告保存、事件落盘和图片上传不在工具审批范围内，这不是操作系统级文件审计。
+
+```yaml
+approval:
+  mode: audit  # audit 或 full_access；新主会话的默认值
+```
+
+主会话和它的子 Agent 共用一个 ApprovalGate 和访问模式；切换只影响这个会话组的后续调用，不改变全局配置。模式通过主会话的 `approval.mode.changed` 事件恢复，未切换过的会话使用配置默认值。
+Web 输入区左下可切换“审计／完全访问”，模型选择在发送按钮紧邻左侧。完全访问直接执行受控工具，记录 bypassed；有待审批项时不能切换模式。
+待审批卡片显示来源会话、工具和完整参数（文件内容、old/new 或命令）；只有“批准本次”和“拒绝本次”，另有停止此任务按钮。主页面也显示子 Agent 的请求，选择子会话时看到同一组待审批项。界面每秒读取运行时快照，不查询模型或重新发现 MCP，刷新后重新打开原会话仍可处理；首次打开默认空会话的行为不变。
+
+Windows RemoteWindowsMCP 的 `root` 仅指定相对路径及默认 cwd，不再限制跨目录读写、图片和命令起始目录；MCP 的审计／完全访问统一由本后端 ApprovalGate 决定。完全访问直接调用，审计逐次批准；Windows 账户权限、文件大小和命令超时仍有效。其他客户端直接连接 MCP 不经过本后端审批。内置 Linux 文件工具的 workspace 限制不变。
+
+批准绑定一次调用的工具和参数副本，重复或失效决定返回 409；拒绝返回工具回执并允许模型继续，等待时停止会唤醒等待、取消本轮。批准之后、执行之前仍检查取消信号。拒绝不是永久禁用工具，也不代表自动回滚已完成操作。
+`approval.requested`、`approval.resolved`（approved/rejected/cancelled）、`approval.bypassed`、`approval.mode.changed` 写入主会话事件流，用 sessionId/runId/callId 关联实际工具事件；审批事件不会混入模型 messages。运行中的待审批状态不进入 AgentState；服务重启使旧请求失效，不恢复许可，也不自动重跑任务。
+
+CLI 使用相同审批规则，在主线程显示参数并询问 `y/N`，Ctrl+C 停止该审批来源任务；后台子任务的通知显示其审批 ID，可用 `/approvals` 查看，再用 `/approve <ID>` 或 `/reject <ID>` 处理，`/stop <会话ID>` 可停止待审批来源任务。输入 `/access audit` 或 `/access full_access` 切换模式；一次性任务也支持 `--access audit|full_access`。没有确认输入时不会自动批准。
+
+实现入口：`tools/approval.py` 管理规则、等待和决定；`tools/router.py` 在工具分派前检查；`SessionRuntime` 持有共享实例，factory 注入回调。Web 的 `features/approvals/` 与 CLI 的 `approval.py` 负责各自呈现。MCP 客户端和本地 executor 不重复实现审批。主子并发事件通过 EventLog 的实例锁串行追加，保留完整递增序号。
+
+Web 接口：GET `/api/sessions/{id}/approvals` 读取模式及待审批列表；POST `/api/sessions/{id}/approvals/{approval_id}` 接收 `{"approved":true|false}`；POST `/api/sessions/{id}/access` 接收 `{"mode":"audit"|"full_access"}`。子会话端点操作同一个主会话组的审批实例。停止仍使用现有 control/stop 接口。
+
 ## 自动上下文整理
 
 CLI、Web、主子 Agent 共用每次业务模型请求前的检查入口，覆盖新用户输入、整组工具结果和补交提醒之后。
@@ -449,6 +475,16 @@ ToolRouter 以本轮已注册工具列表为准；模型再次调用历史中已
 - `fetch_url`：读取公开网页的静态 HTML 文本
 
 SearXNG 是搜索后端；`web.py` 是独立的 Web MCP 服务端。`fetch_url` 不执行 JavaScript，也不提供登录和浏览器操作。
+
+## 技能发现与加载（待实现）
+
+独立方案见 [skill_readme.md](skill_readme.md)。
+
+采用“框架提供目录、模型按需选择并读取”：从 config.yaml 配置的本地目录扫描 SKILL.md，只向主子 Agent 暴露名称、用途描述和路径；用户可明确指定技能，模型也可按任务选择。
+第一版复用现有 read_file 读取技能正文，附属参考资料和脚本按需读取或执行；读取结果沿用现有消息与事件持久化流程，不一次性加载全部技能内容。
+技能模块负责扫描、元数据校验和目录生成；运行时继续负责执行、状态、停止与审批，技能不自动改变工具注册或访问权限。
+技能较多时再增加 search_skills(query)，检索本地目录并返回名称、描述和路径，正文仍按需读取；暂不增加推荐 Agent 或向量数据库。
+网页调研技能可指导实体确认、检索词扩展、结果相关性判断、用 fetch_url(url) 读取正文、交叉核验和来源引用；搜索引擎限流与正文提取质量由对应工具处理。
 
 ## 下一阶段：混合检索
 

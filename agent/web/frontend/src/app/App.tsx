@@ -7,17 +7,21 @@ import { Composer } from '../features/conversation/Composer';
 import { Icon } from '../ui/Icon';
 import { WatchStatus } from '../features/watch/WatchStatus';
 import { AgentTabs } from '../features/sessions/AgentTabs';
+import { useApprovals } from '../features/approvals/useApprovals';
+import { ApprovalPanel } from '../features/approvals/ApprovalPanel';
 
 export function App() {
   const sessions = useSessions();
+  const approvals = useApprovals(sessions.selected);
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = sessions.sessions.find(item => item.id === sessions.selected);
   const readOnly = Boolean(current?.parent_session_id || conversation.snapshot?.parent_session_id);
-  const error = sessions.error || conversation.error;
+  const error = sessions.error || conversation.error || approvals.error;
+  const waitingCallIds = (approvals.snapshot?.pending ?? []).filter(item => item.sessionId === sessions.selected).map(item => item.callId);
   const status = sessions.loading ? '正在加载' : !sessions.selected ? '未选择会话'
     : !conversation.connected ? '正在连接' : !conversation.ready ? '正在恢复会话'
-    : conversation.busy ? '正在执行' : '已连接';
+    : waitingCallIds.length ? '等待审批' : conversation.busy ? '正在执行' : '已连接';
 
   return <div className="app-layout">
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
@@ -38,9 +42,14 @@ export function App() {
         {sessions.error && sessions.selected && <button className="icon-button" aria-label="关闭错误提示" onClick={sessions.clearError}><Icon name="close" size={16} /></button>}
       </div>}
       <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
+        waitingCallIds={waitingCallIds}
         sessionId={sessions.selected} images={conversation.images} editingImage={Boolean(conversation.pending)} onRenameImage={conversation.renameImage}
         loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error)} />
       <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={conversation.ready} connected={conversation.connected}
+        accessMode={approvals.snapshot?.mode ?? 'audit'} accessDisabled={!approvals.snapshot || approvals.pending || Boolean(approvals.snapshot.pending.length)}
+        onAccessChange={approvals.setMode}
+        approvals={<ApprovalPanel requests={approvals.snapshot?.pending ?? []} sessionId={sessions.selected}
+          disabled={approvals.pending} onDecide={approvals.decide} onStop={approvals.stop} />}
         status={status} readOnly={readOnly}
         busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}
         sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage} onRenameImage={conversation.renameImage}

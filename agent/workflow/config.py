@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..model.catalog import ModelCatalog
+from ..tools.approval import MODES
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +22,7 @@ class Config:
     system_prompt: str
     child_system_prompt: str
     context: dict = field(default_factory=dict)
+    approval_mode: str = "audit"
 
 
 def _path(root: Path, value: str) -> Path:
@@ -67,6 +69,9 @@ def load(path: Path | None = None) -> Config:
         raise ValueError("config.yaml: context.prompt_file 不存在")
     workspace = _path(root, data.get("workspace", "."))
     storage_dir = _path(root, data.get("storage_dir", "storage"))
+    approval_mode = (data.get("approval") or {}).get("mode", "audit")
+    if approval_mode not in MODES:
+        raise ValueError("config.yaml: approval.mode 必须为 audit 或 full_access")
 
     return Config(
         model=catalog.default().as_dict(),
@@ -77,5 +82,6 @@ def load(path: Path | None = None) -> Config:
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,
         context=context,
+        approval_mode=approval_mode,
         **prompts,
     )

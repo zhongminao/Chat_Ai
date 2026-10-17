@@ -38,6 +38,14 @@ export interface ConversationSnapshot {
   images?: ImageAsset[];
 }
 
+export type AccessMode = 'audit' | 'full_access';
+export interface ApprovalRequest {
+  id: string; sessionId: string; runId: string; callId: string;
+  tool: string; arguments: Record<string, unknown>;
+  workspace?: string | null;
+}
+export interface ApprovalSnapshot { mode: AccessMode; instanceId: string; revision: number; pending: ApprovalRequest[] }
+
 export interface ImageAsset {
   id: string;
   name: string;

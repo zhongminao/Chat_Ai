@@ -75,7 +75,7 @@ class McpResilienceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'sample.txt').write_text('local result')
-            config = replace(load(), workspace=root, storage_dir=root,
+            config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root,
                              mcp={'offline': 'http://offline'}, max_rounds=2)
             registry = SessionRegistry(config)
             session = registry.create()
@@ -121,7 +121,7 @@ class McpResilienceTests(unittest.TestCase):
     def test_all_servers_unavailable_still_allows_a_normal_session(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            config = replace(load(), workspace=root, storage_dir=root,
+            config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root,
                              mcp={"offline": "http://offline"})
             registry = SessionRegistry(config)
             session = registry.create()
