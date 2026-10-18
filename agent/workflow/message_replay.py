@@ -36,7 +36,9 @@ def _restore(events: list[dict], initial: list[dict], *, repair_tail=True, tool_
 
     for event in events:
         kind = event["type"]
-        if kind == "turn.started":
+        if kind == 'guidance.applied':
+            messages.append(build_user_message(event['content'], [i['id'] for i in event.get('images', [])]))
+        elif kind == "turn.started":
             close_pending()
             if messages and messages[-1]["role"] == "user":
                 messages.append({

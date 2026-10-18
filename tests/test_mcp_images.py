@@ -16,7 +16,7 @@ from mcp import types
 from PIL import Image
 
 from agent.model.request_messages import build_tool_message, request_messages
-from agent.storage.images import ImageStore
+from agent.storage.session import SessionStore
 from agent.tools.mcp.client import McpClient
 from agent.tools.mcp.results import convert_result
 from agent.tools.result import ToolResult
@@ -33,7 +33,7 @@ class ImageTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = Path(self.directory.name)
-        self.images = ImageStore(self.root)
+        self.images = SessionStore(self.root).create().images
 
     def tearDown(self):
         self.directory.cleanup()
@@ -128,9 +128,12 @@ class ImageTests(unittest.TestCase):
             "def read_image():\n"
             f"    return [types.ImageContent(type='image', data={block.data!r}, mime_type='image/png')]\n"
             f"server.run(transport='streamable-http', host='127.0.0.1', port={port}, stateless_http=True, json_response=True)\n")
-        process = subprocess.Popen([sys.executable, str(script)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        server_log = self.root / 'image_server.log'
+        with server_log.open('wb') as output:
+            process = subprocess.Popen([sys.executable, str(script)], stdout=output, stderr=subprocess.STDOUT)
         try:
-            for _ in range(100):
+            # Fixture startup may include cold imports; production discovery still has its 1s limit.
+            for _ in range(600):
                 try:
                     with socket.create_connection(("127.0.0.1", port), timeout=0.1):
                         break
@@ -138,6 +141,12 @@ class ImageTests(unittest.TestCase):
                     if process.poll() is not None:
                         self.fail("fixture MCP server exited")
                     time.sleep(0.05)
+            for _ in range(3):
+                self.assertIsNone(process.poll(), server_log.read_text(errors='replace')[-3000:])
+                ready = McpClient({'local': f'http://127.0.0.1:{port}/mcp'})
+                if 'mcp_local_read_image' in ready.tools:
+                    break
+            self.assertIn('mcp_local_read_image', ready.tools, server_log.read_text(errors='replace')[-3000:])
             with socket.socket() as offline:
                 offline.bind(("127.0.0.1", 0))
                 offline_port = offline.getsockname()[1]

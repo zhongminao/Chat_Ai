@@ -1,16 +1,15 @@
 """Versioned resource snapshots. Producers update; consumers query or wait."""
-import json
 import threading
 import time
-from pathlib import Path
 
 from .cancellation import ExecutionContext
+from ..storage.session import SessionStore
 
 
 class Monitor:
-    def __init__(self, path: Path):
-        self.path = path
-        saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    def __init__(self, store: SessionStore, session_id: str):
+        self.store, self.session_id = store, session_id
+        saved = store.read_monitor(session_id)
         self.version = saved.get("cursor", 0)
         self.resources = saved.get("resources", {})
         self.condition = threading.Condition()
@@ -23,11 +22,7 @@ class Monitor:
                 return
             version = self.version + 1
             resources = {**self.resources, identifier: {**value, "version": version}}
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = self.path.with_suffix(".tmp")
-            temporary.write_text(json.dumps({"cursor": version, "resources": resources},
-                                             ensure_ascii=False) + "\n", encoding="utf-8")
-            temporary.replace(self.path)
+            self.store.save_monitor(self.session_id, version, resources)
             self.version, self.resources = version, resources
             self.condition.notify_all()
 

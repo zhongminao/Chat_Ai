@@ -11,7 +11,7 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
   const [connected, setConnected] = useState(false);
   const [stopRequested, setStopRequested] = useState(false);
   const [loadedId, setLoadedId] = useState<string | null>(null);
-  const [pending, setPending] = useState<'send' | 'stop' | 'model' | 'image' | null>(null);
+  const [pending, setPending] = useState<'send' | 'guide' | 'stop' | 'model' | 'image' | null>(null);
   const generation = useRef(0);
   const commandPending = useRef(false);
   const renameBarrier = useRef<Promise<boolean>>(Promise.resolve(true));
@@ -20,38 +20,42 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
 
   useEffect(() => {
     const version = ++generation.current;
-    const abort = new AbortController();
-    let close: (() => void) | undefined;
     const current = () => version === generation.current;
     dispatch({ type: 'reset' });
     setLoadedId(null); setConnected(false); setPending(null); setStopRequested(false); commandPending.current = false;
     renameBarrier.current = Promise.resolve(true);
-    if (id) {
-      api.getConversationSnapshot(id, abort.signal).then(snapshot => {
+    let replayThrough = 0;
+    const close = id ? subscribe(id, {
+      initialize: session => {
         if (!current()) return;
-        dispatch({ type: 'snapshot', snapshot });
-        setLoadedId(id);
-        close = subscribe(id, {
-          connection: value => { if (current()) setConnected(value); },
-          error: error => { if (current()) dispatch({ type: 'error', error }); },
-          events: events => {
-            if (!current()) return;
-            dispatch({ type: 'events', events });
-            if (events.some(event => event.seq > snapshot.seq &&
-              ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))) setStopRequested(false);
-            // Refresh the first-message title immediately, without waiting for model completion.
-            if (events.some(event => event.seq > snapshot.seq &&
-              ['turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed', 'agent.created'].includes(event.type))) changed.current();
-          },
-        });
-      }).catch(error => {
-        if (current() && !abort.signal.aborted) dispatch({ type: 'error', error: errorMessage(error) });
-      });
-    }
-    return () => { ++generation.current; abort.abort(); close?.(); };
+        replayThrough = session.seq;
+        dispatch({ type: 'initialize', session }); setLoadedId(id);
+        if (!session.busy) setStopRequested(false);
+      },
+      ready: seq => {
+        if (!current()) return;
+        dispatch({ type: 'ready', seq }); changed.current();
+      },
+      connection: value => {
+        if (!current()) return;
+        setConnected(value);
+        if (!value) dispatch({ type: 'disconnected' });
+      },
+      error: error => { if (current()) dispatch({ type: 'error', error }); },
+      events: events => {
+        if (!current()) return;
+        dispatch({ type: 'events', events });
+        if (events.some(event => event.seq > replayThrough &&
+          ['turn.completed', 'turn.cancelled', 'turn.failed'].includes(event.type))) setStopRequested(false);
+        // Refresh the first-message title immediately, without waiting for model completion.
+        if (events.some(event => event.seq > replayThrough &&
+          ['turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed', 'agent.created'].includes(event.type))) changed.current();
+      },
+    }) : undefined;
+    return () => { ++generation.current; close?.(); };
   }, [id]);
 
-  async function command(kind: 'send' | 'stop' | 'model' | 'image', operation: (session: string) => Promise<unknown>): Promise<boolean> {
+  async function command(kind: 'send' | 'guide' | 'stop' | 'model' | 'image', operation: (session: string) => Promise<unknown>): Promise<boolean> {
     if (!id || commandPending.current) return false;
     const version = generation.current;
     commandPending.current = true;
@@ -98,6 +102,7 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     connected: connected && loadedId === id,
     pending: pending ?? (state.busy && stopRequested ? 'stop' : null),
     send: sendMessage,
+    guide: (messageId: string, text: string, images: string[]) => command('guide', session => api.guide(session, messageId, text, images)),
     registerImage: (image: ImageAsset) => dispatch({ type: 'image', image }),
     renameImage,
     stop: () => command('stop', session => api.stop(session)),

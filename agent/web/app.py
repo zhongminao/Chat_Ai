@@ -1,6 +1,4 @@
 import asyncio
-import json
-import queue
 from pathlib import Path
 from typing import Literal
 
@@ -13,12 +11,10 @@ from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..workflow.config import load
 from ..model.catalog import ModelCatalog
-from ..storage.event_log import EventLog
-from ..workflow.message_replay import restore_display_messages
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
-from ..storage.images import ImageStore
 from .images import image_router
+from .events import session_events
 
 
 class SendMessageRequest(BaseModel):
@@ -33,6 +29,10 @@ class SwitchModelRequest(BaseModel):
 
 class RenameSessionRequest(BaseModel):
     title: str
+
+
+class GuidanceRequest(SendMessageRequest):
+    message_id: str = Field(min_length=1, max_length=128)
 
 
 class ApprovalDecisionRequest(BaseModel):
@@ -103,18 +103,12 @@ def rename_session(session_id: str, request: RenameSessionRequest):
 
 @app.get("/api/sessions")
 def sessions():
-    result = []
-    for meta_path in session_store.root.glob("*/session.json"):
-        try:
-            item = session_store.read_list_summary(meta_path.parent.name)
-        except FileNotFoundError:
-            continue  # Another client may delete a session while the list is being read.
+    result = session_store.list_summaries()
+    for item in result:
         rt = registry.items.get(item["id"])
         item["busy"] = bool(rt and rt.busy)
         if item["busy"]:
             item["status"] = "running"
-        result.append(item)
-    result.sort(key=lambda item: item["updatedAt"], reverse=True)
     return {"sessions": result}
 
 
@@ -150,26 +144,6 @@ def access_mode(session_id: str, request: AccessModeRequest):
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     return gate.snapshot()
-
-
-@app.get("/api/sessions/{session_id}/conversation")
-def conversation(session_id: str):
-    records = EventLog(directory_for(session_id) / "events.jsonl").read()
-    rt = registry.items.get(session_id)
-    catalog = ModelCatalog(load().providers_file)
-    meta = session_store.metadata(session_id)
-    target = meta.get("model") or catalog.default().as_dict()
-    for event in records:
-        if event["type"] == "model.changed":
-            target = event["new"]
-    if rt and rt._agent is not None:
-        target = rt.agent.state["model"]
-    return {
-        "id": session_id, "parent_session_id": meta.get("parent_session_id"), "messages": restore_display_messages(records),
-        "seq": records[-1]["seq"] if records else 0,
-        "busy": bool(rt and rt.busy), "model": target,
-        "images": ImageStore(directory_for(session_id)).list(),
-    }
 
 
 @app.get("/api/models")
@@ -212,43 +186,35 @@ def send(session_id: str, message: SendMessageRequest):
     return {"accepted": True}
 
 
+@app.post('/api/sessions/{session_id}/guidance')
+def guide(session_id: str, message: GuidanceRequest):
+    try:
+        runtime(session_id).send(UserInput(message.content, tuple(message.images)), message.message_id)
+    except SessionBusy as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {'accepted': True}
+
+
 @app.post("/api/sessions/{session_id}/control/stop")
 def stop(session_id: str):
     return {"stopped": runtime(session_id).stop()}
 
 
 @app.get("/api/sessions/{session_id}/events")
-async def events(session_id: str, request: Request, after: int = 0):
+async def events(session_id: str, request: Request, after: int = Query(0, ge=0)):
     rt = await asyncio.to_thread(runtime, session_id)
-    channel = rt.bus.subscribe()
-
-    async def stream():
-        cursor = max(after, int(request.headers.get("last-event-id", "0")))
-        try:
-            yield 'data: {"type":"connected"}\n\n'
-            for event in rt.session.events.read(cursor):
-                cursor = event["seq"]
-                yield f"id: {cursor}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
-            ticks = 0
-            while not await request.is_disconnected():
-                try:
-                    event = channel.get_nowait()
-                except queue.Empty:
-                    await asyncio.sleep(0.1)
-                    ticks += 1
-                    if ticks >= 150:
-                        yield ": heartbeat\n\n"
-                        ticks = 0
-                    continue
-                if event["seq"] <= cursor:
-                    continue
-                cursor = event["seq"]
-                yield f"id: {cursor}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
-        finally:
-            rt.bus.unsubscribe(channel)
-
+    try:
+        cursor = int(request.headers.get('last-event-id', after))
+        if cursor < 0:
+            raise ValueError
+    except ValueError:
+        raise HTTPException(400, 'Last-Event-ID must be a non-negative integer') from None
     return StreamingResponse(
-        stream(), media_type="text/event-stream",
+        session_events(rt, request, cursor), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 

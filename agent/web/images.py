@@ -18,7 +18,7 @@ def image_router(sessions, runtime) -> APIRouter:
 
     def store(session_id: str) -> ImageStore:
         try:
-            return ImageStore(sessions.path(session_id))
+            return sessions.open(session_id).images
         except FileNotFoundError as exc:
             raise HTTPException(404, "Session not found") from exc
 

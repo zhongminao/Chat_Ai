@@ -1,4 +1,4 @@
-import type { ImageAsset, Model, ModelGroup, SessionSummary, ConversationSnapshot, WatchResult } from './types';
+import type { ImageAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
 import type { AccessMode, ApprovalSnapshot } from './types';
 
 export class ApiError extends Error {
@@ -38,8 +38,9 @@ export const api = {
   renameSession: (id: string, title: string) => request<{ id: string; title: string }>(
     sessionPath(id), { ...post({ title }), method: 'PATCH' },
   ),
-  getConversationSnapshot: (id: string, signal?: AbortSignal) => request<ConversationSnapshot>(`${sessionPath(id)}/conversation`, { signal }),
   send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),
+  guide: (id: string, messageId: string, content: string, images: string[]) => request<{ accepted: boolean }>(
+    `${sessionPath(id)}/guidance`, post({ message_id: messageId, content, images })),
   uploadImage: (id: string, file: File) => {
     const body = new FormData(); body.append('file', file);
     return request<{ image: ImageAsset }>(`${sessionPath(id)}/images`, { method: 'POST', body });

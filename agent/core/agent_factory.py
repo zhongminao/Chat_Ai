@@ -39,6 +39,7 @@ def build_agent(runtime) -> AgentRuntime:
                                         workspace=str(config.workspace)))
     return AgentRuntime(state=runtime.state, catalog=ModelCatalog(config.providers_file),
                         session_id=runtime.session.id, spill=config.spill,
-                        workspace=config.workspace, log=runtime.session.events, max_rounds=config.max_rounds,
+                        workspace=config.workspace, log=runtime.session.events, images=runtime.session.images, max_rounds=config.max_rounds,
                         output=lambda text: None, tools=tools,
-                        control=runtime.control, on_submit=runtime.submitted, context_config=config.context)
+                        control=runtime.control, on_submit=runtime.submitted, context_config=config.context,
+                        steering=runtime.steering)

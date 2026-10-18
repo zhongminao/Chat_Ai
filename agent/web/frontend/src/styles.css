@@ -179,3 +179,14 @@ button { -webkit-tap-highlight-color: transparent; }
   .watch-panel { font-size: 10px; }
   .watch-counts { display: block; }
 }
+.guidance-queue { margin: 0 2px 6px; }
+.guidance-queue-items { max-height: min(144px, 24dvh); margin: 0; padding: 0; list-style: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.guidance-draft { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 5px 8px 5px 12px; border: 1px solid var(--border); border-radius: 12px; background: #fafbfc; }
+.guidance-draft + .guidance-draft { margin-top: 4px; }
+.guidance-draft-content { display: flex; align-items: center; flex: 1; gap: 6px; min-width: 0; }
+.guidance-draft-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #646b76; font-size: 13px; line-height: 1.6; }
+.guidance-draft-images { display: inline-flex; align-items: center; flex: none; gap: 4px; color: var(--muted); font-size: 11px; }
+.guidance-draft-actions { display: flex; align-items: center; flex: none; gap: 5px; }
+.guidance-draft-actions .icon-button { width: 26px; height: 26px; border-radius: 50%; background: #eceef1; color: #858b95; }
+.guidance-draft-actions .guidance-draft-send { width: auto; gap: 3px; padding: 0 9px; border-radius: 20px; font-size: 12px; white-space: nowrap; }
+.guidance-draft-actions .guidance-draft-remove:hover:not(:disabled) { color: #bd5555; background: #fbeeee; }

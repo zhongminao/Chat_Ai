@@ -1,65 +1,48 @@
+"""Ordered session events; publish only after the transaction commits."""
 import json
-import os
 import time
 from threading import RLock
-from pathlib import Path
 from typing import Any, Callable
+
+from .database import Database
 
 
 class EventLog:
-    def __init__(
-        self,
-        path: Path,
-        on_append: Callable[[dict[str, Any]], None] | None = None,
-    ):
-        self._lock = RLock()
-        self.path = path
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.sequence = self._last_sequence()
+    def __init__(self, database: Database, session_id: str,
+                 on_append: Callable[[dict[str, Any]], None] | None = None):
+        self.database = database
+        self.session_id = session_id
         self.on_append = on_append
+        self._lock = RLock()
 
-    def _last_sequence(self) -> int:
-        if not self.path.exists():
-            return 0
-        last = 0
-        for line in self.path.read_text(encoding="utf-8").splitlines():
-            try:
-                last = int(json.loads(line)["seq"])
-            except (KeyError, ValueError, json.JSONDecodeError):
-                continue
-        return last
-
-    def append(
-        self,
-        event_type: str,
-        *,
-        durable: bool = True,
-        **data: Any,
-    ) -> dict[str, Any]:
+    def append(self, event_type: str, *, durable: bool = True, **data: Any) -> dict[str, Any]:
+        if {'seq', 'time', 'type'} & data.keys():
+            raise ValueError('Event sequence, time and type are assigned by EventLog')
+        payload = json.dumps(data, ensure_ascii=False)
         with self._lock:
-            self.sequence += 1
-            record = {
-                "seq": self.sequence,
-                "time": time.time_ns(),
-                "type": event_type,
-                **data,
-            }
-            with self.path.open("a", encoding="utf-8") as file:
-                file.write(json.dumps(record, ensure_ascii=False) + "\n")
-                file.flush()
-                if durable:
-                    os.fsync(file.fileno())
+            with self.database.connect(write=True, durable=durable) as connection:
+                row = connection.execute('SELECT event_seq FROM sessions WHERE id=?', (self.session_id,)).fetchone()
+                if row is None:
+                    raise FileNotFoundError(self.session_id)
+                sequence, timestamp = row['event_seq'] + 1, time.time_ns()
+                record = {'seq': sequence, 'time': timestamp, 'type': event_type, **data}
+                connection.execute('INSERT INTO events VALUES (?, ?, ?, ?, ?)',
+                                   (self.session_id, sequence, timestamp, event_type, payload))
+                title = (' '.join(data.get('prompt', '').split())[:40]
+                         or ('图片对话' if data.get('images') else '新会话')) if event_type == 'turn.started' else ''
+                status = {'report.submitted': 'submitted', 'turn.failed': 'failed',
+                          'turn.cancelled': 'cancelled'}.get(event_type)
+                connection.execute('''UPDATE sessions SET event_seq=?, updated_at=?,
+                    auto_title=CASE WHEN ?='turn.started' AND empty=1 THEN ? ELSE auto_title END,
+                    empty=CASE WHEN ?='turn.started' THEN 0 ELSE empty END,
+                    status=COALESCE(?, status) WHERE id=?''',
+                    (sequence, timestamp / 1e9, event_type, title, event_type, status, self.session_id))
             if self.on_append:
                 self.on_append(record)
             return record
 
     def read(self, after: int = 0) -> list[dict[str, Any]]:
-        if not self.path.exists():
-            return []
-        return [
-            record
-            for line in self.path.read_text(encoding="utf-8").splitlines(keepends=True)
-            if line.endswith("\n")
-            for record in [json.loads(line)]
-            if int(record["seq"]) > after
-        ]
+        with self.database.connect() as connection:
+            rows = connection.execute('SELECT seq, time, type, data FROM events WHERE session_id=? AND seq>? ORDER BY seq',
+                                      (self.session_id, after)).fetchall()
+        return [{'seq': row['seq'], 'time': row['time'], 'type': row['type'], **json.loads(row['data'])} for row in rows]

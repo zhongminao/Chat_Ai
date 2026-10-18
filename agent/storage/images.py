@@ -3,20 +3,18 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
 import uuid
 from io import BytesIO
 from pathlib import Path
 
-from filelock import FileLock
 from PIL import Image, ImageOps, UnidentifiedImageError
+
+from .database import Database
 
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_PIXELS = 20_000_000
 FORMATS = {"PNG": ("image/png", "png"), "JPEG": ("image/jpeg", "jpg"), "WEBP": ("image/webp", "webp")}
-LEGACY_ORDINALS = ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
-            "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth")
 
 
 def image_number(ordinal: int) -> str:
@@ -24,31 +22,15 @@ def image_number(ordinal: int) -> str:
 
 
 class ImageStore:
-    def __init__(self, session_directory: Path):
+    def __init__(self, database: Database, session_id: str, session_directory: Path):
+        self.database = database
+        self.session_id = session_id
         self.root = session_directory / "attachments"
-        self.index = self.root / "index.json"
-        self.lock = FileLock(str(session_directory / ".images.lock"))
-
-    def _read(self) -> dict:
-        if not self.index.exists():
-            return {"version": 2, "next": 1, "images": []}
-        data = json.loads(self.index.read_text(encoding="utf-8"))
-        if data.get("version", 1) < 2:
-            for image in data["images"]:
-                ordinal = image["ordinal"]
-                old_name = LEGACY_ORDINALS[ordinal - 1] if ordinal <= len(LEGACY_ORDINALS) else f"image-{ordinal}"
-                if image["name"] == old_name:
-                    image["name"] = image["filename"][:80]
-            data["version"] = 2
-        return data
-
-    def _write(self, data: dict) -> None:
-        temporary = self.index.with_suffix(".tmp")
-        temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        temporary.replace(self.index)
 
     def list(self) -> list[dict]:
-        return self._read()["images"]
+        with self.database.connect() as connection:
+            rows = connection.execute('SELECT * FROM images WHERE session_id=? ORDER BY ordinal', (self.session_id,)).fetchall()
+        return [{key: row[key] for key in row.keys() if key != 'session_id'} for row in rows]
 
     def get(self, selector: str) -> dict:
         path = Path(selector).expanduser()
@@ -82,30 +64,30 @@ class ImageStore:
                 image.convert("RGBA").save(preview, format="PNG")
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
             raise ValueError("无法读取图片文件") from exc
-        with self.lock:
-            index = self._read()
-            ordinal = index["next"]
-            filename = filename.replace("\\", "/").rsplit("/", 1)[-1][:200] or "image"
-            label = self._name(filename[:80] if name is None else name)
-            identifier = uuid.uuid4().hex
-            asset = {"id": identifier, "name": label, "ordinal": ordinal, "mime": mime,
-                     "filename": filename,
-                     "width": width, "height": height, "size": len(data), "extension": extension,
-                     "sha256": hashlib.sha256(data).hexdigest()}
-            self.root.mkdir(parents=True, exist_ok=True)
-            path = self.root / f"{identifier}.{extension}"
+        filename = filename.replace("\\", "/").rsplit("/", 1)[-1][:200] or "image"
+        label = self._name(filename[:80] if name is None else name)
+        identifier = uuid.uuid4().hex
+        digest = hashlib.sha256(data).hexdigest()
+        self.root.mkdir(parents=True, exist_ok=True)
+        path = self.root / f"{identifier}.{extension}"
+        thumbnail = self.root / f"{identifier}.preview.png"
+        try:
             path.write_bytes(data)
-            thumbnail = self.root / f"{identifier}.preview.png"
             thumbnail.write_bytes(preview.getvalue())
-            index["images"].append(asset)
-            index["next"] = ordinal + 1
-            try:
-                self._write(index)
-            except Exception:
-                path.unlink(missing_ok=True)
-                thumbnail.unlink(missing_ok=True)
-                raise
-            return asset
+            with self.database.connect(write=True) as connection:
+                row = connection.execute('SELECT image_seq FROM sessions WHERE id=?', (self.session_id,)).fetchone()
+                if row is None:
+                    raise FileNotFoundError(self.session_id)
+                ordinal = row['image_seq'] + 1
+                connection.execute('UPDATE sessions SET image_seq=? WHERE id=?', (ordinal, self.session_id))
+                connection.execute('INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                   (identifier, self.session_id, ordinal, label, filename, mime, width, height, len(data), extension, digest))
+        except BaseException:
+            path.unlink(missing_ok=True)
+            thumbnail.unlink(missing_ok=True)
+            raise
+        return {"id": identifier, "name": label, "ordinal": ordinal, "mime": mime, "filename": filename,
+                "width": width, "height": height, "size": len(data), "extension": extension, "sha256": digest}
 
     def add_file(self, path: Path, name: str | None = None) -> dict:
         if image := self.find_file(path):
@@ -129,19 +111,18 @@ class ImageStore:
         digest = hashlib.sha256(data).hexdigest()
         for image in assets:
             saved = self._path(image)
-            if saved.is_file() and digest == (image.get("sha256") or hashlib.sha256(saved.read_bytes()).hexdigest()):
+            if saved.is_file() and digest == image['sha256']:
                 return image
         return None
 
     def rename(self, selector: str, name: str) -> dict:
-        with self.lock:
-            image = self.get(selector)
-            index = self._read()
-            label = self._name(name)
-            updated = {**image, "name": label}
-            index["images"] = [updated if entry["id"] == image["id"] else entry for entry in index["images"]]
-            self._write(index)
-            return updated
+        image = self.get(selector)
+        label = self._name(name)
+        with self.database.connect(write=True) as connection:
+            if not connection.execute('UPDATE images SET name=? WHERE session_id=? AND id=?',
+                                      (label, self.session_id, image['id'])).rowcount:
+                raise FileNotFoundError('图片不存在')
+        return {**image, 'name': label}
 
     def path(self, selector: str, preview: bool = False) -> Path:
         return self._path(self.get(selector), preview)
@@ -151,7 +132,7 @@ class ImageStore:
         return self.root / f"{image['id']}.{extension}"
 
     def url(self, image: dict) -> str:
-        return f"/api/sessions/{self.root.parent.name}/images/{image['id']}/content"
+        return f"/api/sessions/{self.session_id}/images/{image['id']}/content"
 
     def markdown(self, image: dict) -> str:
         label = image["name"].replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")

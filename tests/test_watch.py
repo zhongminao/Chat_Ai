@@ -7,13 +7,15 @@ from pathlib import Path
 
 from agent.core.cancellation import CancellationToken, ExecutionContext, RunCancelled
 from agent.core.monitor import Monitor
+from agent.storage.session import SessionStore
 
 
 class MonitorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.path = Path(self.temp.name) / 'watch.json'
-        self.monitor = Monitor(self.path)
+        self.store = SessionStore(Path(self.temp.name))
+        self.session_id = self.store.create().id
+        self.monitor = Monitor(self.store, self.session_id)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -27,7 +29,7 @@ class MonitorTests(unittest.TestCase):
         diff = self.monitor.watch(snapshot['cursor'])
         self.assertEqual({v['id'] for v in diff['changes']}, {'agent:a', 'bash:b'})
         self.assertEqual(diff, self.monitor.watch(snapshot['cursor']), 'reading does not consume updates')
-        self.assertEqual(diff, Monitor(self.path).watch(snapshot['cursor']))
+        self.assertEqual(diff, Monitor(SessionStore(Path(self.temp.name)), self.session_id).watch(snapshot['cursor']))
         self.assertEqual(self.monitor.watch(diff['cursor'])['changes'], [])
         self.monitor.update('agent:a', kind='agent', status='completed', result_path='/tmp/report.md')
         self.assertEqual(self.monitor.watch()['cursor'], diff['cursor'], 'unchanged states do not wake consumers')
@@ -67,7 +69,7 @@ class MonitorTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.monitor.update('invalid', kind='other', detail=object())
         self.assertEqual(snapshot, self.monitor.watch())
-        self.assertEqual(snapshot, Monitor(self.path).watch())
+        self.assertEqual(snapshot, Monitor(self.store, self.session_id).watch())
 
 
 if __name__ == '__main__':

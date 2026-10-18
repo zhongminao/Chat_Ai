@@ -15,7 +15,6 @@ from agent.core.session_registry import SessionRegistry
 from agent.core.session_runtime import SessionBusy
 from agent.model.request_messages import request_messages
 from agent.model.protocol import ModelChunk, ToolCallDelta
-from agent.storage.images import ImageStore
 from agent.web.images import image_router
 from agent.workflow.config import load
 from agent.workflow.message_replay import restore_display_messages
@@ -133,7 +132,7 @@ class SubagentTests(unittest.TestCase):
             self.assertNotIn('](' + str(image_path), report_content)
             report = Path(states[0]['result_path']).read_text()
             child_id = states[0]['session_id']
-            image = ImageStore(self.registry.store.path(child_id)).list()[0]
+            image = self.registry.store.open(child_id).images.list()[0]
             url = f'/api/sessions/{child_id}/images/{image["id"]}/content'
             self.assertIn(f']({url})', report)
             self.assertIn('<!-- image_file:', report)
@@ -263,7 +262,7 @@ class SubagentTests(unittest.TestCase):
         session = self.registry.store.create()
         image_path = self.root / 'image.png'
         Image.new('RGB', (20, 20)).save(image_path)
-        store = ImageStore(session.directory)
+        store = session.images
         image = store.add_file(image_path)
         session.events.append('tool.requested', runId='run', callId='show', arguments={'path': str(image_path)})
         session.events.append('tool.completed', runId='run', callId='show', images=[image])

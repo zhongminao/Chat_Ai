@@ -14,7 +14,7 @@ agent/model/      模型协议、provider、模型目录与客户端复用、图
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与结果转换
 agent/mcp_servers/ 独立 MCP 服务端
-agent/storage/    session、events.jsonl、图片与缩略图
+agent/storage/    SQLite 会话、事件、图片元数据，磁盘图片与报告
 agent/workflow/   state 类型、状态节点、流程路由、历史恢复、配置与输入命令
 agent/cli/        CLI
 agent/web/        FastAPI、SSE、页面
@@ -26,7 +26,8 @@ prompts/          框架实际加载的模型提示词
 
 ```bash
 cd ~/mydisk/tools/chat_ai
-conda activate py313
+conda create -n chat-ai-py313 python=3.13.2 'sqlite>=3.51.3' pip
+conda activate chat-ai-py313
 pip install -e .
 python -m agent.cli.main
 ```
@@ -71,7 +72,7 @@ npm run dev
 访问 `http://127.0.0.1:5173`，Vite 默认将 `/api` 代理到手动启动示例的 `127.0.0.1:8764`。
 若使用现有生产服务作为开发后端，需要将 `vite.config.ts` 中的代理目标调整为 `127.0.0.1:8200`。
 前端检查：`npm test`；`npm run build` 包含 TypeScript 检查。
-后端检查（项目根目录、py313 环境）：`python -m unittest discover -s tests -v`。
+后端检查（项目根目录、chat-ai-py313 环境）：`python -m unittest discover -s tests -v`。
 取消回归使用本地模拟 HTTP 端点覆盖等待响应、等待流数据、部分输出后停止及会话后续执行，不需要真实模型请求。
 
 修改 Python 后端或 provider 适配代码后，需要重启 uvicorn；修改前端后需要重新构建并刷新页面。
@@ -108,17 +109,20 @@ agent/web/frontend/src/
 正在生成的助手回复通过 `content/useStreamingText.ts` 按文本到达速率柔和显现，
 原始消息状态保持完整，历史消息立即展示；代码和表格在自身区域横向滚动。
 事件订阅使用现有 `after`/`Last-Event-ID` 协议，切换会话会关闭旧连接；首屏从现有事件流回放历史。
-首次打开或刷新网页默认进入空会话，不再自动恢复上次选中的历史；历史会话由用户从侧栏点击打开。
+当前选中会话由前端 `features/sessions/useSessions.ts` 保存在本标签页 `sessionStorage` 的 `chat-ai:selected-session` 中，只存会话 ID。
+同一标签页刷新恢复当前会话；新标签页没有保存的 ID，默认进入空会话。保存的会话已删除，或主动删除当前会话时，回到空会话。
+恢复只根据摘要核对 ID，再加载选中会话；历史内容仍由后端保存。浏览器恢复／复制标签页可能保留原标签页状态；存储不可用时仍可正常使用，但刷新不能恢复。
 初次加载和新建按钮共用空会话选择逻辑，优先复用没有消息且未运行的主会话，找不到才创建；
-根据已加载的摘要筛选候选，再通过 conversation 接口确认是否仍为空，连续点击不会反复创建空记录。
-新建不再先查询一次完整列表，选中空会话后在后台刷新列表，不阻塞输入框加载。
+根据已加载的摘要筛选候选，再查询最新摘要确认是否仍为空且空闲，不读取会话正文；连续点击复用当前空会话。
+没有可复用候选时直接创建；候选校验只查询摘要列表，选中后再后台刷新，不加载其他会话历史。
 
-会话列表由 SessionStore.read_list_summary() 提供标题、状态、是否为空和更新时间等摘要，不重建消息历史。
-每个会话的 summary.json 是可重建的列表缓存，包含事件文件标识、大小、修改时间和完整行读取位置；
-未变化时直接复用，日志追加时仅解析新增完整事件。旧历史首次生成一次摘要，服务重启后仍可复用；
-缓存损坏、日志截断或替换时重建，自定义标题仍读取 session.json。摘要不是 AgentState checkpoint。
-仅点击具体会话时通过现有 conversation/events 接口读取和恢复完整历史；会话删除会一并删除摘要。
-纯文本调用与旧事件兼容，图片引用通过同一消息和事件流程处理。
+会话列表由 SessionStore.list_summaries() 直接查询 sessions 表，提供标题、状态、是否为空和更新时间，不解析事件正文。
+EventLog.append() 在同一事务中写入事件、分配本会话 seq 并更新列表摘要，提交成功后才发布通知；摘要不是 AgentState checkpoint。
+仅选中具体会话时建立 `/api/sessions/{id}/events` SSE 连接，初始化状态、历史回放和实时变化统一由该连接下发；原 `/conversation` 快照接口及前端调用已删除。
+
+SSE 顺序为 `session.init` → 历史事件 → `session.ready` → 实时事件。init 提供当前模型、图片最新元数据、父会话、busy 和历史边界 seq；ready 后才开放输入。两类控制消息不写事件表，初始化不会创建模型或 MCP 客户端。
+服务端先订阅内存事件，再读取一次数据库历史；读取期间新增的事件留在队列中，回放后按 seq 去重，发现跳号先从 SQLite 补齐。每条业务事件的 SSE id 等于 seq；init 的 id 只确认续传起点，不提前确认尚未接收的历史边界，ready 不推进 id。
+断线后保留已显示消息并禁用输入，EventSource 自动携带 Last-Event-ID 重连；服务端刷新初始化状态，只补发该序号之后的事件，再发送 ready。前端在控制消息前刷新待渲染批次，忽略已处理 seq；服务重启后即使没有新增事件，也会把历史中未完成的工具／整理状态标为中断。客户端游标超过数据库最新序号时，init 明确 reset 并从 0 完整回放。负数或无效游标返回 HTTP 错误。
 
 ## 会话名称
 
@@ -127,7 +131,7 @@ Web 会话列表中的铅笔按钮可修改名称；按 Enter 或点击勾号保
 CLI 在当前会话中输入 `/rename 图片识别实验`，也可以修改同一个名称。
 
 Web 的 `PATCH /api/sessions/{id}` 接收 `{"title":"新名称"}`，与 CLI 共用
-`agent/storage/session.py` 的 `SessionStore.rename(session_id, title)`，统一校验并原子写入 `session.json`。
+`agent/storage/session.py` 的 `SessionStore.rename(session_id, title)`，统一校验并通过事务更新 sessions 表。
 自定义标题保存在会话元数据中；没有自定义标题的会话根据首条用户消息生成名称。收到 turn.started 后立即刷新列表，命名不等待模型回复结束；空会话显示“新会话”，自定义标题优先。
 改名不会修改会话 ID、历史消息或模型上下文；名称可重复，运行中也可修改。
 CLI 修改名称后，Web 刷新页面或重新加载会话列表即可看到。空会话的复用依据实际消息判断。
@@ -146,7 +150,7 @@ CLI 修改名称后，Web 刷新页面或重新加载会话列表即可看到。
 
 ## Agent 轮数与系统提示词
 
-CLI 和 Web 共用根目录 `config.yaml` 的运行配置。`storage_dir: ./storage` 指定存储根目录，实际日志位于 `storage/sessions/<id>/events.jsonl`；旧的 `event_log` 配置键已改为 `storage_dir`，使用自定义配置时也需更新，不移动已有数据。
+CLI 和 Web 共用根目录 `config.yaml` 的运行配置。`storage_dir: ./storage` 指定存储根目录，结构见下方“SQLite 存储”。
 
 运行轮数和提示词配置：
 
@@ -161,7 +165,34 @@ delegate 只接受 user_prompt，包含完整任务、角色要求、上下文�
 `max_rounds` 必须为正整数；`system_prompt_file`、`child_system_prompt_file` 指向主、子 Agent 完整提示词文件。
 路径以 config.yaml 所在目录为基准，也支持绝对路径；文件必须是非空 UTF-8 文本。直接编辑 prompts/main_agent.md、prompts/child_agent.md，框架不再额外拼接系统提示词。
 提示词中的 `{workspace}` 替换为实际工作区绝对路径，其他花括号原样保留，支持直接写入 JSON 示例。
-配置在创建运行资源时加载；修改后重启 Web 和 CLI，即可让新旧会话按主、子角色使用最新配置，不改写历史日志。旧子会话元数据中的 system_prompt 保留，但不再覆盖配置。
+配置在创建运行资源时加载；修改后重启 Web 和 CLI，即可让会话按主、子角色使用最新配置，不改写历史事件。角色系统提示词统一来自配置。
+
+## SQLite 存储
+
+继续使用 conda Python 3.13，通过 Python 标准库 sqlite3 访问数据库，无需额外数据库服务或 ORM。chat_ai 使用独立环境 `chat-ai-py313`；原 `py313` 和模型服务环境保持不变。
+SQLite 要求 3.51.3 或更新版本，启动时检查版本，避免旧版 WAL-reset 并发缺陷；可用 `python -c "import sqlite3; print(sqlite3.sqlite_version)"` 确认。
+
+```text
+storage/
+├── chat_ai.sqlite3               会话、事件、图片元数据及 watch 快照
+└── sessions/<id>/
+    ├── attachments/              原图片与缩略图
+    └── reports/                  Markdown 报告
+```
+
+`agent/storage/database.py` 集中连接、表结构与事务；session.py 管理会话及列表摘要，event_log.py 管理有序事件，images.py 管理图片元数据与文件。
+sessions 表保存父子关系、标题、模型等元数据和列表摘要；events 表以 (session_id, seq) 为主键，事件具体内容保存在 JSON 字段中。
+images 表保存资源 ID、会话、编号、名称、格式、尺寸、大小和 SHA-256；文件路径按会话 ID、图片 ID 和扩展名确定。
+monitors 表保存每个会话的 watch 游标及资源快照，条件变量和执行资源仍留在内存。
+
+写入使用 BEGIN IMMEDIATE 短事务，外键约束保护父子关系，删除会话级联删除事件、图片元数据和监控快照，并清理该会话的磁盘目录。
+图片验证及文件写入在数据库事务外完成，元数据提交失败会清理新写入的原图和缩略图，编号分配与登记在同一事务中完成。
+数据库使用 WAL；文字、推理和工具参数流式增量沿用 durable=False，对应 synchronous=NORMAL，大多数提交不等待磁盘同步；完成、取消及其他关键事件使用 FULL，等待此前 WAL 内容持久化。所有事件仍在提交成功后才通知界面，不增加后台写入队列或文字攒批。
+NORMAL 已提交的数据可由其他连接读取并在应用进程崩溃后恢复；突然断电或操作系统崩溃可能丢失最近尚未同步的事务。保留 SQLite 默认自动检查点，偶发检查点仍可能增加一次提交耗时。
+每个 SessionStore 的 Database 复用一条连接，连接不进入 AgentState；同一连接的读写由锁保护，短事务内按 durable 切换同步级别，跨进程互斥由 SQLite 处理，数据库等待超时为 5 秒。事务不包含模型请求、工具执行或 Web 推送；短期创建的存储实例可用 database.close() 释放连接。
+
+本版本直接启用新数据库，不迁移或兼容旧 JSONL／JSON 存储。切换时按用户要求清空旧会话数据；sessionStorage 中失效的选中 ID 会回到空会话。
+备份需包含数据库和 sessions/ 图片、报告目录。停服务复制整个 storage/，如仍有 chat_ai.sqlite3-wal／-shm 也一并保留；运行时备份数据库应使用 SQLite backup API，不能只复制主数据库文件，因为最新提交可能仍在 WAL 中。
 
 ## 图片输入与名称
 
@@ -169,19 +200,18 @@ Web 支持选图、粘贴和拖入静态 PNG/JPEG/WebP；每张最多 10 MB、20
 图片按会话分配固定编号 01、02、03 等；名称默认使用原文件名，允许重名。
 附件与工具输出标签显示为 `01 / 曲线图.png`。在附件卡片中编辑名称，按 Enter 或移开焦点保存；改名不改变编号、资源 ID 或保存路径。
 模型收到每张输入图片的编号、当前名称和完整会话文件路径；编号与名称用于描述，工具调用只使用路径。
-旧会话中与 first/second 等旧自动名称相同的名称兼容显示为原文件名；其他自定义名称、已有编号和路径保留，历史日志不改写。
 待发送与历史图片使用相同名称；运行中暂不能改名。消息可以只包含图片。
 移除草稿附件只取消本次发送，文件保留在会话中；删除整个会话会一起删除附件。
 
 公共模块：
 
 ```text
-agent/storage/images.py     图片文件、缩略图、默认名称与重命名
+agent/storage/images.py     图片与缩略图文件、SQLite 元数据及重命名
 agent/workflow/input.py     CLI/Web 共用的 UserInput
 agent/model/request_messages.py     图片说明与模型消息组装
 ```
 
-原文件及名称保存在 session 的 attachments/ 中；events.jsonl 和 state 只保存引用及元数据，
+原图片及缩略图保存在会话的 attachments/ 中，名称等元数据保存在 SQLite images 表；事件和 state 保存引用及元数据，
 模型请求时读取原文件并编码为 Base64。每张图片前有独立说明，包含原编号和当前名称。
 历史恢复使用相同资源 ID，后续请求会读取最新名称。模型及转发服务需要支持视觉输入。
 
@@ -335,7 +365,7 @@ curl http://127.0.0.1:8002/v1/models
 
 ### 输出与显示排查
 
-若回答出现语言混杂，先检查 session 的 `events.jsonl` 中对应的 `message.delta`。
+若回答出现语言混杂，先检查 SQLite events 表中该 session_id 对应的 `message.delta`。
 若原始输出已经含有同样文字，则应从模型输出和生成参数排查。
 阿拉伯语等正常 Unicode 文字可以直接展示；混用语言或语句不通顺属于输出质量问题，
 需要与字符损坏、缺字和显示异常区分。
@@ -377,7 +407,7 @@ Web 通过 `POST /api/sessions/{session_id}/control/stop` 请求停止，CLI 使
 已请求停止导致的请求异常按取消处理，未请求停止的网络异常仍为失败。这里的“已停止”只表示本地本轮执行已结束；使用标准请求取消和连接关闭向请求接收端传达中断，不查询或确认模型服务端是否停止生成，也不关闭其他会话的请求。
 `SessionRuntime.busy` 表示调度器是否有任务在执行，`execution.status` 描述本轮逻辑结果；二者不等同于 watch 的资源状态。
 
-当前不保存整个 state checkpoint，也不序列化运行资源。`events.jsonl` 保持为持久化事件流；
+当前不保存整个 state checkpoint，也不序列化运行资源。SQLite events 表保存持久化事件流；
 CLI 和 Web 共用运行时，模型输入由 `restore_model_messages` 恢复，网页完整历史由 `restore_display_messages` 恢复。
 工具输出过大时写入工作目录 `.spill/<session_id>/`，模型通过 `read_file` 读取。
 
@@ -392,7 +422,7 @@ approval:
 
 主会话和它的子 Agent 共用一个 ApprovalGate 和访问模式；切换只影响这个会话组的后续调用，不改变全局配置。模式通过主会话的 `approval.mode.changed` 事件恢复，未切换过的会话使用配置默认值。
 Web 输入区左下可切换“审计／完全访问”，模型选择在发送按钮紧邻左侧。完全访问直接执行受控工具，记录 bypassed；有待审批项时不能切换模式。
-待审批卡片显示来源会话、工具和完整参数（文件内容、old/new 或命令）；只有“批准本次”和“拒绝本次”，另有停止此任务按钮。主页面也显示子 Agent 的请求，选择子会话时看到同一组待审批项。界面每秒读取运行时快照，不查询模型或重新发现 MCP，刷新后重新打开原会话仍可处理；首次打开默认空会话的行为不变。
+待审批卡片显示来源会话、工具和完整参数（文件内容、old/new 或命令）；只有“批准本次”和“拒绝本次”，另有停止此任务按钮。主页面也显示子 Agent 的请求，选择子会话时看到同一组待审批项。界面每秒读取运行时快照，不查询模型或重新发现 MCP，刷新恢复当前会话后仍可处理；新标签页默认空会话。
 
 Windows RemoteWindowsMCP 的 `root` 仅指定相对路径及默认 cwd，不再限制跨目录读写、图片和命令起始目录；MCP 的审计／完全访问统一由本后端 ApprovalGate 决定。完全访问直接调用，审计逐次批准；Windows 账户权限、文件大小和命令超时仍有效。其他客户端直接连接 MCP 不经过本后端审批。内置 Linux 文件工具的 workspace 限制不变。
 
@@ -401,9 +431,27 @@ Windows RemoteWindowsMCP 的 `root` 仅指定相对路径及默认 cwd，不再�
 
 CLI 使用相同审批规则，在主线程显示参数并询问 `y/N`，Ctrl+C 停止该审批来源任务；后台子任务的通知显示其审批 ID，可用 `/approvals` 查看，再用 `/approve <ID>` 或 `/reject <ID>` 处理，`/stop <会话ID>` 可停止待审批来源任务。输入 `/access audit` 或 `/access full_access` 切换模式；一次性任务也支持 `--access audit|full_access`。没有确认输入时不会自动批准。
 
-实现入口：`tools/approval.py` 管理规则、等待和决定；`tools/router.py` 在工具分派前检查；`SessionRuntime` 持有共享实例，factory 注入回调。Web 的 `features/approvals/` 与 CLI 的 `approval.py` 负责各自呈现。MCP 客户端和本地 executor 不重复实现审批。主子并发事件通过 EventLog 的实例锁串行追加，保留完整递增序号。
+实现入口：`tools/approval.py` 管理规则、等待和决定；`tools/router.py` 在工具分派前检查；`SessionRuntime` 持有共享实例，factory 注入回调。Web 的 `features/approvals/` 与 CLI 的 `approval.py` 负责各自呈现。MCP 客户端和本地 executor 不重复实现审批。主子并发事件通过 SQLite 事务分配各会话递增序号，EventLog 实例锁维持本实例的提交与通知顺序。
 
 Web 接口：GET `/api/sessions/{id}/approvals` 读取模式及待审批列表；POST `/api/sessions/{id}/approvals/{approval_id}` 接收 `{"approved":true|false}`；POST `/api/sessions/{id}/access` 接收 `{"mode":"audit"|"full_access"}`。子会话端点操作同一个主会话组的审批实例。停止仍使用现有 control/stop 接口。
+
+## 运行中引导
+
+Web 执行期间回车只把输入加入输入框上方的前端队列，不请求后端。可删除，或点击编辑撤回输入框；编辑前输入框须为空，再次发送排到队尾。可点击任意一条“引导”单独提交，只有后端确认后才从队列移除；失败保留草稿。队列按 session 隔离，暂存在当前标签页 sessionStorage，刷新恢复原会话及其队列，不跨设备同步；附件上传仍使用既有图片接口。
+
+队列以紧凑圆角矩形显示每条消息，右侧依次为“↑ 引导”及浅灰圆底的删除、编辑图标；长文本单行省略，悬停查看完整内容，多条消息可滚动。
+
+输入区只有一个发送／停止按钮：未运行且无输入时置灰；运行中有文字或图片时加入前端引导队列，无输入时点击停止。空输入回车不触发停止。
+
+点击引导后消息不可修改，作为普通用户消息显示，不增加引导状态标记；原助手文字与工具卡片仍在它上方更新。“正在执行”（或等待审批）显示在首条尚未交付的引导之前，真正加入模型上下文后才移到该消息之后。当前整组工具调用补齐回执后，引导才以 user 消息进入模型上下文，后续助手回复显示在其下方。多条已提交引导按后端接收顺序交付；完全不调用停止、不取消当前工具、不新建 session，也不重置模型轮数预算。运行已结束时点击引导会开始普通新一轮；正在停止或结束的短暂窗口返回冲突并保留前端草稿。
+
+CLI 交互模式运行期间可继续输入，回车直接提交 SessionRuntime，不经过前端草稿队列。审批通过 `/approve`、`/reject` 等命令处理，Ctrl+C 或无参数 `/stop` 停止当前执行；一次性 CLI 仍等待任务完成并使用原有 y/N 审批提示。
+
+core/steering.py 管理不可修改的后端待交付队列，SessionRuntime 持有并与执行结束共用锁；AgentRuntime 在安全边界领取，先记录事件再通过 message_updates 更新 messages。guidance.queued 表示已接收，guidance.applied 表示已加入上下文，guidance.undelivered 表示结束前未交付。停止、失败和重启不自动执行未交付消息，Web 保留消息原文，不显示额外引导标记；已交付消息由 message_replay 恢复。当前进程内相同 message_id 与内容重试不会重复投递，不能使用同一 ID 修改内容。
+
+等待审批不会因引导自动放行；仍需批准、拒绝或停止。无工具的最终回复与 submit 在结束前也检查引导，已有引导时继续执行并重新生成候选报告。上下文整理保留本次连续的引导消息与最近完整工具组；整理期间新收到的引导留在队列，在安全检查点交付。Web 仅负责前端草稿与展示，不直接修改 AgentState；子会话仍只供查看。
+
+POST `/api/sessions/{id}/guidance` 接收 `{"message_id":"客户端唯一ID","content":"补充要求","images":[]}`；普通 `/messages` 继续用于开始新执行。前端入口为 conversation/GuidanceQueue.tsx 与 useGuidanceQueue.ts，CLI 与 Web 共用相同后端规则。
 
 ## 自动上下文整理
 
@@ -435,7 +483,7 @@ context:
 Runtime 在校验成功后先写入 `context.compacted` 事件中的完整 messages，再 apply 更新，不新建会话、不改写旧事件。
 `message_replay.restore_model_messages` 从最新整理结果恢复，再追加后续事件；配置未变化时与保存的上下文一致。
 显式修改角色系统提示词仍会更新恢复后的首条系统消息，沿用原配置行为。
-网页 conversation 接口继续使用 `restore_display_messages` 还原完整原始历史，模型摘要不冒充用户消息显示。
+网页通过 SSE 回放完整原始事件，前端 reducer 还原消息，模型摘要不冒充用户消息显示。`restore_display_messages` 保留给只读 Notebook 与历史恢复校验，不再由 HTTP 快照接口调用。
 整理后须确实缩小且低于触发阈值，以免下一轮立即再次整理；不要求固定大小或压缩比例。
 摘要失败、截断、未缩小、仍达到触发阈值或落盘前取消均不替换原上下文，不无限重试；失败结束本轮并保留错误供用户处理。
 当前输入或最后工具组过大、没有可整理历史时明确报错，不静默裁剪。
@@ -512,7 +560,7 @@ cursor 是当前主会话整个 Monitor 的版本号，不是第几个 agent，�
 watch 只返回状态、路径及失败原因，不返回报告正文。用现有 read_file 读取 result_path；是否汇总、是否继续工作、是否等待由 LLM 决定。
 游标是每个调用者的位置，不表示领取或消费报告。网页与模型查询互不影响；一次增量返回每个变化资源的最新状态，可合并短时间内的多次更新。删除以 deleted 标记返回，首次快照不包含已删除资源。
 
-每个主 session 的状态保存在 watch.json。通用 Monitor 只负责版本、资源快照和条件变量通知，不依赖 agent、模型或网页。新增 Bash 等资源只需接入 update，无需改变 watch 协议；本版本尚未增加后台 Bash 工具。
+每个主 session 的监控状态保存在 SQLite monitors 表，由 SessionStore 读写。通用 Monitor 负责版本、资源快照和条件变量通知，不依赖 agent、模型或网页。新增 Bash 等资源只需接入 update，无需改变 watch 协议；本版本尚未增加后台 Bash 工具。
 SessionRegistry 负责会话查找、创建子任务以及 agent 状态适配；SessionRuntime 管理单个 session 的 state、串行执行和取消；AgentRuntime 运行模型和工具循环。
 
 子 Agent 普通文本结束却没有 submit 时，workflow/completion.py 根据 state.role 决定是否补交：尚未提醒且总轮数还有余量时，原 AgentRuntime 加入一次内部提醒并继续同一任务；仍未提交则失败。提醒次数记录在 execution，不另建 session，不由主 Agent 或总结模型代交，且仍受 max_rounds 总预算限制。completion.reminded 事件用于重建模型上下文，不产生新的用户消息或 turn.started；通过完成规则后才发 turn.completed。异常和主动取消不会触发补交。

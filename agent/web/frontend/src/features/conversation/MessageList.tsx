@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ExecutionItem, Item } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
@@ -25,6 +25,10 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
 
   const hasItems = items.length > 0;
   const compacting = items.some(item => item.kind === 'context' && item.status === 'running');
+  const pendingGuidance = items.findIndex(item => item.kind === 'text' && item.guidance === 'queued');
+  const progressIndex = pendingGuidance < 0 ? items.length : pendingGuidance;
+  const progress = busy && !compacting
+    ? <div className="run-indicator" role="status"><span className="loading-dot" />{waitingCallIds.length ? '等待审批…' : '正在执行…'}</div> : null;
   useEffect(() => {
     const content = contentBox.current;
     if (!content) return;
@@ -41,7 +45,7 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
     : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId}
         disabled={busy || editingImage} onRename={onRenameImage} /> : null}
-      {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && item.id === assistantId} />}
+      {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && !loading && item.id === assistantId} />}
     </article>;
 
   return <div className="conversation-area">
@@ -52,10 +56,12 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
         follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
         setAway(!follow.current);
       }}>
-      {loading ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
+      {loading && !hasItems ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
         : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
           <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
-        : <div ref={contentBox} className="message-list">{items.map(item => item.kind === 'report'
+        : <div ref={contentBox} className="message-list">{items.map((item, index) => <Fragment key={item.id}>
+          {index === progressIndex && progress}
+          {item.kind === 'report'
           ? <ReportCard key={item.id} item={item} onInspect={() => { follow.current = false; }}>
             {item.process.map(renderExecution)}
           </ReportCard>
@@ -65,8 +71,9 @@ export function MessageList({ items, busy, loading, assistantId, sessionId, imag
               {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
                 cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
             </div>
-            : renderExecution(item))}
-          {busy && !compacting && <div className="run-indicator" role="status"><span className="loading-dot" />{waitingCallIds.length ? '等待审批…' : '正在执行…'}</div>}
+            : renderExecution(item)}
+        </Fragment>)}
+          {progressIndex === items.length && progress}
         </div>}
     </div>
     {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}

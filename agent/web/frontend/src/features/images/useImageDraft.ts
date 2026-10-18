@@ -45,5 +45,10 @@ export function useImageDraft(sessionId: string | null, onUploaded: (image: Imag
     setIds(current.current);
   }
 
-  return { ids, uploading, error, upload, remove };
+  function restore(images: string[]) {
+    current.current = [...images];
+    setIds(current.current);
+  }
+
+  return { ids, uploading, error, upload, remove, restore };
 }

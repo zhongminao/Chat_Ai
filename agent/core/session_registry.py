@@ -31,7 +31,8 @@ class SessionRegistry:
     def monitor(self, session_id: str) -> Monitor:
         with self.lock:
             if session_id not in self.monitors:
-                monitor = Monitor(self.store.path(session_id) / "watch.json")
+                self.store.path(session_id)
+                monitor = Monitor(self.store, session_id)
                 for child_id in self.store.children(session_id):
                     child = self.items.get(child_id)
                     state = {"kind": "agent", "session_id": child_id,

@@ -2,12 +2,11 @@
 import re
 from pathlib import Path
 
-from .images import ImageStore
 from .session import Session
 
 
 def save(session: Session, run_id: str, content: str, workspace: Path) -> tuple[Path, str]:
-    images = ImageStore(session.directory)
+    images = session.images
     requests = {}
     published = {}
     for event in session.events.read():

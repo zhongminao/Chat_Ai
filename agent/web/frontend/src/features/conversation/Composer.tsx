@@ -5,41 +5,53 @@ import { Icon } from '../../ui/Icon';
 import { ModelPicker } from '../models/ModelPicker';
 import { useImageDraft } from '../images/useImageDraft';
 import { ImageAttachments } from '../images/ImageAttachments';
+import { GuidanceQueue } from './GuidanceQueue';
+import { useGuidanceQueue } from './useGuidanceQueue';
 
 interface Props {
   accessMode: AccessMode; accessDisabled: boolean; approvals: ReactNode;
   onAccessChange: (mode: AccessMode) => void;
   ready: boolean; connected: boolean; busy: boolean;
   status: string; readOnly: boolean;
-  pending: 'send' | 'stop' | 'model' | 'image' | null;
+  pending: 'send' | 'guide' | 'stop' | 'model' | 'image' | null;
   model: Model | null; models: ModelGroup[];
   sessionId: string | null; images: ImageAsset[];
   onUploaded: (image: ImageAsset) => void;
   onRenameImage: (id: string, name: string) => Promise<boolean>;
   onSend: (text: string, images: string[]) => Promise<boolean>;
+  onGuide: (id: string, text: string, images: string[]) => Promise<boolean>;
+  acceptedGuidance: string[];
   onStop: () => Promise<boolean>;
   onModelChange: (provider: string, model: string) => Promise<boolean>;
 }
 
 export function Composer(props: Props) {
   const [text, setText] = useState('');
+  const [editingGuidance, setEditingGuidance] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const draft = useImageDraft(props.sessionId, props.onUploaded);
+  const guidance = useGuidanceQueue(props.sessionId, props.acceptedGuidance);
+  const queueInput = props.busy || editingGuidance || guidance.items.length > 0;
   const textRef = useRef(text); textRef.current = text;
   useLayoutEffect(() => {
     const element = textarea.current;
     if (element) { element.style.height = 'auto'; element.style.height = `${Math.min(element.scrollHeight, 220)}px`; }
   }, [text]);
-  const canEditImages = !props.readOnly && props.ready && props.connected && !props.busy && !props.pending && !draft.uploading;
-  const disabled = (props.readOnly && !props.busy) || !props.ready || !props.connected || draft.uploading ||
-    Boolean(props.pending && props.pending !== 'image') || (!props.busy && !text.trim() && !draft.ids.length);
+  const canEditImages = !props.readOnly && props.ready && props.connected && !props.pending && !draft.uploading;
+  const hasInput = Boolean(text.trim() || draft.ids.length);
+  const stopAction = props.busy && !hasInput;
+  const disabled = (props.readOnly && !stopAction) || !props.ready || !props.connected ||
+    Boolean(props.pending && props.pending !== 'image') || (!stopAction && (draft.uploading || !hasInput));
   async function submit() {
     if (disabled) return;
-    if (props.busy) { await props.onStop(); return; }
+    if (stopAction) { await props.onStop(); return; }
     const content = text;
     const images = [...draft.ids];
-    if (await props.onSend(content, images)) {
+    if (queueInput) {
+      guidance.add(content, images);
+      setText(''); setEditingGuidance(false); draft.remove(images);
+    } else if (await props.onSend(content, images)) {
       if (textRef.current === content) setText('');
       draft.remove(images);
       textarea.current?.focus();
@@ -48,6 +60,10 @@ export function Composer(props: Props) {
 
   return <div className="composer-wrap">
     {props.approvals}
+    <GuidanceQueue items={guidance.items} disabled={props.readOnly || !props.ready || !props.connected || Boolean(props.pending)}
+      canEdit={!text.trim() && !draft.ids.length && !draft.uploading} onRemove={guidance.remove}
+      onEdit={item => { guidance.remove(item.id); setText(item.text); setEditingGuidance(true); draft.restore(item.images); textarea.current?.focus(); }}
+      onGuide={item => { void props.onGuide(item.id, item.text, item.images).then(sent => { if (sent) guidance.remove(item.id); }); }} />
     <form className="composer" onSubmit={event => { event.preventDefault(); void submit(); }}
       onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
       onDrop={event => {
@@ -66,7 +82,7 @@ export function Composer(props: Props) {
         }}
         disabled={!props.ready || props.readOnly} onChange={event => setText(event.target.value)} onKeyDown={event => {
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
-            event.preventDefault(); void submit();
+            event.preventDefault(); if (hasInput) void submit();
           }
         }} />
       <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden
@@ -83,9 +99,10 @@ export function Composer(props: Props) {
         </div><div className="composer-right-actions">
         <ModelPicker groups={props.models} model={props.model}
         disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
-        <button type="submit" className={`send-button ${props.busy ? 'stop-button' : ''}`} disabled={disabled}
-          aria-label={props.busy ? '停止执行' : '发送消息'} title={props.busy ? '停止执行' : '发送消息'}>
-          {props.busy ? <span className="stop-square" /> : <Icon name="arrow" size={20} />}
+        <button type="submit" className={`send-button ${stopAction ? 'stop-button' : ''}`} disabled={disabled}
+          aria-label={stopAction ? '停止执行' : queueInput ? '加入引导队列' : '发送消息'}
+          title={stopAction ? '停止执行' : queueInput ? '加入前端队列，点击引导后才发送' : '发送消息'}>
+          {stopAction ? <span className="stop-square" /> : <Icon name="arrow" size={20} />}
         </button>
         </div>
       </div>

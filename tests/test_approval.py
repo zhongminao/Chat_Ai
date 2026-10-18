@@ -17,7 +17,7 @@ from agent.cli.approval import handle_approval_command, wait_for_execution
 from agent.core.cancellation import CancellationToken, ExecutionContext, RunCancelled
 from agent.core.session_registry import SessionRegistry
 from agent.model.protocol import ModelChunk, ToolCallDelta
-from agent.storage.event_log import EventLog
+from agent.storage.session import SessionStore
 from agent.tools.approval import ApprovalGate
 from agent.tools.router import ToolRouter
 from agent.web import app as web
@@ -37,7 +37,7 @@ class ApprovalTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.events = EventLog(self.root / 'audit.jsonl')
+        self.events = SessionStore(self.root).create().events
         self.gate = ApprovalGate('audit', self.events.append)
         self.context = ExecutionContext(CancellationToken())
         self.router = ToolRouter(self.root, approval=partial(self.gate.request, session_id='main'))

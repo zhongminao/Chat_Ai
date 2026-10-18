@@ -5,6 +5,7 @@ const paths = {
   edit: 'm15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z',
   check: 'm5 12 4 4L19 6',
   close: 'm6 6 12 12M6 18 18 6',
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
   menu: 'M4 6h16M4 12h16M4 18h16',
   arrow: 'M12 19V5m-6 6 6-6 6 6',
   down: 'm6 9 6 6 6-6',

@@ -9,10 +9,16 @@ def plan(state: AgentState, tokens: int, config: dict) -> dict | None:
     # Keep the configured system prompt, latest user input, and last complete
     # assistant/tool group. A long tool loop can still compact within one turn.
     latest_user = max((i for i, m in enumerate(messages) if m["role"] == "user"), default=-1)
-    tail = len(messages) - 1
+    first_user = latest_user
+    while first_user > 0 and messages[first_user - 1]['role'] == 'user':
+        first_user -= 1
+    tail_end = len(messages) - 1
+    while tail_end > 0 and messages[tail_end]['role'] == 'user':
+        tail_end -= 1
+    tail = tail_end
     while tail > 0 and messages[tail]["role"] == "tool":
         tail -= 1
-    protected = {0, latest_user, *range(tail, len(messages))}
+    protected = {0, *range(first_user, latest_user + 1), *range(tail, tail_end + 1)}
     history = [m for i, m in enumerate(messages) if i not in protected]
     if not history:
         raise ValueError("上下文超过整理阈值，但没有可整理的历史；请缩小当前输入或新建会话。")

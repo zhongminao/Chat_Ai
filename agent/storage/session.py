@@ -1,3 +1,4 @@
+"""Session metadata lives in SQLite; session directories hold image and report files."""
 import json
 import shutil
 import uuid
@@ -6,9 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from filelock import FileLock
-
+from .database import Database
 from .event_log import EventLog
+from .images import ImageStore
 
 
 @dataclass(frozen=True)
@@ -16,107 +17,90 @@ class Session:
     id: str
     directory: Path
     events: EventLog
+    images: ImageStore
 
 
 class SessionStore:
     def __init__(self, root: Path):
-        self.root = (root / "sessions").resolve()
+        root = root.resolve()
+        self.root = root / 'sessions'
         self.root.mkdir(parents=True, exist_ok=True)
+        self.database = Database(root / 'chat_ai.sqlite3')
 
     def create(self, on_event: Callable[[dict[str, Any]], None] | None = None, **metadata: Any) -> Session:
         session_id = uuid.uuid4().hex
+        created = datetime.now(timezone.utc)
+        parent, title = metadata.pop('parent_session_id', None), metadata.pop('title', None)
+        payload = json.dumps(metadata, ensure_ascii=False)
         directory = self.root / session_id
-        directory.mkdir(parents=True, exist_ok=True)
-        (directory / "session.json").write_text(
-            json.dumps(
-                {**metadata, "id": session_id, "createdAt": datetime.now(timezone.utc).isoformat()},
-                ensure_ascii=False,
-                indent=2,
-            ) + "\n",
-            encoding="utf-8",
-        )
-        return Session(session_id, directory, EventLog(directory / "events.jsonl", on_event))
+        directory.mkdir()
+        try:
+            with self.database.connect(write=True) as connection:
+                connection.execute('''INSERT INTO sessions (id, parent_session_id, created_at, updated_at, title, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?)''', (session_id, parent, created.isoformat(), created.timestamp(), title, payload))
+        except BaseException:
+            directory.rmdir()
+            raise
+        return self.open(session_id, on_event)
 
     def path(self, session_id: str) -> Path:
         directory = (self.root / session_id).resolve()
-        if directory.parent != self.root or not (directory / "session.json").is_file():
+        if directory.parent != self.root:
             raise FileNotFoundError(session_id)
+        with self.database.connect() as connection:
+            if connection.execute('SELECT 1 FROM sessions WHERE id=?', (session_id,)).fetchone() is None:
+                raise FileNotFoundError(session_id)
         return directory
 
     def open(self, session_id: str, on_event: Callable[[dict[str, Any]], None] | None = None) -> Session:
         directory = self.path(session_id)
-        return Session(session_id, directory, EventLog(directory / "events.jsonl", on_event))
+        return Session(session_id, directory, EventLog(self.database, session_id, on_event),
+                       ImageStore(self.database, session_id, directory))
 
     def metadata(self, session_id: str) -> dict:
-        return json.loads((self.path(session_id) / "session.json").read_text(encoding="utf-8"))
+        with self.database.connect() as connection:
+            row = connection.execute('SELECT * FROM sessions WHERE id=?', (session_id,)).fetchone()
+        if row is None:
+            raise FileNotFoundError(session_id)
+        result = {**json.loads(row['metadata']), 'id': row['id'], 'createdAt': row['created_at']}
+        if row['parent_session_id'] is not None:
+            result['parent_session_id'] = row['parent_session_id']
+        if row['title'] is not None:
+            result['title'] = row['title']
+        return result
 
-    def read_list_summary(self, session_id: str) -> dict:
-        """Cache list metadata; read only appended complete events when the log grows."""
-        directory = self.path(session_id)
-        meta_path, log_path = directory / "session.json", directory / "events.jsonl"
-        cache_path = directory / "summary.json"
-        with FileLock(str(directory / "summary.lock")):
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            stat = log_path.stat() if log_path.exists() else None
-            source = [stat.st_ino, stat.st_size, stat.st_mtime_ns] if stat else [0, 0, 0]
-            try:
-                cached = json.loads(cache_path.read_text(encoding="utf-8"))
-            except (FileNotFoundError, ValueError):
-                cached = {}
-            if cached.get("source") != source:
-                old = cached.get("source", [None, 0, 0])
-                if old[0] != source[0] or source[1] <= old[1]:
-                    cached = {}
-                cached = cached or {"offset": 0, "title": "新会话", "empty": True,
-                                    "status": "idle", "updatedAt": None}
-                if stat:
-                    with log_path.open("rb") as file:
-                        file.seek(cached["offset"])
-                        while file.tell() < source[1]:
-                            line = file.readline(source[1] - file.tell())
-                            if not line.endswith(b"\n"):
-                                break
-                            event = json.loads(line)
-                            if event["type"] == "turn.started" and cached["empty"]:
-                                cached["empty"] = False
-                                cached["title"] = (" ".join(event.get("prompt", "").split())[:40]
-                                                   or ("图片对话" if event.get("images") else "新会话"))
-                            status = {"report.submitted": "submitted", "turn.failed": "failed",
-                                      "turn.cancelled": "cancelled"}.get(event["type"])
-                            if status:
-                                cached["status"] = status
-                            cached["updatedAt"] = event["time"] / 1e9
-                            cached["offset"] = file.tell()
-                cached["source"] = source
-                temporary = cache_path.with_suffix(".tmp")
-                temporary.write_text(json.dumps(cached, ensure_ascii=False) + "\n", encoding="utf-8")
-                temporary.replace(cache_path)
-            return {
-                "id": session_id, "parent_session_id": meta.get("parent_session_id"),
-                "title": meta.get("title") or cached["title"], "empty": cached["empty"],
-                "status": cached["status"], "createdAt": meta.get("createdAt"),
-                "updatedAt": cached["updatedAt"] or meta_path.stat().st_mtime,
-            }
+    def list_summaries(self) -> list[dict]:
+        with self.database.connect() as connection:
+            rows = connection.execute('''SELECT id, parent_session_id, COALESCE(NULLIF(title, ''), auto_title) AS title,
+                empty, status, created_at AS createdAt, updated_at AS updatedAt FROM sessions ORDER BY updated_at DESC''').fetchall()
+        return [{**dict(row), 'empty': bool(row['empty'])} for row in rows]
 
     def children(self, session_id: str) -> list[str]:
-        return [path.parent.name for path in self.root.glob("*/session.json")
-                if json.loads(path.read_text(encoding="utf-8")).get("parent_session_id") == session_id]
+        with self.database.connect() as connection:
+            return [row['id'] for row in connection.execute('SELECT id FROM sessions WHERE parent_session_id=?', (session_id,))]
 
     def delete(self, session_id: str) -> None:
-        shutil.rmtree(self.path(session_id))
+        directory = self.path(session_id)
+        with self.database.connect(write=True) as connection:
+            connection.execute('DELETE FROM sessions WHERE id=?', (session_id,))
+        shutil.rmtree(directory, ignore_errors=False)
 
     def rename(self, session_id: str, title: str) -> str:
         title = title.strip()
         if not title or len(title) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in title):
-            raise ValueError("会话名称需要 1–80 个字符，不能包含换行或控制字符")
-        path = self.path(session_id) / "session.json"
-        with FileLock(str(path.with_suffix(".lock"))):
-            meta = json.loads(path.read_text(encoding="utf-8"))
-            meta["title"] = title
-            temporary = path.with_suffix(".tmp")
-            try:
-                temporary.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-                temporary.replace(path)
-            finally:
-                temporary.unlink(missing_ok=True)
+            raise ValueError('会话名称需要 1–80 个字符，不能包含换行或控制字符')
+        with self.database.connect(write=True) as connection:
+            if not connection.execute('UPDATE sessions SET title=? WHERE id=?', (title, session_id)).rowcount:
+                raise FileNotFoundError(session_id)
         return title
+
+    def read_monitor(self, session_id: str) -> dict:
+        with self.database.connect() as connection:
+            row = connection.execute('SELECT cursor, resources FROM monitors WHERE session_id=?', (session_id,)).fetchone()
+        return {'cursor': row['cursor'], 'resources': json.loads(row['resources'])} if row else {}
+
+    def save_monitor(self, session_id: str, cursor: int, resources: dict) -> None:
+        payload = json.dumps(resources, ensure_ascii=False)
+        with self.database.connect(write=True) as connection:
+            connection.execute('''INSERT INTO monitors VALUES (?, ?, ?) ON CONFLICT(session_id)
+                DO UPDATE SET cursor=excluded.cursor, resources=excluded.resources''', (session_id, cursor, payload))

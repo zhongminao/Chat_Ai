@@ -28,13 +28,14 @@ export interface ModelGroup {
   models: { id: string; name: string; enabled: boolean }[];
 }
 
-export interface ConversationSnapshot {
+export interface SessionState {
   id: string;
   seq: number;
+  after: number;
+  reset: boolean;
   busy: boolean;
   model: Model;
   parent_session_id?: string | null;
-  messages?: unknown[];
   images?: ImageAsset[];
 }
 
@@ -60,6 +61,8 @@ export interface ImageAsset {
 interface EventEnvelope { seq: number; runId?: string; time?: number }
 export type AgentEvent = EventEnvelope & (
   | { type: 'turn.started'; prompt: string; images?: ImageAsset[] }
+  | { type: 'guidance.queued' | 'guidance.applied'; messageId: string; content: string; images?: ImageAsset[] }
+  | { type: 'guidance.undelivered'; messageId: string }
   | { type: 'image.renamed'; image: ImageAsset }
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }

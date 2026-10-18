@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError } from '../../api/client';
+import { api } from '../../api/client';
 import type { ModelGroup, SessionSummary } from '../../api/types';
 import { errorMessage } from '../conversation/useConversation';
 
+const selectionKey = 'chat-ai:selected-session';
+
+export async function restoreOrCreateSession(sessions: SessionSummary[]): Promise<string> {
+  let saved: string | null = null;
+  try { saved = sessionStorage.getItem(selectionKey); } catch { /* Storage may be unavailable. */ }
+  return saved && sessions.some(session => session.id === saved) ? saved : findOrCreateEmptySession(sessions);
+}
+
 export async function findOrCreateEmptySession(sessions: SessionSummary[], preferred?: string | null): Promise<string> {
-  const candidates = sessions
-    .filter(session => !session.parent_session_id && session.empty && !session.busy)
-    .sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
-  for (const candidate of candidates) {
-    try {
-      const snapshot = await api.getConversationSnapshot(candidate.id);
-      if (!snapshot.busy && snapshot.messages?.length === 0) return candidate.id;
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 404)) throw error;
-    }
+  const available = (session: SessionSummary) => !session.parent_session_id && session.empty && !session.busy;
+  if (sessions.some(available)) {
+    // Recheck stale candidates using summaries, without loading conversation bodies.
+    const fresh = (await api.sessions()).sessions.filter(available);
+    const candidate = fresh.find(session => session.id === preferred) ?? fresh[0];
+    if (candidate) return candidate.id;
   }
   return (await api.createSession()).id;
 }
@@ -36,6 +40,14 @@ export function useSessions() {
   const creatingRef = useRef(false);
   const renamingRef = useRef(false);
 
+  const select = useCallback((id: string | null) => {
+    setSelected(id);
+    try {
+      if (id) sessionStorage.setItem(selectionKey, id);
+      else sessionStorage.removeItem(selectionKey);
+    } catch { /* Storage may be unavailable. */ }
+  }, []);
+
   const refresh = useCallback(async () => {
     const version = ++listVersion.current;
     try {
@@ -51,15 +63,15 @@ export function useSessions() {
     Promise.all([api.sessions(abort.signal), api.models(abort.signal)]).then(async ([list, catalog]) => {
       if (!active) return;
       setModels(catalog.models); setSessions(list.sessions);
-      const id = await findOrCreateEmptySession(list.sessions);
+      const id = await restoreOrCreateSession(list.sessions);
       if (!active) return;
       setSessions(items => items.some(item => item.id === id) ? items : [emptySummary(id), ...items]);
-      setSelected(id);
+      select(id);
       void refresh();
     }).catch(error => { if (active && !abort.signal.aborted) setError(errorMessage(error)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; abort.abort(); };
-  }, [attempt, refresh]);
+  }, [attempt, refresh, select]);
 
   async function create() {
     if (creatingRef.current) return;
@@ -69,7 +81,7 @@ export function useSessions() {
       // Show the selected empty session immediately; list refresh is not on this path.
       ++listVersion.current;
       setSessions(items => items.some(item => item.id === id) ? items : [emptySummary(id), ...items]);
-      setSelected(id);
+      select(id);
       void refresh();
     } catch (error) { setError(errorMessage(error)); }
     finally { creatingRef.current = false; setCreating(false); }
@@ -82,8 +94,10 @@ export function useSessions() {
       await api.deleteSession(id);
       if (id === selected) {
         const remaining = sessions.filter(item => item.id !== id);
-        setSelected(remaining[0]?.id ?? null);
-        if (!remaining.length) await create();
+        setSessions(remaining); select(null);
+        const emptyId = await findOrCreateEmptySession(remaining);
+        setSessions(items => items.some(item => item.id === emptyId) ? items : [emptySummary(emptyId), ...items]);
+        select(emptyId);
       }
       await refresh();
     } catch (error) { setError(errorMessage(error)); }
@@ -103,7 +117,7 @@ export function useSessions() {
     finally { renamingRef.current = false; setRenaming(null); }
   }
 
-  return { sessions, models, selected, select: setSelected, loading, creating, deleting, renaming, rename,
+  return { sessions, models, selected, select, loading, creating, deleting, renaming, rename,
     error, clearError: () => setError(null), create, remove, refresh,
     retry: () => setAttempt(value => value + 1) };
 }

@@ -40,6 +40,10 @@ def main() -> None:
         runtime.bus.publish(event)
         render_context_event(event)
         render_approval_event(event)
+        if event['type'].startswith('guidance.'):
+            label = {'guidance.queued': '引导已发送，等待交付', 'guidance.applied': '引导已加入上下文',
+                     'guidance.undelivered': '引导未送达，请重新发送'}
+            print('\n' + label[event['type']])
 
     session.events.on_append = on_event
     if args.access:
@@ -64,13 +68,21 @@ def main() -> None:
 
     print("输入 /model provider model 切换模型；输入 /exit 或 /quit 退出。")
     print("输入 /rename 新名称 修改当前会话名称。")
+    print('执行期间直接输入补充要求即可引导；Ctrl+C 或 /stop 停止当前执行。')
     print("图片：/image 文件路径；/image-name 会话图片路径 新名称；/images；/send；/clear-images。")
     print("审批：/access audit|full_access；/approvals；/approve <审批ID>；/reject <审批ID>；/stop <会话ID>。")
     while True:
         try:
             with patch_stdout():
                 prompt = prompt_session.prompt("> ")
-        except (EOFError, KeyboardInterrupt):
+        except KeyboardInterrupt:
+            if runtime.busy:
+                runtime.stop()
+                print('\n本轮已请求停止。')
+                continue
+            print()
+            break
+        except EOFError:
             print()
             break
 
@@ -78,6 +90,9 @@ def main() -> None:
         if text in {"/exit", "/quit"}:
             break
         if not text:
+            continue
+        if text == '/stop':
+            runtime.stop()
             continue
 
         try:
@@ -119,8 +134,7 @@ def main() -> None:
             continue
 
         try:
-            runtime.enqueue(image_commands.take_input(text))
-            wait_for_execution(registry, runtime, prompt_session)
+            runtime.send(image_commands.take_input(text))
         except KeyboardInterrupt:
             runtime.stop()
             print("\n本轮已请求停止。")

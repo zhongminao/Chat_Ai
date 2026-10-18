@@ -1,6 +1,7 @@
-import type { AgentEvent, ImageAsset, Model, ConversationSnapshot } from '../api/types';
+import type { AgentEvent, ImageAsset, Model, SessionState } from '../api/types';
 
-export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[] };
+export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
+  guidance?: 'queued' | 'applied' | 'undelivered' };
 export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
@@ -15,18 +16,20 @@ export interface Conversation {
   ready: boolean;
   model: Model | null;
   error: string | null;
-  snapshot: ConversationSnapshot | null;
+  session: SessionState | null;
   execution: { startIndex: number; startedAt?: number } | null;
 }
 
 export const emptyConversation = (): Conversation => ({
   items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
-  model: null, error: null, snapshot: null, execution: null,
+  model: null, error: null, session: null, execution: null,
 });
 
 export type Action =
   | { type: 'reset' }
-  | { type: 'snapshot'; snapshot: ConversationSnapshot }
+  | { type: 'initialize'; session: SessionState }
+  | { type: 'ready'; seq: number }
+  | { type: 'disconnected' }
   | { type: 'events'; events: AgentEvent[] }
   | { type: 'busy'; busy: boolean }
   | { type: 'model'; model: Model }
@@ -44,12 +47,28 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
           images: event.images?.map(image => image.id) }] };
       break;
     case 'image.renamed':
-      if (event.seq > (state.snapshot?.seq ?? 0)) next.images = upsertImage(state.images, event.image);
+      if (event.seq > (state.session?.seq ?? 0)) next.images = upsertImage(state.images, event.image);
+      break;
+    case 'guidance.queued':
+      next.items = [...state.items, { id: `guidance:${event.messageId}`, kind: 'text', role: 'user',
+        content: event.content, images: event.images?.map(image => image.id), guidance: 'queued' }];
+      break;
+    case 'guidance.applied': {
+      const index = state.items.findIndex(item => item.id === `guidance:${event.messageId}`);
+      next.items = state.items.map(item => item.id === `guidance:${event.messageId}` && item.kind === 'text'
+        ? { ...item, guidance: 'applied' } : item);
+      if (index >= 0) next.execution = { startIndex: index + 1, startedAt: event.time };
+      next.assistantId = null;
+      break;
+    }
+    case 'guidance.undelivered':
+      next.items = state.items.map(item => item.id === `guidance:${event.messageId}` && item.kind === 'text'
+        ? { ...item, guidance: 'undelivered' } : item);
       break;
     case 'model.started': next.assistantId = null; break;
     case 'context.compaction.started':
       next.assistantId = null;
-      next.items = [...state.items, { id: `context:${event.compactionId}`, kind: 'context', status: 'running' }];
+      next.items = appendExecution(state.items, { id: `context:${event.compactionId}`, kind: 'context', status: 'running' });
       break;
     case 'context.compacted':
     case 'context.compaction.failed':
@@ -68,13 +87,13 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       next.assistantId = id;
       next.items = exists
         ? state.items.map(item => item.id === id && item.kind === 'text' ? { ...item, content: item.content + event.text } : item)
-        : [...state.items, { id, kind: 'text', role: 'assistant', content: event.text }];
+        : appendExecution(state.items, { id, kind: 'text', role: 'assistant', content: event.text });
       break;
     }
     case 'tool.requested':
       if (event.tool === 'submit') break;
-      next.items = [...state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
-        arguments: event.arguments, status: 'running' }];
+      next.items = appendExecution(state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
+        arguments: event.arguments, status: 'running' });
       break;
     case 'tool.completed': {
       if (event.tool === 'submit') break;
@@ -85,7 +104,7 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       const images = event.images?.map(image => image.id);
       next.items = exists
         ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, images: images ?? item.images, status } : item)
-        : [...state.items, { id, kind: 'tool', name: event.tool, result: event.result, images, status }];
+        : appendExecution(state.items, { id, kind: 'tool', name: event.tool, result: event.result, images, status });
       break;
     }
     case 'report.submitted': {
@@ -118,35 +137,38 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
   }
   if ('images' in event) {
     for (const image of event.images ?? []) {
-      if (event.seq > (state.snapshot?.seq ?? 0) || !next.images.some(entry => entry.id === image.id)) {
+      if (event.seq > (state.session?.seq ?? 0) || !next.images.some(entry => entry.id === image.id)) {
         next.images = upsertImage(next.images, image);
       }
-    }
-  }
-  // Replay existing events before admitting new input. The snapshot is the
-  // authority on whether an old unfinished run is still executing in-process.
-  if (!state.ready && state.snapshot && next.seq >= state.snapshot.seq) {
-    next.ready = true;
-    next.model = state.snapshot.model;
-    if (next.seq === state.snapshot.seq) next.busy = state.snapshot.busy;
-    if (!next.busy) {
-      next.items = interruptPending(next.items);
     }
   }
   return next;
 }
 
+function appendExecution(items: Item[], item: Item): Item[] {
+  const index = items.findIndex(entry => entry.kind === 'text' && entry.guidance === 'queued');
+  return index < 0 ? [...items, item] : [...items.slice(0, index), item, ...items.slice(index)];
+}
+
 function interruptPending(items: Item[]): Item[] {
-  return items.map(item => (item.kind === 'tool' || item.kind === 'context') && item.status === 'running'
-    ? { ...item, status: 'interrupted' } : item);
+  return items.map(item => item.kind === 'text' && item.guidance === 'queued' ? { ...item, guidance: 'undelivered' }
+    : (item.kind === 'tool' || item.kind === 'context') && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
 }
 
 export function conversationReducer(state: Conversation, action: Action): Conversation {
   switch (action.type) {
     case 'reset': return emptyConversation();
-    case 'snapshot': return { ...emptyConversation(), snapshot: action.snapshot,
-      model: action.snapshot.model, images: action.snapshot.images ?? [],
-      busy: action.snapshot.busy, ready: action.snapshot.seq === 0 };
+    case 'initialize': return { ...(action.session.reset ? emptyConversation() : state),
+      session: action.session, ready: false, model: action.session.model,
+      images: action.session.images ?? [], busy: action.session.busy };
+    case 'ready': {
+      if (!state.session || action.seq !== state.session.seq || state.seq < action.seq) return state;
+      const busy = state.seq === action.seq ? state.session.busy : state.busy;
+      return { ...state, ready: true, busy,
+        model: state.seq === action.seq ? state.session.model : state.model,
+        items: busy ? state.items : interruptPending(state.items) };
+    }
+    case 'disconnected': return { ...state, ready: false };
     case 'events': return action.events.reduce(applyEvent, state);
     case 'busy': return { ...state, busy: action.busy };
     case 'model': return { ...state, model: action.model };

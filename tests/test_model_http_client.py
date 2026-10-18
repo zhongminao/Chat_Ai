@@ -117,9 +117,9 @@ class ModelHttpClientTests(unittest.TestCase):
                 token = CancellationToken()
                 partial = threading.Event()
                 closed = threading.Event()
+                request = ModelHttpClient(api_key='test', base_url=self.url, max_retries=0, timeout=5)
 
                 def run():
-                    request = ModelHttpClient(api_key='test', base_url=self.url, max_retries=0, timeout=5)
                     try:
                         for chunk in stream(request, 'test', [{'role': 'user', 'content': 'hello'}], [],
                                             OpenAICompatibleAdapter(), ExecutionContext(token)):
@@ -131,7 +131,10 @@ class ModelHttpClientTests(unittest.TestCase):
 
                 with ThreadPoolExecutor(1) as pool:
                     task = pool.submit(run)
-                    self.assertTrue(self.server.entered.wait(3))
+                    entered = self.server.entered.wait(10)
+                    if not entered and task.done():
+                        task.result()  # Surface request setup failures instead of hiding them as readiness timeouts.
+                    self.assertTrue(entered)
                     if mode != 'headers':
                         self.assertTrue(self.server.ready.wait(3))
                     if mode == 'partial':

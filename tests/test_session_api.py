@@ -2,18 +2,49 @@ import tempfile
 import threading
 import unittest
 from dataclasses import replace
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from fastapi import FastAPI
+from PIL import Image
 
 from agent.core.session_registry import SessionRegistry
 from agent.web import app as web
 from agent.workflow.config import load
 from agent.model.protocol import ModelChunk
+from agent.storage.session import SessionStore
+from agent.web.images import image_router
 
 
 class SessionApiTests(unittest.TestCase):
+    def test_image_upload_rename_and_download_use_persisted_sqlite_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            registry = SessionRegistry(replace(load(), storage_dir=Path(directory), mcp={}))
+            runtime = registry.create()
+            app = FastAPI()
+            app.include_router(image_router(registry.store, registry.get))
+            data = BytesIO()
+            Image.new('RGB', (20, 10), 'blue').save(data, format='PNG')
+            try:
+                with TestClient(app) as client:
+                    prefix = f'/api/sessions/{runtime.session.id}/images'
+                    uploaded = client.post(prefix, files={'file': ('plot.png', data.getvalue(), 'image/png')})
+                    self.assertEqual(uploaded.status_code, 200)
+                    image = uploaded.json()['image']
+                    path = prefix + '/' + image['id']
+                    self.assertEqual(client.patch(path, json={'name': '结果图'}).status_code, 200)
+                    self.assertEqual(client.get(path + '/content').content, data.getvalue())
+                    self.assertEqual(client.get(path + '/content?preview=true').headers['content-type'], 'image/png')
+                    restored = SessionStore(Path(directory)).open(runtime.session.id)
+                    self.assertEqual(restored.images.list()[0]['name'], '结果图')
+                    self.assertEqual(restored.events.read()[-1]['type'], 'image.renamed')
+                    self.assertEqual(client.get(prefix + '/missing/content').status_code, 404)
+            finally:
+                registry.delete(runtime.session.id)
+                runtime.worker.join(5)
+
     def test_model_switch_changes_state_without_initializing_mcp_or_model_clients(self):
         with tempfile.TemporaryDirectory() as directory:
             config = replace(load(), approval_mode="full_access", storage_dir=Path(directory), mcp={'offline': 'http://127.0.0.1:1/mcp'})
@@ -29,7 +60,7 @@ class SessionApiTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(response.json()['model'], selected)
                     self.assertIsNone(runtime._agent)
-                    self.assertEqual(client.get(path + '/conversation').json()['model'], selected)
+                    self.assertEqual(client.get(path + '/conversation').status_code, 404)
                     runtime.busy = True
                     try:
                         self.assertEqual(client.post(path + '/model', json={'provider': selected['provider'], 'model': selected['name']}).status_code, 409)
@@ -80,8 +111,7 @@ class SessionApiTests(unittest.TestCase):
             runtime.session.events.append('turn.started', prompt='list title', images=[])
             try:
                 with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), \
-                     patch('agent.web.app.EventLog', side_effect=AssertionError('list must not load full history')), \
-                     patch('agent.web.app.restore_display_messages', side_effect=AssertionError('list must not restore messages')), \
+                     patch('agent.storage.event_log.EventLog.read', side_effect=AssertionError('list must not load full history')), \
                      TestClient(web.app) as client:
                     item = client.get('/api/sessions').json()['sessions'][0]
                     self.assertEqual(item['title'], 'list title')

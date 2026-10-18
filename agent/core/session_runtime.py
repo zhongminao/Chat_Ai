@@ -1,9 +1,11 @@
 """A session owns one execution queue and one independent cancellation scope."""
 import queue
 import threading
+import uuid
 
 from .bus import EventBus
 from .control import ExecutionControl
+from .steering import SteeringQueue
 from .agent_factory import build_agent, build_state
 from ..storage import reports
 from ..model.catalog import ModelCatalog
@@ -32,6 +34,7 @@ class SessionRuntime:
             self.approvals = ApprovalGate(mode, self.session.events.append)
         self.control = ExecutionControl()
         self.lock = threading.RLock()
+        self.steering = SteeringQueue(self.lock, self.session.events.append, self.session.events.read())
         self._agent_lock = threading.Lock()
         self._state_lock = threading.Lock()
         self._state: AgentState | None = None
@@ -75,11 +78,33 @@ class SessionRuntime:
             raise ValueError("Child sessions are read-only; delegate another task instead")
         self.start(self.agent.prepare_input(content))
 
+    def send(self, content, message_id=None):
+        """CLI sends immediately; Web calls this only after clicking Guide."""
+        if self.parent_session_id:
+            raise ValueError('子会话只供查看')
+        value = self.agent.prepare_input(content)
+        with self.lock:
+            if self.closed:
+                raise SessionBusy('会话已关闭')
+            if message_id in self.steering.received:
+                self.steering.add(message_id, value, [])
+                return
+            if self.busy:
+                if not self.steering.accepting:
+                    raise SessionBusy('正在停止或结束，请稍后重试')
+                assets = [self.agent.images.get(image) for image in value.images]
+                self.steering.add(message_id or uuid.uuid4().hex, value, assets)
+            else:
+                self.start(value)
+                if message_id:
+                    self.steering.received[message_id] = value
+
     def start(self, content):
         with self.lock:
             if self.closed or self.busy:
                 raise SessionBusy("This session is closed or already running")
             self.control.clear_stop()
+            self.steering.begin()
             self.busy = True
             self.queue.put(content)
 
@@ -88,6 +113,7 @@ class SessionRuntime:
             if not self.busy:
                 return False
             self.control.request_stop()
+            self.steering.close()
             return True
 
     def submitted(self, content: str, run_id: str) -> str:
@@ -116,5 +142,6 @@ class SessionRuntime:
                         self.registry.finished(self)
                 finally:
                     with self.lock:
+                        self.steering.close()
                         self.busy = False
                     self.queue.task_done()

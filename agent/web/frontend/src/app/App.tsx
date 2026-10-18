@@ -16,12 +16,12 @@ export function App() {
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = sessions.sessions.find(item => item.id === sessions.selected);
-  const readOnly = Boolean(current?.parent_session_id || conversation.snapshot?.parent_session_id);
+  const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);
   const error = sessions.error || conversation.error || approvals.error;
   const waitingCallIds = (approvals.snapshot?.pending ?? []).filter(item => item.sessionId === sessions.selected).map(item => item.callId);
   const status = sessions.loading ? '正在加载' : !sessions.selected ? '未选择会话'
     : !conversation.connected ? '正在连接' : !conversation.ready ? '正在恢复会话'
-    : waitingCallIds.length ? '等待审批' : conversation.busy ? '正在执行' : '已连接';
+    : waitingCallIds.length ? '等待审批' : '已连接';
 
   return <div className="app-layout">
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
@@ -53,7 +53,8 @@ export function App() {
         status={status} readOnly={readOnly}
         busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}
         sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage} onRenameImage={conversation.renameImage}
-        onSend={conversation.send} onStop={conversation.stop} onModelChange={conversation.switchModel} />
+        acceptedGuidance={conversation.items.filter(item => item.kind === 'text' && item.guidance).map(item => item.id.slice('guidance:'.length))}
+        onSend={conversation.send} onGuide={conversation.guide} onStop={conversation.stop} onModelChange={conversation.switchModel} />
     </main>
   </div>;
 }

@@ -35,13 +35,14 @@ class AgentRuntime:
         workspace: Path,
         log: EventLog,
         max_rounds: int,
+        images: ImageStore,
         output: Callable[[str], None] | None = None,
         tools: ToolRouter | None = None,
         on_submit: Callable[[str, str], str] | None = None,
         control: ExecutionControl | None = None,
-        images: ImageStore | None = None,
         on_tool_result: Callable[[ToolResult], None] | None = None,
         context_config: dict | None = None,
+        steering=None,
     ):
         self.state = state
         self.control = control or ExecutionControl()
@@ -50,6 +51,7 @@ class AgentRuntime:
         self.spill = spill
         self.max_rounds = max_rounds
         self.context_config = context_config or {}
+        self.steering = steering
         self.tools = tools or ToolRouter(workspace)
         self.on_submit = on_submit
         self.tools.submit = self._submit
@@ -57,7 +59,7 @@ class AgentRuntime:
 
         self.workspace = workspace
         self.log = log
-        self.images = images or ImageStore(log.path.parent)
+        self.images = images
         self.tools.images = self.images
         self.on_tool_result = on_tool_result
         self.output = output or (lambda text: print(text, end="", flush=True))
@@ -133,6 +135,7 @@ class AgentRuntime:
         self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
 
         for round_no in range(self.max_rounds):
+            self._deliver_guidance(context)
             self.apply(transitions.start_round(self.state, round_no))
             model = self.state["model"]
             client, provider = self.catalog.get_binding(ModelTarget(**model))
@@ -140,6 +143,8 @@ class AgentRuntime:
             self.tools.vision = vision
             self.tools.image_limit = image_limit
             self._compact(client, provider, vision, context)
+            if self._deliver_guidance(context):
+                self._compact(client, provider, vision, context)
             assembler = ToolCallAssembler()
             text_buffer = TextBuffer()
             finish_reason = None
@@ -216,8 +221,12 @@ class AgentRuntime:
             )
 
             if transitions.after_model(self.state) == "end":
+                if self._deliver_guidance(context, finish=True):
+                    continue
                 decision = completion.decide(self.state, self.max_rounds)
                 if decision == "remind":
+                    if self.steering:
+                        self.steering.begin()
                     context.cancellation.raise_if_cancelled()
                     self.apply(message_updates.remind_completion(self.state, completion.REMINDER))
                     self.log.append("completion.reminded", runId=run_id, content=completion.REMINDER)
@@ -283,6 +292,8 @@ class AgentRuntime:
                     context.cancellation.raise_if_cancelled()
 
             if transitions.after_tools(self.state) == "submit":
+                if self._deliver_guidance(context, finish=True):
+                    continue
                 report = transitions.execution(self.state)["report"]
                 if self.on_submit:
                     report = self.on_submit(report, run_id)
@@ -294,6 +305,18 @@ class AgentRuntime:
                 return report
 
         raise RuntimeError("maximum model rounds reached")
+
+    def _deliver_guidance(self, context, *, finish=False):
+        context.cancellation.raise_if_cancelled()
+        if not self.steering:
+            return False
+        values = self.steering.take(transitions.execution(self.state)['id'], finish=finish)
+        for value in values:
+            self.apply(message_updates.receive_user(self.state, value.text, value.images))
+        if values:
+            # A submit generated before the new requirements is only a candidate.
+            self.apply(transitions.update_execution(self.state, report=None, report_path=None, completion_reminders=0))
+        return bool(values)
 
     def _compact(self, client, provider, vision: bool, context: ExecutionContext) -> None:
         config = self.context_config
