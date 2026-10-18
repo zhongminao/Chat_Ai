@@ -21,7 +21,7 @@
 - agent/model/catalog.py：模型目录与 get_binding；只复用当前目标的资源，替换时关闭旧资源，连接不进入 state。
 - agent/model/http_client.py 的 ModelHttpClient：复用模型 HTTP 连接，内部异步网络请求适配同步模型流；取消覆盖请求建立和流读取，关闭本次请求并等待本地清理后由运行时发 turn.cancelled；不确认模型端是否停止。
 - agent/workflow/completion.py：根据 role 和 execution 判断正常结束、一次补交提醒或失败，不操作会话或执行 I/O。
-- agent/mcp_servers/web.py：独立 Web MCP 服务端；agent/tools/mcp/client.py 的 McpClient 负责连接与调用。
+- /home/zhong/mydisk/services/web-mcp/web.py：独立 Docker Web MCP 服务；agent/tools/mcp/client.py 的 McpClient 负责连接与调用。SearXNG 在 services/searxng；两组 Compose 的网络策略复用 services/web-mcp/network-policy.sh，业务进程无 NET_ADMIN，启动门禁确保规则就绪。公网直连，不使用旧局域网代理；默认搜索为必应（cn.bing.com）、搜狗、360。旧 agent/mcp_servers 与 chat-search-mcp 用户服务已移除，入口端口不变。
 
 config.yaml 的 storage_dir 指定根目录；chat_ai.sqlite3 保存 sessions、events、images、monitors，sessions/<id>/ 只保存附件和 Markdown 报告。保留现有 SQLite 会话，不迁移或清空数据，不保留 JSONL／JSON 存储分支；图片 ID、URL、磁盘路径和事件回放协议不变。chat_ai 使用独立 conda chat-ai-py313（Python 3.13.2，SQLite >=3.51.3）与标准库 sqlite3，无 ORM／额外服务；原 py313 及模型服务环境保持不变。WAL+NORMAL 用于流式片段，完成、取消及其他关键事件仍 FULL，所有事件提交后才发布，不增加后台写入队列。每个 Database 持有一条跨线程复用、锁保护的连接，保留默认自动检查点；NORMAL 不保证断电前最近事务已持久化。备份方式见 README，不能运行时仅复制主数据库文件。通用协议适配为 model/openai_compatible.py 的 OpenAICompatibleAdapter；QwenChatTemplateAdapter 只负责 Qwen 模板选项。
 
@@ -70,6 +70,8 @@ show_image 返回图片的稳定网页地址；报告保存时补全已展示图
 网页顶部主/子导航末尾显示后台状态，子 agent 过多时折叠到下拉框，不提供手动交付按钮；保留输入框下连接状态和 submit 折叠过程。原始子报告不注入主对话。
 
 ## 服务
+
+KVM 虚拟机已部署 /home/zhong/chat_ai，使用虚拟机用户级 chat_ai.service，监听 127.0.0.1:8200，enabled 且 zhong linger=yes。独立离线 Python 3.13.2/SQLite 3.53.4 在 ~/.local/share/chat-ai-py313；运行配置 ~/.config/chat_ai/config.yaml 由 CHAT_AI_CONFIG 指定，显式 load(path) 优先于环境变量，未指定时仍用项目默认配置。当前仅本地 30B 网关 192.168.250.1:18081 与 Web MCP 127.0.0.1:8766，不复制云 API 密钥。虚拟机默认代理 http://127.0.0.1:17897，由宿主机用户服务 chat-ai-vm-proxy 经 SSH 转到 Windows 10.23.13.164:17897。虚拟机 ~/.config/chat_ai/proxy.env 同时供 .bashrc 的 proxy_on/proxy_off 和 chat_ai 用户服务 proxy.conf 使用；NO_PROXY 保留本机 MCP 与模型网关直连，不放开原有网络过滤规则。宿主机 push_to_vm.py 已被 Git 忽略，同步项目但排除忽略项及脚本自身；dist 需单独传。登录、管理、VS Code 端口转发步骤见 README。
 
 项目 /home/zhong/mydisk/tools/chat_ai，systemctl --user chat_ai，Web 8200；用户 unit 的 ExecStart 使用 /home/zhong/mydisk/miniconda3/envs/chat-ai-py313/bin/python。修改 unit 后执行 systemctl --user daemon-reload 并重启，确认实际进程使用新环境；模型服务不切换环境。
 MCP：remote_windows http://127.0.0.1:8767/mcp；web http://127.0.0.1:8766/mcp（mcp_web_search / mcp_web_fetch_url）。

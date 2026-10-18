@@ -1,3 +1,4 @@
+import os
 import yaml
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,7 +32,7 @@ def _path(root: Path, value: str) -> Path:
 
 
 def load(path: Path | None = None) -> Config:
-    config_path = (path or DEFAULT_CONFIG).expanduser().resolve()
+    config_path = Path(path or os.environ.get("CHAT_AI_CONFIG") or DEFAULT_CONFIG).expanduser().resolve()
     root = config_path.parent
     data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     max_rounds = data.get("max_rounds", 200)

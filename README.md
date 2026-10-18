@@ -13,7 +13,6 @@ agent/core/       Agent 装配、SessionRuntime、AgentRuntime、会话调度与
 agent/model/      模型协议、provider、模型目录与客户端复用、图文消息组装
 agent/tools/      本地工具、schema、router、spill
 agent/tools/mcp/  MCP 客户端与结果转换
-agent/mcp_servers/ 独立 MCP 服务端
 agent/storage/    SQLite 会话、事件、图片元数据，磁盘图片与报告
 agent/workflow/   state 类型、状态节点、流程路由、历史恢复、配置与输入命令
 agent/cli/        CLI
@@ -77,6 +76,54 @@ npm run dev
 
 修改 Python 后端或 provider 适配代码后，需要重启 uvicorn；修改前端后需要重新构建并刷新页面。
 当前生产网页服务端口为 8200，手动开发示例为 8764；8002 是本地千问的模型服务端口，两者独立启动。
+
+### 推送到 KVM 虚拟机
+
+宿主机项目根目录的 `push_to_vm.py` 将已跟踪文件的当前内容、未跟踪文件和已构建的前端 dist 同步到虚拟机 `zhong@192.168.250.10:/home/zhong/chat_ai/`。除前端 dist 外，排除 Git 忽略项及脚本自身；已跟踪但后来被忽略的文件也不推送。脚本已加入 .gitignore，不进入版本库。
+
+```bash
+cd /home/zhong/mydisk/tools/chat_ai
+python push_to_vm.py --dry-run  # 预览同步和删除，不写入虚拟机
+python push_to_vm.py            # 同步项目和现有 dist
+python push_to_vm.py --build    # 先 npm run build，再同步
+```
+
+使用现有 KVM SSH 密钥和 known_hosts；rsync 增量传输并删除虚拟机中已不在同步清单内的旧项目文件，包括旧 dist 资源。保留虚拟机根目录下的 workspace/、storage/、.spill/、.git 和 .env、.env.*，不覆盖这些路径；虚拟机运行配置和 Python 环境位于项目目录外，也不受影响。其他需要保留的文件应放到 workspace/ 或项目目录外。
+脚本先准备完整同步清单再调用 rsync；缺少 dist/index.html 或构建失败时不会同步。--build 需要宿主机已安装 Node.js 和前端依赖，不能与 --dry-run 一起使用。脚本不自动重启服务。
+
+### 虚拟机中的用户服务
+
+chat_ai 已部署到 KVM 虚拟机 `zhong@192.168.250.10:/home/zhong/chat_ai`，由虚拟机自己的 `systemctl --user` 管理，监听 `127.0.0.1:8200`。zhong 已开启 linger，退出 SSH 后继续运行，随虚拟机开机启动。
+
+以下命令在虚拟机内执行：
+
+```bash
+systemctl --user status chat_ai
+systemctl --user restart chat_ai
+systemctl --user stop chat_ai
+journalctl --user -u chat_ai -f
+```
+
+服务文件为虚拟机的 `~/.config/systemd/user/chat_ai.service`；Python 3.13.2、SQLite 3.53.4 位于 `~/.local/share/chat-ai-py313`，由宿主机已验证的 Conda 环境离线打包部署。前端复用宿主机已构建的 dist，不需要虚拟机联网安装依赖。
+
+推送脚本成功同步后自动创建虚拟机的 `/home/zhong/chat_ai/workspace`（`--dry-run` 不创建）；手动部署需自行执行 `mkdir -p /home/zhong/chat_ai/workspace`。该目录被 Git 忽略，不随项目同步；Bash 工具以配置的 workspace 为工作目录，目录不存在时所有命令都会在启动前失败。
+
+虚拟机运行配置独立保存在 `~/.config/chat_ai/config.yaml` 和 `providers.yaml`。配置加载优先级是显式 path、`CHAT_AI_CONFIG` 环境变量、项目默认 config.yaml；用户服务通过环境变量指定运行配置，后续项目同步不会覆盖它。目前只启用可达的本地 30B 模型网关 `http://192.168.250.1:18081/v1` 与 Web MCP `http://127.0.0.1:8766/mcp`，未复制云 API 密钥。
+
+虚拟机新终端默认 `proxy_on`，使用宿主机 SSH 转发的 `http://127.0.0.1:17897`；`proxy_off` 仅关闭当前终端代理。共享配置位于 `~/.config/chat_ai/proxy.env`，chat_ai 用户服务通过 proxy.conf 加载，使 Bash/pip 工具继承代理；模型网关与本机 MCP 通过 NO_PROXY 直连。转发和管理步骤见 `/home/zhong/mydisk/services/kvm/README.md` 的“虚拟机代理”。
+
+从宿主机登录，并把虚拟机 Web 转到宿主机 18200：
+
+```bash
+ssh -o ForwardAgent=no -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile=/home/zhong/mydisk/services/kvm/access/known_hosts \
+  -i /home/zhong/mydisk/services/kvm/access/chat-ai-vm \
+  -L 127.0.0.1:18200:127.0.0.1:8200 zhong@192.168.250.10
+```
+
+VS Code 如果连接宿主机，在端口面板转发 18200；如果 Remote SSH 直接连接虚拟机，则转发 8200。均无需放开虚拟机防火墙。
+
+更新后端代码可在宿主机运行 `python push_to_vm.py`，再到虚拟机重启用户服务；更新前端使用 `python push_to_vm.py --build`，构建产物会随项目一起同步。
 
 ## 前端模块
 
@@ -511,11 +558,12 @@ ToolRouter 以本轮已注册工具列表为准；模型再次调用历史中已
 当前不增加后台重试或连接管理器；服务恢复后新建会话，或重启 Web／CLI 重新打开原会话，可重新发现工具。
 告警在 CLI stderr 或 Web 服务日志中查看。
 
-搜索桥接请求本地 SearXNG 时保持直连；`fetch_url` 读取 HTTP_PROXY/HTTPS_PROXY 等环境变量访问外部网页。
-使用终端代理时同时设置 `NO_PROXY` 和 `no_proxy` 为 `localhost,127.0.0.1,::1`，避免本地 MCP 和模型接口绕到代理。
-当前用户服务的固定代理配置位于 `~/.config/systemd/user/chat-search-mcp.service.d/20-proxy.conf`；终端的 `proxy_on`/`proxy_off` 不会修改已运行服务的环境。修改服务配置后执行 `systemctl --user daemon-reload` 并重启 `chat-search-mcp.service`。
+Web MCP 独立部署在 /home/zhong/mydisk/services/web-mcp，SearXNG 位于 /home/zhong/mydisk/services/searxng，均由 Docker Compose 管理；chat_ai 仅保留 MCP 客户端。
+两个服务只允许公网 IPv4 HTTP/HTTPS、Docker DNS 和明确的服务依赖，禁止其他内网、宿主机及 IPv6 业务连接；网络规则集中在 services/web-mcp/network-policy.sh，业务进程不能修改规则。
+取消旧局域网代理，fetch_url 不读取代理环境；默认搜索使用经验证可直连的必应、搜狗和 360，部分国外网站可能不可达。入口仍为 127.0.0.1:8766/mcp，虚拟机固定转发保持不变。
+维护及网络策略更新方法见 /home/zhong/mydisk/services/web-mcp/README.md；原 chat-search-mcp 用户服务已退役。
 
-`agent/mcp_servers/web.py` 提供：
+`/home/zhong/mydisk/services/web-mcp/web.py` 提供：
 
 配置连接别名为 `web`，工具名为 `mcp_web_search` 和 `mcp_web_fetch_url`。
 

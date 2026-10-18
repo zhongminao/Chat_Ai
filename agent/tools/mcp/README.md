@@ -20,4 +20,4 @@ python -m unittest discover -s tests -p 'test_mcp_images.py' -v
 CHAT_AI_TEST_SEARCH=1 python -m unittest discover -s tests -p 'test_mcp_images.py' -v
 ```
 
-独立 Web MCP 服务端位于 `agent/mcp_servers/web.py`，本目录只维护客户端与结果转换。
+独立 Web MCP 服务端位于 `/home/zhong/mydisk/services/web-mcp/web.py`，本目录只维护客户端与结果转换。

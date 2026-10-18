@@ -1,7 +1,9 @@
 """Prompt files resolve from the config directory and retain role semantics."""
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -31,6 +33,16 @@ class PromptConfigTests(unittest.TestCase):
     def config(self):
         self.path.write_text(yaml.safe_dump(self.data), encoding='utf-8')
         return load(self.path)
+
+    def test_environment_selects_config_when_no_path_is_given(self):
+        self.config()
+        with patch.dict(os.environ, {"CHAT_AI_CONFIG": str(self.path)}):
+            self.assertEqual(load().storage_dir, self.root / "session-data")
+
+    def test_explicit_path_takes_priority_over_environment(self):
+        self.config()
+        with patch.dict(os.environ, {"CHAT_AI_CONFIG": str(self.root / "missing.yaml")}):
+            self.assertEqual(load(self.path).storage_dir, self.root / "session-data")
 
     def test_relative_utf8_files_are_loaded_and_factory_selects_by_role(self):
         config = self.config()
