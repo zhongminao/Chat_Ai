@@ -15,6 +15,7 @@ from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
 from .images import image_router
 from .events import session_events
+from .history import history_page
 
 
 class SendMessageRequest(BaseModel):
@@ -202,6 +203,18 @@ def guide(session_id: str, message: GuidanceRequest):
 @app.post("/api/sessions/{session_id}/control/stop")
 def stop(session_id: str):
     return {"stopped": runtime(session_id).stop()}
+
+
+@app.get("/api/sessions/{session_id}/history")
+def history(session_id: str, before: int | None = Query(None, ge=1),
+            through: int | None = Query(None, ge=0)):
+    directory_for(session_id)
+    if (before is None) != (through is None):
+        raise HTTPException(400, "before and through must be supplied together")
+    try:
+        return history_page(session_store.open(session_id).events, before=before, through=through)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/sessions/{session_id}/events")

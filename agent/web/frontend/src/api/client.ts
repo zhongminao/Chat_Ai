@@ -1,4 +1,4 @@
-import type { ImageAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
+import type { HistoryPage, ImageAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
 import type { AccessMode, ApprovalSnapshot } from './types';
 
 export class ApiError extends Error {
@@ -54,5 +54,7 @@ export const api = {
   stop: (id: string) => request<{ stopped: boolean }>(`${sessionPath(id)}/control/stop`, post()),
   switchModel: (id: string, provider: string, model: string) =>
     request<{ model: Model }>(`${sessionPath(id)}/model`, post({ provider, model })),
-  eventsUrl: (id: string) => `${sessionPath(id)}/events?after=0`,
+  history: (id: string, signal?: AbortSignal, before?: number, through?: number) => request<HistoryPage>(
+    `${sessionPath(id)}/history${before === undefined ? "" : `?before=${before}&through=${through}`}`, { signal }),
+  eventsUrl: (id: string, after = 0) => `${sessionPath(id)}/events?after=${after}`,
 };

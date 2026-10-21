@@ -250,3 +250,70 @@ describe('existing event protocol -> conversation', () => {
     expect(view.items[3]).toMatchObject({ content: 'result', durationSeconds: 2, process: [{ content: 'reading report' }] });
   });
 });
+
+
+describe('bounded history and live event merging', () => {
+  it('restores a cached view without deleting its loaded older history, then catches up', () => {
+    const page = { events: [{ ...start, seq: 10 }, { ...text, seq: 11 }],
+      snapshot_seq: 11, min_seq: 10, has_more: true };
+    const cached = reduce(emptyConversation(), { type: 'history', page });
+    const restored = reduce(cached, { type: 'restore', view: cached });
+    expect(restored.items).toEqual(cached.items);
+    expect(restored.ready).toBe(false);
+    expect(restored.session).toBeNull();
+    expect(restored.snapshotSeq).toBe(11);
+    const fresh = reduce(restored, { type: 'initialize', session: { ...initialState(12), after: 11 } });
+    const caughtUp = reduce(fresh, { type: 'events', events: [{ seq: 12, type: 'turn.completed' }] });
+    expect(reduce(caughtUp, { type: 'ready', seq: 12 }).ready).toBe(true);
+    expect(caughtUp.items).toEqual(cached.items);
+  });
+
+  it('opens a recent page at a nonzero seq and accepts the next SSE event', () => {
+    const page = { events: [{ ...start, seq: 10 }, { ...text, seq: 11 }], snapshot_seq: 11,
+      min_seq: 10, has_more: true };
+    const recent = reduce(emptyConversation(), { type: 'history', page });
+    expect(recent.items).toMatchObject([{ role: 'user' }, { content: 'partial' }]);
+    expect(recent.seq).toBe(11);
+    const active = reduce(recent, { type: 'events', events: [{ ...text, seq: 12, text: ' live' }] });
+    expect(active.items[1]).toMatchObject({ content: 'partial live' });
+    expect(active.minSeq).toBe(10);
+  });
+
+  it('joins a page after its snapshot with newer live events and retains metadata', () => {
+    const selected = { provider: 'local', name: 'latest' };
+    const recent = { events: [{ ...start, seq: 10 }, { ...text, seq: 11 }],
+      snapshot_seq: 11, min_seq: 10, has_more: true };
+    let view = reduce(emptyConversation(), { type: 'history', page: recent });
+    view = reduce(view, { type: 'initialize', session: { ...initialState(13, false), after: 11, model: selected } });
+    view = reduce(view, { type: 'events', events: [
+      { ...text, seq: 12, text: ' next' }, { seq: 13, type: 'turn.completed' },
+    ] });
+    view = reduce(view, { type: 'ready', seq: 13 });
+    const older = { events: [{ ...start, seq: 8 }, { seq: 9, type: 'turn.completed' as const }],
+      snapshot_seq: 11, min_seq: 8, has_more: true };
+    const joined = reduce(view, { type: 'history', page: older, older: true });
+    expect(joined.minSeq).toBe(8);
+    expect(joined.seq).toBe(13);
+    expect(joined.ready).toBe(true);
+    expect(joined.busy).toBe(false);
+    expect(joined.model).toEqual(selected);
+    expect(joined.items.at(-1)).toMatchObject({ content: 'partial next' });
+  });
+
+  it('rebuilds older pages once with the same report renderer while preserving live deltas', () => {
+    const recent = { events: [{ ...start, seq: 10 }, { ...text, seq: 11 }],
+      snapshot_seq: 11, min_seq: 10, has_more: true };
+    let view = reduce(emptyConversation(), { type: 'history', page: recent });
+    view = reduce(view, { type: 'events', events: [{ ...text, seq: 12, text: ' live' }] });
+    const older = { events: [{ ...start, seq: 6 }, { seq: 7, type: 'report.submitted' as const, content: 'old report' },
+      { seq: 8, type: 'turn.completed' as const }, { seq: 9, type: 'model.changed' as const, new: model }],
+      snapshot_seq: 11, min_seq: 6, has_more: true };
+    const joined = reduce(view, { type: 'history', page: older, older: true });
+    expect(joined.items[1]).toMatchObject({ kind: 'report', content: 'old report' });
+    expect(joined.items.at(-1)).toMatchObject({ content: 'partial live' });
+    expect(joined.seq).toBe(12);
+    expect(joined.minSeq).toBe(6);
+    expect(reduce(joined, { type: 'events', events: [{ ...text, seq: 12 }] })).toEqual(joined);
+    expect(reduce(joined, { type: 'history', page: older, older: true })).toEqual(joined);
+  });
+});

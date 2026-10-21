@@ -50,3 +50,15 @@ describe('context feedback', () => {
     }
   });
 });
+
+describe('tool expansion', () => {
+  it('renders tool parameters and result underneath the clickable title in a details element', () => {
+    const html = renderToStaticMarkup(<MessageList
+      items={[{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'done' }]}
+      busy={false} loading={false} assistantId={null} sessionId="test" images={[]} editingImage={false}
+      onRenameImage={async () => true} />);
+    expect(html).toMatch(/<details class="tool-card"><summary[^>]*>/);
+    expect(html.indexOf('read_file')).toBeLessThan(html.indexOf('调用参数'));
+    expect(html.indexOf('调用参数')).toBeLessThan(html.indexOf('工具结果'));
+  });
+});

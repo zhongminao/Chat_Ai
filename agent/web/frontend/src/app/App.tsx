@@ -38,13 +38,15 @@ export function App() {
         </AgentTabs>
       </header>
       {error && <div className="error-banner" role="alert"><span>{error}</span>
+        {conversation.error && !conversation.ready && <button onClick={conversation.retryHistory}>重新打开会话</button>}
         {!sessions.selected && <button onClick={sessions.retry}>重试</button>}
         {sessions.error && sessions.selected && <button className="icon-button" aria-label="关闭错误提示" onClick={sessions.clearError}><Icon name="close" size={16} /></button>}
       </div>}
       <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
-        waitingCallIds={waitingCallIds}
+        waitingCallIds={waitingCallIds} hasMore={conversation.hasMore} loadingMore={conversation.loadingMore}
+        historyError={conversation.historyError} onLoadMore={() => { void conversation.loadMore(); }} revision={conversation.revision}
         sessionId={sessions.selected} images={conversation.images} editingImage={Boolean(conversation.pending)} onRenameImage={conversation.renameImage}
-        loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error)} />
+        loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error && !conversation.items.length)} />
       <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={conversation.ready} connected={conversation.connected}
         accessMode={approvals.snapshot?.mode ?? 'audit'} accessDisabled={!approvals.snapshot || approvals.pending || Boolean(approvals.snapshot.pending.length)}
         onAccessChange={approvals.setMode}

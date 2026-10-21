@@ -21,9 +21,9 @@ const initial: SessionState & { type: string } = {
 const first: AgentEvent = { type: 'turn.started', seq: 1, prompt: 'hello' };
 const second: AgentEvent = { type: 'message.delta', seq: 2, text: 'hi', round: 0 };
 
-function listen() {
+function listen(after = 0) {
   const handlers = { initialize: vi.fn(), ready: vi.fn(), events: vi.fn(), connection: vi.fn(), error: vi.fn() };
-  const close = subscribe('test', handlers);
+  const close = subscribe('test', handlers, after);
   return { source: FakeEventSource.instances.at(-1)!, handlers, close };
 }
 
@@ -34,6 +34,11 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('SSE session protocol', () => {
+  it('subscribes after an HTTP history snapshot', () => {
+    const { source, close } = listen(42);
+    expect(source.url).toBe('/api/sessions/test/events?after=42');
+    close();
+  });
   it('uses one EventSource and flushes history before the ready control frame', () => {
     const { source, handlers, close } = listen();
     source.onopen?.(); source.emit(initial); source.emit(first); source.emit(second);
@@ -49,8 +54,8 @@ describe('SSE session protocol', () => {
   });
 
   it('continues rendering live deltas in short batches after replay', () => {
-    const { source, handlers, close } = listen();
-    source.emit(initial); source.emit({ type: 'session.ready', seq: 2 }); source.emit(second);
+    const { source, handlers, close } = listen(1);
+    source.emit({ ...initial, after: 1, seq: 1 }); source.emit({ type: 'session.ready', seq: 1 }); source.emit(second);
     vi.advanceTimersByTime(32);
     expect(handlers.events).toHaveBeenCalledExactlyOnceWith([second]);
     close();
@@ -76,9 +81,27 @@ describe('SSE session protocol', () => {
     source.emit({ ...initial, id: 'other' });
     source.emit({ ...initial, after: 9 });
     source.emit({ ...first, seq: -1 });
-    expect(handlers.error).toHaveBeenCalledTimes(3);
+    expect(handlers.error).toHaveBeenCalledOnce();
     expect(handlers.initialize).not.toHaveBeenCalled();
     expect(handlers.events).not.toHaveBeenCalled();
+    close();
+  });
+
+  it('rejects a gap without acknowledging the missing event', () => {
+    const { source, handlers, close } = listen(2);
+    source.emit({ ...initial, after: 2 });
+    source.emit({ ...second, seq: 4 });
+    expect(handlers.events).not.toHaveBeenCalled();
+    expect(handlers.error).toHaveBeenCalledWith('会话事件不连续，请重新打开会话');
+    expect(source.close).toHaveBeenCalled();
+    close();
+  });
+
+  it('rejects a server cursor ahead of actually handled events', () => {
+    const { source, handlers, close } = listen(2);
+    source.emit({ ...initial, after: 3, seq: 3 });
+    expect(handlers.initialize).not.toHaveBeenCalled();
+    expect(handlers.error).toHaveBeenCalledWith('会话续传游标跳跃，请重新打开会话');
     close();
   });
 
@@ -87,7 +110,7 @@ describe('SSE session protocol', () => {
     source.readyState = 2; source.onerror?.();
     expect(handlers.error).toHaveBeenCalledOnce();
     source.emit(first); close(); vi.runAllTimers();
-    expect(source.close).toHaveBeenCalledOnce();
+    expect(source.close).toHaveBeenCalled();
     expect(handlers.events).not.toHaveBeenCalled();
   });
 });

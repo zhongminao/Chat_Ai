@@ -28,6 +28,13 @@ export interface ModelGroup {
   models: { id: string; name: string; enabled: boolean }[];
 }
 
+export interface HistoryPage {
+  events: AgentEvent[];
+  snapshot_seq: number;
+  min_seq: number;
+  has_more: boolean;
+}
+
 export interface SessionState {
   id: string;
   seq: number;

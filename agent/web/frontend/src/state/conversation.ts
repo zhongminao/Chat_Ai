@@ -1,4 +1,4 @@
-import type { AgentEvent, ImageAsset, Model, SessionState } from '../api/types';
+import type { AgentEvent, HistoryPage, ImageAsset, Model, SessionState } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
@@ -18,15 +18,24 @@ export interface Conversation {
   error: string | null;
   session: SessionState | null;
   execution: { startIndex: number; startedAt?: number } | null;
+  minSeq: number;
+  hasMore: boolean;
+  history: AgentEvent[];
+  snapshotSeq: number;
+  live: AgentEvent[];
+  revision: number;
 }
 
 export const emptyConversation = (): Conversation => ({
   items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
   model: null, error: null, session: null, execution: null,
+  minSeq: 0, hasMore: false, history: [], snapshotSeq: 0, live: [], revision: 0,
 });
 
 export type Action =
   | { type: 'reset' }
+  | { type: 'restore'; view: Conversation }
+  | { type: 'history'; page: HistoryPage; older?: boolean }
   | { type: 'initialize'; session: SessionState }
   | { type: 'ready'; seq: number }
   | { type: 'disconnected' }
@@ -155,9 +164,58 @@ function interruptPending(items: Item[]): Item[] {
     : (item.kind === 'tool' || item.kind === 'context') && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
 }
 
+// Older pages are only rebuilt on a button click, never for each streaming delta.
+// One renderer handles both initial replay and live updates.
+function rebuild(state: Conversation, history: AgentEvent[], live: AgentEvent[], page: HistoryPage): Conversation {
+  const session = state.session;
+  const seed = { ...emptyConversation(), session, model: state.model, images: state.images,
+    minSeq: page.min_seq, hasMore: page.has_more, history, snapshotSeq: state.snapshotSeq, live,
+    revision: state.revision + 1 };
+  const merged = [...history, ...live].sort((a, b) => a.seq - b.seq);
+  const seen = new Set<number>();
+  let result = merged.reduce((view, event) => {
+    if (seen.has(event.seq)) return view;
+    seen.add(event.seq);
+    return applyEvent(view, event);
+  }, seed);
+  // Keep the server's current metadata; historical model/image events can be stale.
+  const snapshot = session?.seq ?? page.snapshot_seq;
+  // Initialization metadata describes the journal at its own seq; preserve
+  // model and image changes replayed after it, even when older pages arrive.
+  const later = live.filter(event => event.seq > snapshot);
+  const changedModel = later.filter(event => event.type === 'model.changed').at(-1);
+  const images = later.reduce((assets, event) => {
+    if (event.type === 'image.renamed') assets = upsertImage(assets, event.image);
+    if ('images' in event) for (const image of event.images ?? []) assets = upsertImage(assets, image);
+    return assets;
+  }, state.images);
+  result = { ...result,
+    model: changedModel?.type === 'model.changed' ? changedModel.new : state.model,
+    images,
+    busy: state.busy,
+    ready: state.ready, error: state.error };
+  if (state.ready && !state.busy) result.items = interruptPending(result.items);
+  return result;
+}
+
 export function conversationReducer(state: Conversation, action: Action): Conversation {
   switch (action.type) {
     case 'reset': return emptyConversation();
+    case 'restore': return { ...action.view, ready: false, session: null, error: null };
+    case 'history': {
+      const { page } = action;
+      if (page.events.some((event, index) => event.seq !== page.min_seq + index) ||
+          (page.events.length > 0 && page.events.at(-1)!.seq > page.snapshot_seq)) return state;
+      if (!action.older) {
+        const seed = { ...emptyConversation(), minSeq: page.min_seq, hasMore: page.has_more,
+          history: page.events, snapshotSeq: page.snapshot_seq, revision: state.revision + 1, seq: page.min_seq ? page.min_seq - 1 : 0 };
+        return page.events.reduce(applyEvent, seed);
+      }
+      if (!state.minSeq || !state.hasMore || page.snapshot_seq !== state.snapshotSeq ||
+          page.events.at(-1)?.seq !== state.minSeq - 1) return state;
+      const history = [...page.events, ...state.history];
+      return rebuild(state, history, state.live, page);
+    }
     case 'initialize': return { ...(action.session.reset ? emptyConversation() : state),
       session: action.session, ready: false, model: action.session.model,
       images: action.session.images ?? [], busy: action.session.busy };
@@ -169,7 +227,11 @@ export function conversationReducer(state: Conversation, action: Action): Conver
         items: busy ? state.items : interruptPending(state.items) };
     }
     case 'disconnected': return { ...state, ready: false };
-    case 'events': return action.events.reduce(applyEvent, state);
+    case 'events': {
+      const incoming = action.events.filter(event => event.seq > state.seq);
+      const next = incoming.reduce(applyEvent, state);
+      return incoming.length ? { ...next, live: [...state.live, ...incoming] } : next;
+    }
     case 'busy': return { ...state, busy: action.busy };
     case 'model': return { ...state, model: action.model };
     case 'image': return { ...state, images: upsertImage(state.images, action.image) };

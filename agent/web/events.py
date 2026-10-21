@@ -7,18 +7,25 @@ from ..core.session_runtime import SessionRuntime
 from ..model.catalog import ModelCatalog
 
 
+TERMINAL = {'turn.completed', 'turn.cancelled', 'turn.failed'}
+
+
 def initialize(runtime: SessionRuntime, after: int) -> tuple[dict, list[dict]]:
     with runtime.lock:
-        records = runtime.session.events.read()
+        log = runtime.session.events
+        # The journal read is authoritative even while its SQLite projection lags
+        # non-durable streaming deltas. read(after) currently validates/scans
+        # JSONL; a future indexed reader can optimize this without API changes.
+        records = log.read()
         sequence = records[-1]['seq'] if records else 0
         reset = after > sequence
         cursor = 0 if reset else after
         model = next((event['new'] for event in reversed(records) if event['type'] == 'model.changed'), None)
         model = model or runtime.meta.get('model') or ModelCatalog(runtime.registry.config.providers_file).default().as_dict()
         last_turn = next((event['type'] for event in reversed(records)
-                          if event['type'] in {'turn.started', 'turn.completed', 'turn.cancelled', 'turn.failed'}), None)
+                          if event['type'] in TERMINAL | {'turn.started'}), None)
         state = {'type': 'session.init', 'id': runtime.session.id, 'seq': sequence, 'after': cursor,
-                 'reset': reset, 'busy': runtime.busy and last_turn not in {'turn.completed', 'turn.cancelled', 'turn.failed'},
+                 'reset': reset, 'busy': runtime.busy and last_turn not in TERMINAL,
                  'model': model, 'parent_session_id': runtime.parent_session_id,
                  'images': runtime.session.images.list()}
     return state, [event for event in records if event['seq'] > cursor]
@@ -30,7 +37,7 @@ def encode(data: dict, sequence: int | None = None) -> str:
 
 
 async def session_events(runtime: SessionRuntime, request, after: int):
-    # Subscribe before reading SQLite so writes during initialization enter the queue.
+    # Subscribe before reading the journal so writes during initialization enter the queue.
     channel = runtime.bus.subscribe()
     try:
         state, records = await asyncio.to_thread(initialize, runtime, after)

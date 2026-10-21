@@ -63,7 +63,12 @@ button { -webkit-tap-highlight-color: transparent; }
 .error-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; padding: 10px 24px; color: #a83737; background: #fff2f2; font-size: 13px; overflow-wrap: anywhere; }
 .error-banner button:not(.icon-button) { border: 0; background: transparent; color: inherit; text-decoration: underline; }
 .conversation-area { flex: 1; min-height: 0; position: relative; }
-.message-viewport { height: 100%; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; }
+.message-viewport { height: 100%; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; overflow-anchor: none; }
+.load-more-history { display: flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 40px; padding: 10px 24px 0; color: #a83737; font-size: 12px; }
+.load-more-history button { border: 1px solid var(--border); border-radius: 16px; background: white;
+  padding: 6px 14px; color: #626770; cursor: pointer; }
+.load-more-history button:disabled { opacity: .6; cursor: default; }
 .message-list { display: flex; flex-direction: column; gap: 24px; width: min(820px, 100%); padding: 32px 30px; margin: 0 auto; }
 .message { font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
 .message-content { white-space: pre-wrap; }
