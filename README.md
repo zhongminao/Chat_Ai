@@ -21,7 +21,7 @@ config.yaml      CLI/Web 共用配置
 
 ## 安装与运行
 
-当前部署使用 Conda Python 3.13；SQLite 必须 >= 3.51.3。前端需要 Node.js 20.19+ 或 22.12+。
+可使用 Conda Python 3.13；SQLite 必须 >= 3.51.3。前端需要 Node.js 20.19+ 或 22.12+。
 在项目根目录执行：
 
 ```bash
@@ -53,30 +53,6 @@ python -m uvicorn agent.web.app:app --host 127.0.0.1 --port 8764
 前端开发可在 `agent/web/frontend/` 执行 `npm run dev`，访问 `http://127.0.0.1:5173`；Vite 默认将 `/api` 转到 `127.0.0.1:8764`。
 修改 Python 后端需重启进程，生产前端修改后需重新构建。
 
-## 当前部署环境与应用端口
-
-以下为 2026-10-19 核实结果；同样的端口号位于不同机器，不是同一个进程。
-
-| 环境 | 项目与 Python 环境 | Web 监听地址 | 状态 |
-| --- | --- | --- | --- |
-| Linux 宿主机 | `/home/zhong/mydisk/tools/chat_ai`；`/home/zhong/mydisk/miniconda3/envs/chat-ai-py313`，Python 3.13.2 / SQLite 3.53.4 | `0.0.0.0:8200` | 用户级 `chat_ai.service`，active / enabled |
-| KVM | `/home/zhong/chat_ai`；`/home/zhong/miniforge3/envs/chat-ai-py313`，Python 3.13.16 / SQLite 3.54.1 | `127.0.0.1:8200` | 虚拟机内的用户级 `chat_ai.service`，active / enabled |
-| 手动开发后端 | 使用当前激活环境，从项目根目录启动 | `127.0.0.1:8764` | 开发约定，当前未监听 |
-| Vite 开发前端 | `agent/web/frontend/`，`npm run dev` | `127.0.0.1:5173` | 开发约定，当前未监听 |
-
-`127.0.0.1` 总是执行命令或浏览器所在机器的回环地址；本地浏览器访问远端服务需先转发端口。
-管理生产服务时，应先进入要操作的宿主机或 KVM，再执行：
-
-```bash
-systemctl --user status chat_ai.service
-systemctl --user restart chat_ai.service
-journalctl --user -u chat_ai.service -f
-```
-
-Vite 若连接已有生产后端，需将 `vite.config.ts` 的 `/api` 代理目标改为该开发进程可达的生产地址。
-完整的宿主机/KVM 访问路径、外部服务端口、同步与部署维护见宿主机 `local/HANDOFF.md`。
-`local/` 不进 Git、不推送到 KVM，克隆仓库不会包含这份本地资料。
-
 ## 配置
 
 配置优先级：显式配置路径 → `CHAT_AI_CONFIG` → 项目 `config.yaml`。
@@ -86,7 +62,7 @@ Vite 若连接已有生产后端，需将 `vite.config.ts` 的 `/api` 代理目�
 | --- | --- |
 | `workspace`、`storage_dir` | 工作区与会话存储目录 |
 | `providers_file` | 模型目录，默认 `agent/model/providers/providers.yaml` |
-| `max_rounds` | 每次用户请求或子任务的模型调用轮数上限，当前 200 |
+| `max_rounds` | 每次用户请求或子任务的模型调用轮数上限 |
 | `system_prompt_file`、`child_system_prompt_file` | `prompts/main_agent.md`、`prompts/child_agent.md` |
 | `approval.mode` | 新主会话默认 `audit` 或 `full_access` |
 | `context` | 自动整理开关、触发阈值和 `prompts/context_compaction.md` |
@@ -112,7 +88,7 @@ CLI 常用命令：`/rename 名称`、`/access audit|full_access`、`/approvals`
 
 ## 上下文与存储
 
-每次业务模型请求前统一检查上下文，覆盖用户输入及完整工具组之后。当前触发值为 `110592` token（108K），不设固定摘要目标或框架摘要输出上限。
+每次业务模型请求前统一检查上下文，覆盖用户输入及完整工具组之后。示例配置的触发值为 `110592` token（108K），不设固定摘要目标或框架摘要输出上限。
 整理使用当前模型与独立提示词，成功后先持久化完整 messages 再更新内存；失败不替换原上下文，不新建会话。
 Web 显示整理中与完成标识，CLI 输出对应文本；原始对话仍保留，恢复时以最新整理结果及后续事件组装模型消息。
 Token 计数方式取决于 provider；估算值不等于模型硬上限。
@@ -142,4 +118,4 @@ npm run build
 ```
 
 技能渐进加载、独立检索模块及 LangGraph 接入仍为待评估方向，尚未实现。
-LangGraph 优先评估模型/工具循环与状态更新的接入边界，复用现有停止、审批、引导、事件与历史恢复契约；不与外部推理服务优化混在一起。具体交接见宿主机 `local/HANDOFF.md`。
+LangGraph 优先评估模型/工具循环与状态更新的接入边界，复用现有停止、审批、引导、事件与历史恢复契约；不与外部推理服务优化混在一起。
