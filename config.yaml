@@ -13,7 +13,7 @@ approval:
 # 每次业务模型请求前检查；与 max_rounds 独立，整理仍在同一个会话中。
 context:
   enabled: true
-  trigger_tokens: 110592
+  trigger_tokens: 128000
   prompt_file: ./prompts/context_compaction.md
 
 
