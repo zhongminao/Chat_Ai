@@ -1,5 +1,6 @@
 """Session metadata lives in SQLite; session directories hold image and report files."""
 import json
+import os
 import shutil
 import uuid
 from collections.abc import Sequence
@@ -27,6 +28,19 @@ class SessionStore:
         self.root = root / 'sessions'
         self.root.mkdir(parents=True, exist_ok=True)
         self.database = Database(root / 'chat_ai.sqlite3')
+        try:
+            with self.database.connect() as connection:
+                sessions = connection.execute('SELECT id, event_seq FROM sessions').fetchall()
+            for row in sessions:
+                journal = self.root / row['id'] / 'events.jsonl'
+                if not journal.is_file():
+                    raise FileNotFoundError(f'No event journal: {journal}; migrate SQLite events offline before starting')
+            # All journals exist; recover any streaming summary lag and validate history.
+            for row in sessions:
+                EventLog(self.database, row['id'], self.root / row['id']).repair_summary()
+        except BaseException:
+            self.database.close()
+            raise
 
     def create(self, on_event: Callable[[dict[str, Any]], None] | None = None, **metadata: Any) -> Session:
         session_id = uuid.uuid4().hex
@@ -36,11 +50,20 @@ class SessionStore:
         directory = self.root / session_id
         directory.mkdir()
         try:
+            journal = directory / 'events.jsonl'
+            with journal.open('xb') as file:
+                file.flush()
+                os.fsync(file.fileno())
+            directory_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
             with self.database.connect(write=True) as connection:
                 connection.execute('''INSERT INTO sessions (id, parent_session_id, created_at, updated_at, title, metadata)
                     VALUES (?, ?, ?, ?, ?, ?)''', (session_id, parent, created.isoformat(), created.timestamp(), title, payload))
         except BaseException:
-            directory.rmdir()
+            shutil.rmtree(directory)
             raise
         return self.open(session_id, on_event)
 
@@ -55,7 +78,7 @@ class SessionStore:
 
     def open(self, session_id: str, on_event: Callable[[dict[str, Any]], None] | None = None) -> Session:
         directory = self.path(session_id)
-        return Session(session_id, directory, EventLog(self.database, session_id, on_event),
+        return Session(session_id, directory, EventLog(self.database, session_id, directory, on_event),
                        ImageStore(self.database, session_id, directory))
 
     def metadata(self, session_id: str) -> dict:

@@ -60,8 +60,8 @@ class SQLiteStorageTests(unittest.TestCase):
         self.session.events.append('turn.completed', answer='hello')
         self.session.events.append('message.delta', durable=False, text='partial')
         self.session.events.append('turn.cancelled', answer='partial')
-        self.assertEqual(published, [('message.delta', 1), ('turn.completed', 2),
-                                     ('message.delta', 1), ('turn.cancelled', 2)])
+        self.assertEqual([kind for kind, _ in published],
+                         ['message.delta', 'turn.completed', 'message.delta', 'turn.cancelled'])
 
     def test_wal_reader_sees_only_committed_data_and_failed_transaction_rolls_back(self):
         observer = self.new_store()
@@ -133,7 +133,7 @@ time.sleep(60)
         self.assertEqual(restored.images.path(image['id']).read_bytes(), png())
         self.assertTrue(restored.images.path(image['id'], preview=True).is_file())
         self.assertEqual(list(self.root.rglob('*.json')), [])
-        self.assertEqual(list(self.root.rglob('*.jsonl')), [])
+        self.assertEqual(list(self.root.rglob('*.jsonl')), [restored.events.path])
         with reopened.database.connect() as connection:
             self.assertEqual(connection.execute('PRAGMA integrity_check').fetchone()[0], 'ok')
 
@@ -149,7 +149,7 @@ time.sleep(60)
         self.assertEqual(len({record['text'] for record in records}), 60)
         self.assertEqual(self.session.events.read(57), records[57:])
 
-    def test_separate_processes_share_sequences_without_file_locks(self):
+    def test_separate_processes_share_sequences_with_journal_locks(self):
         script = ('from pathlib import Path; from agent.storage.session import SessionStore; import sys; '
                   'log=SessionStore(Path(sys.argv[1])).open(sys.argv[2]).events; '
                   '[log.append("worker", durable=False, worker=sys.argv[3], number=n) for n in range(12)]')

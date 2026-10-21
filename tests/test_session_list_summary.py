@@ -25,8 +25,10 @@ class SessionListSummaryTests(unittest.TestCase):
         initial = self.summary()
         self.assertEqual((initial['title'], initial['status'], initial['empty']), ('hello summary', 'submitted', False))
         with patch('agent.storage.event_log.json.loads', side_effect=AssertionError('summary must not parse events')):
-            restored = SessionStore(Path(self.temp.name)).list_summaries()
-            self.assertEqual(restored, [initial])
+            self.assertEqual(self.store.list_summaries(), [initial])
+        restored = SessionStore(Path(self.temp.name))
+        self.addCleanup(restored.database.close)
+        self.assertEqual(restored.list_summaries(), [initial])
         self.session.events.append('turn.failed', reason='later failure')
         updated = self.summary()
         self.assertEqual(updated['status'], 'failed')
@@ -47,24 +49,24 @@ class SessionListSummaryTests(unittest.TestCase):
         self.assertFalse(self.session.directory.exists())
         self.assertEqual(self.store.list_summaries(), [])
 
-    def test_event_and_summary_rollback_together_and_publish_after_commit(self):
+    def test_failed_projection_can_be_repaired_from_authoritative_journal(self):
         received = []
-        def committed(event):
-            received.append((self.summary(), self.store.open(self.session.id).events.read()))
-        log = self.store.open(self.session.id, committed).events
-        # Fail after the INSERT, while updating the summary in the same transaction.
+        log = self.store.open(self.session.id, received.append).events
         with self.store.database.connect(write=True) as connection:
             connection.execute("""CREATE TRIGGER reject_title BEFORE UPDATE OF auto_title ON sessions
                 WHEN NEW.auto_title='reject' BEGIN SELECT RAISE(ABORT, 'test rollback'); END""")
         with self.assertRaises(sqlite3.IntegrityError):
             log.append('turn.started', prompt='reject')
-        self.assertEqual(log.read(), [])
+        self.assertEqual([item['seq'] for item in log.read()], [1])
         self.assertTrue(self.summary()['empty'])
         self.assertEqual(received, [])
+        with self.store.database.connect(write=True) as connection:
+            connection.execute('DROP TRIGGER reject_title')
+        log.repair_summary()
+        self.assertEqual(self.summary()['title'], 'reject')
         record = log.append('turn.started', prompt='accepted')
-        self.assertEqual(record['seq'], 1)
-        self.assertEqual(received[0][0]['title'], 'accepted')
-        self.assertEqual(received[0][1], [record])
+        self.assertEqual(record['seq'], 2)
+        self.assertEqual(received, [record])
 
 
 if __name__ == '__main__':
