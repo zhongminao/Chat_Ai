@@ -1,6 +1,7 @@
 """Session lookup, child creation and the agent producer for the generic monitor."""
 import json
 import threading
+from contextlib import ExitStack
 from pathlib import Path
 
 from .monitor import Monitor
@@ -26,7 +27,8 @@ class SessionRegistry:
             return self.items[session_id]
 
     def create(self, **metadata) -> SessionRuntime:
-        return self.get(self.store.create(**metadata).id)
+        with self.lock:
+            return self.get(self.store.create(**metadata).id)
 
     def monitor(self, session_id: str) -> Monitor:
         with self.lock:
@@ -86,20 +88,22 @@ class SessionRegistry:
             title=child.meta.get("title", "子 agent"), **self._result(child.session.id))
 
     def delete(self, session_id: str):
-        with self.lock:
-            if self.store.children(session_id):
-                raise SessionBusy("Delete child sessions before deleting their main session")
+        with self.lock, ExitStack() as locks:
             meta = self.store.metadata(session_id)
-            runtime = self.items.get(session_id)
-            if runtime:
-                with runtime.lock:
-                    if runtime.busy:
-                        raise SessionBusy("This session is running")
-                    runtime.closed = True
-                    runtime.queue.put(None)
-            self.store.delete(session_id)
-            self.items.pop(session_id, None)
-            self.monitors.pop(session_id, None)
+            children = self.store.children(session_id)
+            identifiers = [*children, session_id]
+            runtimes = [self.items[key] for key in identifiers if key in self.items]
+            for runtime in runtimes:
+                locks.enter_context(runtime.lock)
+            if any(runtime.busy for runtime in runtimes):
+                raise SessionBusy("主会话或子任务正在运行，请先停止后再删除。")
+            self.store.delete(session_id, children=children)
+            for runtime in runtimes:
+                runtime.closed = True
+                runtime.queue.put(None)
+            for identifier in identifiers:
+                self.items.pop(identifier, None)
+                self.monitors.pop(identifier, None)
             if parent_id := meta.get("parent_session_id"):
                 self.monitor(parent_id).remove(f"agent:{session_id}")
 

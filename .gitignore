@@ -31,4 +31,4 @@ Thumbs.db
 htmlcov/
 /tmp/
 
-/push_to_vm.py
+/local/

@@ -27,7 +27,7 @@ class ModelCatalog:
     def __init__(self, path: Path):
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         self.providers: dict[str, dict[str, Any]] = data.get("providers", {})
-        self.default_provider = data.get("default_provider", "deepseek")
+        self.default_provider = os.getenv("CHAT_AI_DEFAULT_PROVIDER") or data.get("default_provider", "deepseek")
         self._bound_target: ModelTarget | None = None
         self._binding: tuple[Any, Any] | None = None
 
@@ -73,7 +73,8 @@ class ModelCatalog:
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
         adapter = create_provider(target.provider, target.thinking, model=target.name)
-        binding = (ModelHttpClient(api_key=api_key, base_url=provider["base_url"]), adapter)
+        base_url = os.getenv(provider.get("base_url_env", "")) or provider["base_url"]
+        binding = (ModelHttpClient(api_key=api_key, base_url=base_url), adapter)
         previous = self._binding
         self._binding, self._bound_target = binding, target
         if previous:

@@ -7,10 +7,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from agent.core.session_registry import SessionRegistry
+from agent.core.agent_factory import build_state
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.workflow.commands import SwitchModel
 from agent.workflow.config import load
-from agent.workflow.message_replay import restore_display_messages
+from agent.workflow.message_replay import restore_display_messages, restore_model_messages
 
 
 class AgentStateTests(unittest.TestCase):
@@ -153,6 +154,91 @@ class AgentStateTests(unittest.TestCase):
                 execution = self.serializable()['execution']
                 self.assertEqual((execution['status'], execution['phase']), ('failed', 'done'))
                 self.assertIn('model unavailable' if failure else 'maximum model rounds', execution['error'])
+
+    def test_network_failure_keeps_inputs_and_replays_the_same_messages(self):
+        for partial in ['', 'unfinished reply']:
+            with self.subTest(partial=partial):
+                prompt = ' A\n原始输入  '
+                before = self.serializable()['messages']
+
+                def fail(*args, **kwargs):
+                    if partial:
+                        yield ModelChunk(content=partial)
+                    raise ConnectionError('network unavailable')
+
+                with patch('agent.core.agent_runtime.stream', side_effect=fail):
+                    self.session.enqueue(prompt)
+                    self.registry.wait()
+                expected = [*before, {'role': 'user', 'content': prompt}]
+                records = self.session.session.events.read()
+                self.assertEqual(self.agent.state['messages'], expected)
+                self.assertEqual(self.agent.state['execution']['status'], 'failed')
+                self.assertEqual(restore_model_messages(records, expected[0]), expected)
+                self.assertEqual(build_state(self.registry.config, self.session.meta, records)['messages'], expected)
+
+                def reply(client, model, messages, schemas, **kwargs):
+                    self.assertEqual(messages, [*expected, {'role': 'user', 'content': 'B'}])
+                    yield ModelChunk(content='received A and B')
+
+                with patch('agent.core.agent_runtime.stream', side_effect=reply):
+                    self.session.enqueue('B')
+                    self.registry.wait()
+                self.assertEqual(restore_model_messages(self.session.session.events.read(), expected[0]),
+                                 self.agent.state['messages'])
+
+    def test_reopened_session_sends_failed_input_before_the_next_input(self):
+        with patch('agent.core.agent_runtime.stream', side_effect=ConnectionError('network unavailable')):
+            self.session.enqueue('A')
+            self.registry.wait()
+        expected = self.serializable()['messages']
+        reopened = SessionRegistry(self.registry.config)
+        runtime = reopened.get(self.session.session.id)
+        try:
+            self.assertEqual(runtime.state['messages'], expected)
+
+            def reply(client, model, messages, schemas, **kwargs):
+                self.assertEqual(messages, [*expected, {'role': 'user', 'content': 'B'}])
+                yield ModelChunk(content='received A and B')
+
+            with patch('agent.core.agent_runtime.stream', side_effect=reply):
+                runtime.enqueue('B')
+                reopened.wait()
+            self.assertEqual(restore_model_messages(runtime.session.events.read(), expected[0]),
+                             runtime.state['messages'])
+        finally:
+            runtime.stop()
+            reopened.wait()
+            runtime.queue.put(None)
+            runtime.worker.join(5)
+            reopened.store.database.close()
+
+
+    def test_large_bash_output_is_saved_and_the_turn_continues(self):
+        import shlex
+        import sys
+
+        self.agent.context_config = {"enabled": False}
+        command = shlex.quote(sys.executable) + " -c " + shlex.quote("print('x' * 20000)")
+
+        def stream(client, model, messages, schemas, **kwargs):
+            if messages[-1]["role"] == "user":
+                yield ModelChunk(tool_deltas=(ToolCallDelta(id="large-output", name="run_bash",
+                    arguments=json.dumps({"command": command})),))
+            else:
+                self.assertEqual(messages[-1]["role"], "tool")
+                self.assertIn("[spill]", messages[-1]["content"])
+                self.assertLess(len(messages[-1]["content"]), 12000)
+                path, = (self.agent.workspace / ".spill" / self.session.session.id).glob("*.log")
+                self.assertEqual(path.read_text(), "x" * 20000 + "\n")
+                yield ModelChunk(content="large output received")
+
+        with patch("agent.core.agent_runtime.stream", side_effect=stream):
+            self.session.enqueue("produce large output")
+            self.registry.wait()
+        records = self.session.session.events.read()
+        self.assertTrue(any(event["type"] == "tool.completed" for event in records))
+        self.assertEqual(records[-1]["type"], "turn.completed")
+        self.assertEqual(self.agent.state["execution"]["status"], "completed")
 
 
 if __name__ == '__main__':

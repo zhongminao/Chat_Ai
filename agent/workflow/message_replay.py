@@ -15,11 +15,11 @@ def restore_model_messages(events: list[dict], system: dict) -> list[dict]:
             saved = events[index]["messages"]
             # As before compaction, explicit config changes update the role's
             # system prompt. All persisted conversation messages stay exact.
-            return _restore(events[index + 1:], [system, *saved[1:]], repair_tail=False, tool_names=False)
+            return _restore(events[index + 1:], [system, *saved[1:]], tool_names=False)
     return [system, *_restore(events, [], tool_names=False)]
 
 
-def _restore(events: list[dict], initial: list[dict], *, repair_tail=True, tool_names=True) -> list[dict]:
+def _restore(events: list[dict], initial: list[dict], *, tool_names=True) -> list[dict]:
     messages = list(initial)
     text = []
     assembler = ToolCallAssembler()
@@ -40,11 +40,8 @@ def _restore(events: list[dict], initial: list[dict], *, repair_tail=True, tool_
             messages.append(build_user_message(event['content'], [i['id'] for i in event.get('images', [])]))
         elif kind == "turn.started":
             close_pending()
-            if messages and messages[-1]["role"] == "user":
-                messages.append({
-                    "role": "assistant",
-                    "content": "[assistant system response] Previous request did not finish.",
-                })
+            text = []
+            model_finished = False
             images = [image["id"] for image in event.get("images", [])]
             messages.append(build_user_message(event["prompt"], images))
         elif kind == "model.started":
@@ -75,9 +72,4 @@ def _restore(events: list[dict], initial: list[dict], *, repair_tail=True, tool_
             messages.append({**message, "name": event["tool"]} if tool_names else message)
             pending.discard(event["callId"])
     close_pending()
-    if repair_tail and messages and messages[-1]["role"] == "user":
-        messages.append({
-            "role": "assistant",
-            "content": "[assistant system response] Previous request did not finish.",
-        })
     return messages

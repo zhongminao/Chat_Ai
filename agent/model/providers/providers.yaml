@@ -3,9 +3,9 @@ default_provider: deepseek
 
 providers:
   gpt:
-    display_name: GPT (passion8 网关)
-    api_key_env: GPT_API_KEY
-    base_url: https://passion8.cc/v1
+    display_name: GPT (宿主机网关)
+    api_key_default: gateway
+    base_url: http://127.0.0.1:18100/gpt/v1
     thinking: disabled
     default_model: gpt-6-sol
     models:
@@ -22,8 +22,8 @@ providers:
 
   deepseek:
     display_name: DeepSeek
-    api_key_env: DEEPSEEK_API_KEY
-    base_url: https://api.deepseek.com
+    api_key_default: gateway
+    base_url: http://127.0.0.1:18100/deepseek/v1
     thinking: disabled
     default_model: deepseek-flash
     models:
@@ -53,6 +53,7 @@ providers:
     api_key_env: LOCAL_QWEN3_CODER_API_KEY
     api_key_default: local
     base_url: http://127.0.0.1:18080/v1
+    base_url_env: LOCAL_QWEN3_CODER_BASE_URL
     thinking: disabled
     token_counter: llama_cpp
     default_model: qwen3-coder-30b

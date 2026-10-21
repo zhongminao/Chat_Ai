@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from agent.core.session_registry import SessionRegistry
-from agent.core.session_runtime import SessionBusy
 from agent.model.request_messages import request_messages
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.web.images import image_router
@@ -150,8 +149,12 @@ class SubagentTests(unittest.TestCase):
             self.assertTrue(any(e['type'] == 'turn.cancelled' for e in parent.session.events.read()))
             with self.assertRaises(ValueError):
                 children[0].enqueue('again')
-            with self.assertRaises(SessionBusy):
-                self.registry.delete(parent.session.id)
+            self.registry.delete(parent.session.id)
+            for runtime in [parent, *children]:
+                runtime.worker.join(5)
+                self.assertFalse(runtime.worker.is_alive())
+            self.assertFalse(self.registry.store.children(parent.session.id))
+            self.assertTrue(all(not Path(state['result_path']).exists() for state in states))
 
     def test_failures_missing_submit_cancellation_and_restart_are_status_only(self):
         entered = threading.Event()

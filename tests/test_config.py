@@ -75,3 +75,23 @@ class PromptConfigTests(unittest.TestCase):
                 self.main.write_bytes(content)
                 with self.assertRaisesRegex(ValueError, 'system_prompt_file'):
                     self.config()
+
+    def test_spill_directory_accepts_workspace_paths_without_creating_them(self):
+        for directory in [".spill", "logs/output", str(self.root / "workspace/.spill")]:
+            with self.subTest(directory=directory):
+                self.data["spill"] = {"directory": directory}
+                self.assertEqual(self.config().spill["directory"], directory)
+                self.assertFalse((self.root / "workspace").exists())
+
+    def test_spill_directory_rejects_invalid_and_outside_paths(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        (workspace / "linked").symlink_to(outside, target_is_directory=True)
+        for directory in ["../outside", str(outside), "linked", "", None, 123]:
+            with self.subTest(directory=directory):
+                self.data["spill"] = {"directory": directory}
+                with self.assertRaisesRegex(ValueError, "spill.directory"):
+                    self.config()
+        self.assertEqual(list(outside.iterdir()), [])

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ..model.catalog import ModelCatalog
 from ..tools.approval import MODES
+from ..tools.spill import resolve_spill_directory
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -69,6 +70,9 @@ def load(path: Path | None = None) -> Config:
     if context["enabled"] and not context["prompt_file"].is_file():
         raise ValueError("config.yaml: context.prompt_file 不存在")
     workspace = _path(root, data.get("workspace", "."))
+    spill = dict(data.get("spill") or {})
+    if spill.get("enabled", True):
+        resolve_spill_directory(workspace, spill.get("directory", ".spill"))
     storage_dir = _path(root, data.get("storage_dir", "storage"))
     approval_mode = (data.get("approval") or {}).get("mode", "audit")
     if approval_mode not in MODES:
@@ -79,7 +83,7 @@ def load(path: Path | None = None) -> Config:
         workspace=workspace,
         storage_dir=storage_dir,
         providers_file=providers_file,
-        spill=data.get("spill", {}),
+        spill=spill,
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,
         context=context,

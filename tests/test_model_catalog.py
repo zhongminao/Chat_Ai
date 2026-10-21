@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -50,6 +51,33 @@ class ModelBindingTests(unittest.TestCase):
             self.assertIs(self.catalog.get_binding(self.one), first)
             self.assertIsNot(self.catalog.get_binding(self.two), first)
             self.assertEqual(clients.call_count, 3)
+
+    def test_deployment_can_override_base_url_without_copying_the_catalog(self):
+        self.catalog.providers['test']['base_url_env'] = 'TEST_MODEL_BASE_URL'
+        with patch.dict(os.environ, {'TEST_MODEL_BASE_URL': 'http://127.0.0.1:18100/test/v1'}), \
+             patch('agent.model.catalog.ModelHttpClient') as clients, \
+             patch('agent.model.catalog.create_provider'):
+            self.catalog.get_binding(self.one)
+            clients.assert_called_once_with(api_key='test-key', base_url='http://127.0.0.1:18100/test/v1')
+
+    def test_empty_base_url_override_uses_configured_address(self):
+        self.catalog.providers['test']['base_url_env'] = 'TEST_MODEL_BASE_URL'
+        with patch.dict(os.environ, {'TEST_MODEL_BASE_URL': ''}), \
+             patch('agent.model.catalog.ModelHttpClient') as clients, \
+             patch('agent.model.catalog.create_provider'):
+            self.catalog.get_binding(self.one)
+            clients.assert_called_once_with(api_key='test-key', base_url='https://example.invalid/v1')
+
+    def test_default_provider_override_does_not_change_the_model_directory(self):
+        with patch.dict(os.environ, {'CHAT_AI_DEFAULT_PROVIDER': 'test'}):
+            catalog = ModelCatalog(self.path)
+        self.assertEqual(catalog.default(), self.one)
+        self.assertEqual(catalog.providers, self.catalog.providers)
+
+    def test_empty_default_provider_override_uses_catalog_default(self):
+        with patch.dict(os.environ, {'CHAT_AI_DEFAULT_PROVIDER': ''}):
+            catalog = ModelCatalog(self.path)
+        self.assertEqual(catalog.default_provider, 'deepseek')
 
 
 if __name__ == '__main__':

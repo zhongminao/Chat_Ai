@@ -88,13 +88,16 @@ export function useSessions() {
   }
 
   async function remove(id: string) {
-    if (deleting || renamingRef.current || !window.confirm('删除这个历史会话？此操作无法撤销。')) return;
+    if (deleting || renamingRef.current || !window.confirm(
+      '删除这个会话及其所有子会话？聊天记录、图片和报告将一并删除，无法恢复。若主会话或子任务正在运行，请先停止。')) return;
     setDeleting(id); setError(null);
     try {
       await api.deleteSession(id);
-      if (id === selected) {
-        const remaining = sessions.filter(item => item.id !== id);
-        setSessions(remaining); select(null);
+      const remaining = sessions.filter(item => item.id !== id && item.parent_session_id !== id);
+      ++listVersion.current;
+      setSessions(remaining);
+      if (id === selected || sessions.find(item => item.id === selected)?.parent_session_id === id) {
+        select(null);
         const emptyId = await findOrCreateEmptySession(remaining);
         setSessions(items => items.some(item => item.id === emptyId) ? items : [emptySummary(emptyId), ...items]);
         select(emptyId);

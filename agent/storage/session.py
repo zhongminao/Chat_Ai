@@ -2,6 +2,7 @@
 import json
 import shutil
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -79,11 +80,13 @@ class SessionStore:
         with self.database.connect() as connection:
             return [row['id'] for row in connection.execute('SELECT id FROM sessions WHERE parent_session_id=?', (session_id,))]
 
-    def delete(self, session_id: str) -> None:
-        directory = self.path(session_id)
+    def delete(self, session_id: str, *, children: Sequence[str] = ()) -> None:
+        identifiers = [*children, session_id]
+        directories = [self.path(identifier) for identifier in identifiers]
         with self.database.connect(write=True) as connection:
-            connection.execute('DELETE FROM sessions WHERE id=?', (session_id,))
-        shutil.rmtree(directory, ignore_errors=False)
+            connection.executemany('DELETE FROM sessions WHERE id=?', [(identifier,) for identifier in identifiers])
+        for directory in directories:
+            shutil.rmtree(directory, ignore_errors=False)
 
     def rename(self, session_id: str, title: str) -> str:
         title = title.strip()
