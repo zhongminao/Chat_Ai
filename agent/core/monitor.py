@@ -16,15 +16,19 @@ class Monitor:
 
     def update(self, identifier: str, **state) -> None:
         with self.condition:
-            old = self.resources.get(identifier, {})
-            value = {"id": identifier, **state}
-            if {key: item for key, item in old.items() if key != "version"} == value:
-                return
-            version = self.version + 1
-            resources = {**self.resources, identifier: {**value, "version": version}}
-            self.store.save_monitor(self.session_id, version, resources)
-            self.version, self.resources = version, resources
-            self.condition.notify_all()
+            while True:
+                saved = self.store.read_monitor(self.session_id)
+                self.version, self.resources = saved.get("cursor", 0), saved.get("resources", {})
+                old = self.resources.get(identifier, {})
+                value = {"id": identifier, **state}
+                if {key: item for key, item in old.items() if key != "version"} == value:
+                    return
+                version = self.version + 1
+                resources = {**self.resources, identifier: {**value, "version": version}}
+                if self.store.save_monitor(self.session_id, version, resources):
+                    self.version, self.resources = version, resources
+                    self.condition.notify_all()
+                    return
 
     def remove(self, identifier: str) -> None:
         self.update(identifier, deleted=True)
@@ -43,14 +47,18 @@ class Monitor:
         remove_callback = context.cancellation.add_callback(self._wake) if context else lambda: None
         try:
             with self.condition:
-                if cursor is not None and cursor > self.version:
-                    raise ValueError("cursor is ahead of this monitor; call watch() for a fresh snapshot")
                 while True:
+                    saved = self.store.read_monitor(self.session_id)
+                    if saved.get("cursor", 0) > self.version:
+                        self.version = saved["cursor"]
+                        self.resources = saved["resources"]
+                    if cursor is not None and cursor > self.version:
+                        raise ValueError("cursor is ahead of this monitor; call watch() for a fresh snapshot")
                     if context:
                         context.cancellation.raise_if_cancelled()
                     if cursor is None or self.version > cursor or time.monotonic() >= deadline:
                         break
-                    self.condition.wait(max(0, deadline - time.monotonic()))
+                    self.condition.wait(min(1, max(0, deadline - time.monotonic())))
                 changes = [dict(value) for value in self.resources.values()
                            if (not value.get("deleted") if cursor is None else value["version"] > cursor)]
                 return {"cursor": self.version, "changes": changes}

@@ -43,6 +43,22 @@ CREATE TABLE IF NOT EXISTS images (
     sha256 TEXT NOT NULL,
     UNIQUE (session_id, ordinal)
 );
+CREATE TABLE IF NOT EXISTS agent_to_agent_messages (
+    id TEXT PRIMARY KEY,
+    sender_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS agent_to_agent_message_deliveries (
+    message_id TEXT NOT NULL REFERENCES agent_to_agent_messages(id) ON DELETE CASCADE,
+    recipient_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('to', 'cc')),
+    read_at TEXT,
+    PRIMARY KEY (message_id, recipient_id)
+);
+CREATE INDEX IF NOT EXISTS agent_to_agent_deliveries_inbox
+    ON agent_to_agent_message_deliveries(recipient_id, read_at, message_id);
 CREATE TABLE IF NOT EXISTS monitors (
     session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
     cursor INTEGER NOT NULL,

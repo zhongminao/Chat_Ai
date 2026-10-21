@@ -7,6 +7,7 @@ from pathlib import Path
 from .monitor import Monitor
 from .session_runtime import SessionBusy, SessionRuntime
 from ..storage.session import SessionStore
+from ..storage.agent_to_agent_mailbox import AgentToAgentMailbox
 from ..storage import reports
 from ..workflow.config import load
 from ..workflow.input import UserInput
@@ -16,6 +17,7 @@ class SessionRegistry:
     def __init__(self, config=None):
         self.config = config or load()
         self.store = SessionStore(self.config.storage_dir)
+        self.mailbox = AgentToAgentMailbox(self.store.database)
         self.items: dict[str, SessionRuntime] = {}
         self.monitors: dict[str, Monitor] = {}
         self.lock = threading.RLock()
@@ -86,6 +88,46 @@ class SessionRegistry:
         self.monitor(child.parent_session_id).update(
             f"agent:{child.session.id}", kind="agent", session_id=child.session.id,
             title=child.meta.get("title", "子 agent"), **self._result(child.session.id))
+
+    def _mailbox_resource(self, session_id: str) -> None:
+        self.monitor(session_id).update(
+            f"mailbox:{session_id}", kind="mailbox", session_id=session_id,
+            unread_count=self.mailbox.unread_count(session_id),
+            latest_id=self.mailbox.latest_id(session_id))
+
+    def notify_agent(self, sender_id: str, recipient_id: str, content: str,
+                     cc=(), kind='notification') -> dict:
+        """Call with the authenticated runtime's sender ID, never a model-supplied ID."""
+        if not isinstance(recipient_id, str) or not recipient_id:
+            raise ValueError("recipient must be a session ID")
+        if not isinstance(cc, (list, tuple)) or not all(isinstance(item, str) for item in cc):
+            raise ValueError("cc must be a sequence of session IDs")
+        cc = tuple(cc)
+        # Lock all target runtimes in stable order against concurrent submit/stop.
+        with self.lock, ExitStack() as locks:
+            targets = sorted(set((recipient_id, *cc)))
+            for target in targets:
+                runtime = self.get(target)
+                locks.enter_context(runtime.lock)
+                if runtime.parent_session_id and (runtime.closed or runtime.submitting or
+                                                  not runtime.busy or not runtime.steering.accepting or
+                                                  runtime.control.stopped):
+                    raise SessionBusy('子 agent 正在提交或停止，无法投递留言')
+            result = self.mailbox.send(sender_id, recipient_id, content, cc=cc, kind=kind)
+            for target in targets:
+                self._mailbox_resource(target)
+            return result
+
+    def mailbox_list(self, session_id: str, unread_only: bool = False) -> list[dict]:
+        return self.mailbox.list(session_id, unread_only)
+
+    def mailbox_read(self, session_id: str, message_id: str) -> dict:
+        result = self.mailbox.read(session_id, message_id)
+        self._mailbox_resource(session_id)
+        return result
+
+    def mailbox_unread_count(self, session_id: str) -> int:
+        return self.mailbox.unread_count(session_id)
 
     def delete(self, session_id: str):
         with self.lock, ExitStack() as locks:

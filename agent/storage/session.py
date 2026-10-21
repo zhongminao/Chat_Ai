@@ -125,8 +125,9 @@ class SessionStore:
             row = connection.execute('SELECT cursor, resources FROM monitors WHERE session_id=?', (session_id,)).fetchone()
         return {'cursor': row['cursor'], 'resources': json.loads(row['resources'])} if row else {}
 
-    def save_monitor(self, session_id: str, cursor: int, resources: dict) -> None:
+    def save_monitor(self, session_id: str, cursor: int, resources: dict) -> bool:
         payload = json.dumps(resources, ensure_ascii=False)
         with self.database.connect(write=True) as connection:
-            connection.execute('''INSERT INTO monitors VALUES (?, ?, ?) ON CONFLICT(session_id)
-                DO UPDATE SET cursor=excluded.cursor, resources=excluded.resources''', (session_id, cursor, payload))
+            return bool(connection.execute('''INSERT INTO monitors VALUES (?, ?, ?) ON CONFLICT(session_id)
+                DO UPDATE SET cursor=excluded.cursor, resources=excluded.resources
+                WHERE monitors.cursor < excluded.cursor''', (session_id, cursor, payload)).rowcount)

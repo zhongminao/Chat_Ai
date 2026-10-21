@@ -209,7 +209,7 @@ class SubagentTests(unittest.TestCase):
             observed.append(list(messages))
             self.assertEqual(messages[0]['content'], f'child instructions {self.root}')
             self.assertNotIn('delegate', [s['function']['name'] for s in schemas])
-            self.assertNotIn('watch', [s['function']['name'] for s in schemas])
+            self.assertIn('watch', [s['function']['name'] for s in schemas])
             if len(observed) == 1:
                 yield ModelChunk(content='Finished work, but forgot to submit.')
             else:

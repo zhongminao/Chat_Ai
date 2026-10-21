@@ -12,3 +12,5 @@ watch() 返回当前主会话全部监控资源；没有相关任务时直接继
 show_image 只发布已有 PNG/JPEG/WebP 图片；HTML 需要先渲染成图片。read_image 供模型检查图片，不向用户展示。
 图片编号和名称是显示标签；工具使用确切文件路径，并复用已保存的会话路径。
 展示子报告图片时复用原 Markdown 图片地址；需要检查内容时用 image_file 本地路径调用 read_image。
+
+Agent-to-agent mailbox: after delegate returns a child session_id, notify_agent(to=<child session_id>, content=...) sends a private notification. watch may report mailbox changes alongside child task states; use agent_inbox(unread_only=true) and read_agent_message(message_id=...) to read/acknowledge feedback, then notify_agent to reply. Mail is not an ordinary user conversation message; send only to a child still running and not submitting.

@@ -16,6 +16,11 @@ class ExecutionControl:
         if token:
             token.cancel()
 
+    @property
+    def stopped(self) -> bool:
+        with self._lock:
+            return "stop" in self._signals
+
     def clear_stop(self) -> None:
         with self._lock:
             self._signals.discard("stop")

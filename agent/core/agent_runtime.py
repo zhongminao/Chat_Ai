@@ -16,6 +16,7 @@ from ..workflow import context_compaction, completion, message_updates, transiti
 from .cancellation import ExecutionContext, RunCancelled, CancellationToken
 from .control import ExecutionControl
 from ..model.openai_compatible import stream
+from ..model.stream_guard import ModelStreamGuard
 from ..storage.event_log import EventLog
 from ..tools.router import ToolRouter
 from ..tools.result import ToolResult, normalize_result
@@ -43,6 +44,8 @@ class AgentRuntime:
         on_tool_result: Callable[[ToolResult], None] | None = None,
         context_config: dict | None = None,
         steering=None,
+        begin_submit=None,
+        release_submit=None,
     ):
         self.state = state
         self.control = control or ExecutionControl()
@@ -52,6 +55,8 @@ class AgentRuntime:
         self.max_rounds = max_rounds
         self.context_config = context_config or {}
         self.steering = steering
+        self.begin_submit = begin_submit
+        self.release_submit = release_submit or (lambda: None)
         self.tools = tools or ToolRouter(workspace)
         self.on_submit = on_submit
         self.tools.submit = self._submit
@@ -146,6 +151,7 @@ class AgentRuntime:
             if self._deliver_guidance(context):
                 self._compact(client, provider, vision, context)
             assembler = ToolCallAssembler()
+            stream_guard = ModelStreamGuard()
             text_buffer = TextBuffer()
             finish_reason = None
             usage = None
@@ -185,6 +191,7 @@ class AgentRuntime:
                     )
 
                 for delta in chunk.tool_deltas:
+                    stream_guard.check(delta)
                     assembler.add(delta.as_dict())
                     self.log.append(
                         "tool_call.delta",
@@ -221,11 +228,13 @@ class AgentRuntime:
             )
 
             if transitions.after_model(self.state) == "end":
-                if self._deliver_guidance(context, finish=True):
+                if self._begin_submit(context):
                     continue
                 decision = completion.decide(self.state, self.max_rounds)
                 if decision == "remind":
-                    if self.steering:
+                    if self.begin_submit:
+                        self.release_submit()
+                    elif self.steering:
                         self.steering.begin()
                     context.cancellation.raise_if_cancelled()
                     self.apply(message_updates.remind_completion(self.state, completion.REMINDER))
@@ -292,7 +301,7 @@ class AgentRuntime:
                     context.cancellation.raise_if_cancelled()
 
             if transitions.after_tools(self.state) == "submit":
-                if self._deliver_guidance(context, finish=True):
+                if self._begin_submit(context):
                     continue
                 report = transitions.execution(self.state)["report"]
                 if self.on_submit:
@@ -305,6 +314,11 @@ class AgentRuntime:
                 return report
 
         raise RuntimeError("maximum model rounds reached")
+
+    def _begin_submit(self, context):
+        if self.begin_submit:
+            return self.begin_submit(self._deliver_guidance, context)
+        return self._deliver_guidance(context, finish=True)
 
     def _deliver_guidance(self, context, *, finish=False):
         context.cancellation.raise_if_cancelled()

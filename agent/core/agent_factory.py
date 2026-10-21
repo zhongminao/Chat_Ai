@@ -34,12 +34,14 @@ def build_agent(runtime) -> AgentRuntime:
     main = runtime.state["role"] == "main"
     tools = ToolRouter(config.workspace, McpClient(config.mcp) if config.mcp else None,
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
-                       watch=registry.monitor(runtime.session.id).watch if main else None,
+                       watch=registry.monitor(runtime.session.id).watch,
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,
-                                        workspace=str(config.workspace)))
+                                        workspace=str(config.workspace)),
+                       registry=registry, session_id=runtime.session.id)
     return AgentRuntime(state=runtime.state, catalog=ModelCatalog(config.providers_file),
                         session_id=runtime.session.id, spill=config.spill,
                         workspace=config.workspace, log=runtime.session.events, images=runtime.session.images, max_rounds=config.max_rounds,
                         output=lambda text: None, tools=tools,
                         control=runtime.control, on_submit=runtime.submitted, context_config=config.context,
-                        steering=runtime.steering)
+                        steering=runtime.steering, begin_submit=runtime.begin_submit,
+                        release_submit=runtime.release_submit)

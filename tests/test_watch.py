@@ -72,5 +72,33 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(snapshot, Monitor(self.store, self.session_id).watch())
 
 
-if __name__ == '__main__':
+class CrossProcessMonitorTests(unittest.TestCase):
+    def test_two_stores_preserve_independent_updates_and_wake_waiter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first = SessionStore(Path(directory))
+            second = SessionStore(Path(directory))
+            try:
+                session_id = first.create().id
+                a, b = Monitor(first, session_id), Monitor(second, session_id)
+                a.update('agent:child', kind='agent', status='running')
+                seen = {}
+                cursor = b.watch()['cursor']
+                thread = threading.Thread(target=lambda: seen.update(b.watch(cursor, 3)))
+                thread.start()
+                a.update('mailbox:child', kind='mailbox', unread_count=1)
+                thread.join(2)
+                self.assertFalse(thread.is_alive())
+                self.assertEqual(seen['changes'][0]['id'], 'mailbox:child')
+                # Both producers have different cached copies of the same monitor.
+                b.update('mailbox:child', kind='mailbox', unread_count=0)
+                a.update('agent:child', kind='agent', status='completed')
+                snapshot = Monitor(first, session_id).watch()
+                self.assertEqual({v['id'] for v in snapshot['changes']}, {'agent:child', 'mailbox:child'})
+                self.assertEqual(snapshot['cursor'], 4)
+            finally:
+                first.database.close()
+                second.database.close()
+
+
+if __name__ == "__main__":
     unittest.main()

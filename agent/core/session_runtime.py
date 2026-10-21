@@ -41,6 +41,7 @@ class SessionRuntime:
         self._agent = None
         self.queue = queue.Queue()
         self.busy = False
+        self.submitting = False
         self.closed = False
         self.worker = threading.Thread(target=self._worker, daemon=True, name=f"session-{session_id[:8]}")
         self.worker.start()
@@ -104,6 +105,7 @@ class SessionRuntime:
             if self.closed or self.busy:
                 raise SessionBusy("This session is closed or already running")
             self.control.clear_stop()
+            self.submitting = False
             self.steering.begin()
             self.busy = True
             self.queue.put(content)
@@ -121,6 +123,19 @@ class SessionRuntime:
         self.apply(transitions.report_saved(self.state, rendered, str(path)))
         self.session.events.append("report.submitted", runId=run_id, content=rendered, result_path=str(path))
         return rendered
+
+    def begin_submit(self, deliver, context):
+        """Atomically close guidance, then seal the final result against new mail."""
+        with self.lock:
+            received = deliver(context, finish=True)
+            if not received:
+                self.submitting = True
+            return received
+
+    def release_submit(self):
+        with self.lock:
+            self.steering.begin()
+            self.submitting = False
 
     def _worker(self):
         while True:
@@ -144,4 +159,5 @@ class SessionRuntime:
                     with self.lock:
                         self.steering.close()
                         self.busy = False
+                        self.submitting = False
                     self.queue.task_done()
