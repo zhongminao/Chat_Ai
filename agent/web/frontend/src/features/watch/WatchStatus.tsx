@@ -4,8 +4,8 @@ export function WatchStatus({ sessionId, onChange }: {
   sessionId: string | null; onChange: () => void;
 }) {
   const watch = useWatch(sessionId, onChange);
-  if (!sessionId || (!watch.resources.length && !watch.error)) return null;
   const agents = watch.resources.filter(item => item.kind === 'agent');
+  if (!sessionId || (!agents.length && !watch.error)) return null;
   const running = agents.filter(item => item.status === 'running').length;
   const finished = agents.length - running;
   return <div className="watch-panel" aria-label="后台任务状态">
