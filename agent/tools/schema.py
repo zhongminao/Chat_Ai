@@ -40,8 +40,8 @@ WATCH_SCHEMA = {"type": "function", "function": {
     "parameters": {"type": "object", "properties": {
         "cursor": {"type": ["integer", "null"], "minimum": 0,
                    "description": "Latest watch cursor; omit/null for a full snapshot."},
-        "timeout": {"type": "number", "minimum": 0, "maximum": 120, "default": 0,
-                    "description": "Seconds to wait with cursor; ignored without cursor."}},
+        "timeout": {"type": "number", "minimum": 0, "maximum": 86400, "default": 0,
+                    "description": "Seconds to wait with cursor, up to 86400 (1 day). Returns early on changes; ignored without cursor."}},
         "additionalProperties": False}}}
 
 

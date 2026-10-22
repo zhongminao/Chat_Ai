@@ -41,8 +41,8 @@ class Monitor:
               context: ExecutionContext | None = None) -> dict:
         if cursor is not None and (type(cursor) is not int or cursor < 0):
             raise ValueError("cursor must be a non-negative integer or null")
-        if not isinstance(timeout, (int, float)) or not 0 <= timeout <= 120:
-            raise ValueError("timeout must be between 0 and 120 seconds")
+        if not isinstance(timeout, (int, float)) or not 0 <= timeout <= 86400:
+            raise ValueError("timeout must be between 0 and 86400 seconds")
         deadline = time.monotonic() + timeout
         remove_callback = context.cancellation.add_callback(self._wake) if context else lambda: None
         try:

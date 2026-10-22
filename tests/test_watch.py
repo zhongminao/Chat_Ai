@@ -50,7 +50,7 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(self.monitor.watch(0, 0.02), {'cursor': 0, 'changes': []})
         token = CancellationToken()
         with ThreadPoolExecutor(1) as pool:
-            waiting = pool.submit(self.monitor.watch, 0, 120, ExecutionContext(token))
+            waiting = pool.submit(self.monitor.watch, 0, 86400, ExecutionContext(token))
             token.cancel()
             with self.assertRaises(RunCancelled):
                 waiting.result(2)
@@ -59,7 +59,7 @@ class MonitorTests(unittest.TestCase):
         for cursor in [-1, True, '1', 10]:
             with self.assertRaises(ValueError):
                 self.monitor.watch(cursor)
-        for timeout in [-1, 121, float('nan')]:
+        for timeout in [-1, 86401, float('nan')]:
             with self.assertRaises(ValueError):
                 self.monitor.watch(timeout=timeout)
 
