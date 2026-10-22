@@ -6,9 +6,9 @@ import { ImageOutput } from '../images/ImageOutput';
 const format = (value: unknown) => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 const labels = { running: '执行中', completed: '已完成', interrupted: '已中断', rejected: '已拒绝' };
 
-export function ToolCallCard({ item, sessionId, images = [], waiting = false, onInspect }: { item: ToolItem; sessionId?: string | null; images?: ImageAsset[]; waiting?: boolean; onInspect?: (summary: HTMLElement) => void }) {
+export function ToolCallCard({ item, sessionId, images = [], waiting = false, onInspect }: { item: ToolItem; sessionId?: string | null; images?: ImageAsset[]; waiting?: boolean; onInspect?: () => void }) {
   return <div className="tool-output"><details className="tool-card">
-    <summary onClick={event => { if (!event.currentTarget.parentElement?.hasAttribute('open')) onInspect?.(event.currentTarget); }}><Icon name="tool" size={16} /><span className="tool-name">{item.name}</span>
+    <summary onClick={event => { if (!event.currentTarget.parentElement?.hasAttribute('open')) onInspect?.(); }}><Icon name="tool" size={16} /><span className="tool-name">{item.name}</span>
       <span className={`tool-status ${item.status}`}>{waiting && item.status === 'running' ? '等待审批' : labels[item.status]}</span><Icon name="down" size={14} /></summary>
     <div className="tool-body">
       {item.arguments !== undefined && <><div className="tool-label">调用参数</div><pre>{format(item.arguments)}</pre></>}
