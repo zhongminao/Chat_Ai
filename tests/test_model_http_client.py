@@ -37,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', '0')
                 self.end_headers()
                 return
-            if mode == 'gpt_tools' and body.get('reasoning_effort') != ('low' if body['model'] == 'gpt-6-astra' else 'none'):
+            if mode == 'gpt_tools' and body.get('reasoning_effort') != self.server.efforts.get(body['model']):
                 self.send_response(400)
                 self.send_header('Content-Length', '0')
                 self.end_headers()
@@ -78,6 +78,7 @@ class ModelHttpClientTests(unittest.TestCase):
         self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
         self.server.daemon_threads = True
         self.server.mode = 'headers'
+        self.server.efforts = {}
         self.server.entered = threading.Event()
         self.server.ready = threading.Event()
         self.server.release = threading.Event()
@@ -94,13 +95,15 @@ class ModelHttpClientTests(unittest.TestCase):
     def test_gpt_chat_adapter_can_stream_function_calls_with_required_reasoning_mode(self):
         self.server.mode = 'gpt_tools'
         self.server.release.set()
+        self.server.efforts = {'gpt-6.1-sol': 'high', 'gpt-5.6-sol': 'medium', 'gpt-6-astra': 'medium'}
         request = ModelHttpClient(api_key='test', base_url=self.url, max_retries=0)
         tools = [{'type': 'function', 'function': {'name': 'report_status', 'parameters': {'type': 'object'}}}]
         try:
-            for name in ['gpt-6-sol', 'gpt-6-astra']:
+            for name in ['gpt-6.1-sol', 'gpt-5.6-sol', 'gpt-6-astra']:
                 with self.subTest(model=name):
                     chunks = list(stream(request, name, [{'role': 'user', 'content': 'report OK'}], tools,
-                                         create_provider('gpt', model=name)))
+                                         create_provider('gpt', model=name,
+                                                         reasoning_effort=self.server.efforts[name])))
                     self.assertEqual(chunks[0].finish_reason, 'tool_calls')
                     self.assertEqual(chunks[0].tool_deltas[0].name, 'report_status')
                     self.assertEqual(json.loads(chunks[0].tool_deltas[0].arguments), {'text': 'OK'})
