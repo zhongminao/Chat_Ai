@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useChatLayout } from './useChatLayout';
+import { useTabTitle } from './useTabTitle';
 import { useSessions } from '../features/sessions/useSessions';
 import { SessionSidebar } from '../features/sessions/SessionSidebar';
 import { useConversation } from '../features/conversation/useConversation';
@@ -21,6 +22,12 @@ export function App() {
   const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);
   const error = sessions.error || conversation.error || approvals.error;
   const waitingCallIds = (approvals.snapshot?.pending ?? []).filter(item => item.sessionId === sessions.selected).map(item => item.callId);
+  useTabTitle({
+    selected: sessions.selected, title: current?.title, loading: sessions.loading,
+    connected: conversation.connected, ready: conversation.ready, busy: conversation.busy,
+    sending: conversation.pending === 'send', waitingApproval: waitingCallIds.length > 0,
+    error, history: conversation.history, live: conversation.live,
+  });
   const status = sessions.loading ? '正在加载' : !sessions.selected ? '未选择会话'
     : !conversation.connected ? '正在连接' : !conversation.ready ? '正在恢复会话'
     : waitingCallIds.length ? '等待审批' : '已连接';
