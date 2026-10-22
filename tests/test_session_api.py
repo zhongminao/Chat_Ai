@@ -4,6 +4,7 @@ import unittest
 from dataclasses import replace
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -19,6 +20,30 @@ from agent.web.images import image_router
 
 
 class SessionApiTests(unittest.TestCase):
+    def test_child_list_status_uses_summaries_without_reading_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            registry = SessionRegistry(replace(load(), storage_dir=Path(directory), mcp={}))
+            parent = registry.store.create()
+            children = {}
+            for status, event in [('idle', None), ('submitted', 'report.submitted'),
+                                  ('failed', 'turn.failed'), ('cancelled', 'turn.cancelled')]:
+                child = registry.store.create(parent_session_id=parent.id)
+                if event:
+                    child.events.append(event, content='report', reason='stopped')
+                children[status] = child.id
+            active = registry.store.create(parent_session_id=parent.id)
+            registry.items[active.id] = SimpleNamespace(busy=True)
+            with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), \
+                 patch('agent.storage.event_log.EventLog.read', side_effect=AssertionError('no event reads')):
+                items = {item['id']: item for item in web.sessions()['sessions']}
+            self.assertEqual(items[parent.id]['status'], 'idle')
+            for status, identifier in children.items():
+                self.assertEqual(items[identifier]['status'], 'failed' if status == 'idle' else status)
+                self.assertFalse(items[identifier]['busy'])
+            self.assertEqual(items[active.id]['status'], 'running')
+            self.assertTrue(items[active.id]['busy'])
+            registry.store.database.close()
+
     def test_image_upload_and_download_without_rename(self):
         with tempfile.TemporaryDirectory() as directory:
             registry = SessionRegistry(replace(load(), storage_dir=Path(directory), mcp={}))

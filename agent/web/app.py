@@ -132,11 +132,8 @@ def sessions():
         item["busy"] = bool(rt and rt.busy)
         if item["busy"]:
             item["status"] = "running"
-        # A child can be interrupted before registry.finished() runs. Its
-        # journal is still authoritative; derive terminal status so the UI
-        # does not leave it at the initial idle state.
-        if item.get("parent_session_id") and not item["busy"]:
-            item["status"] = registry._result(item["id"])["status"]
+        elif item.get("parent_session_id") and item["status"] == "idle":
+            item["status"] = "failed"
     return {"sessions": result}
 
 
