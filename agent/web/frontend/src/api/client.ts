@@ -48,10 +48,6 @@ export const api = {
     const body = new FormData(); body.append('file', file);
     return request<{ image: ImageAsset }>(`${sessionPath(id)}/images`, { method: 'POST', body });
   },
-  renameImage: (id: string, image: string, name: string) => request<{ image: ImageAsset }>(
-    `${sessionPath(id)}/images/${encodeURIComponent(image)}`,
-    { ...post({ name }), method: 'PATCH' },
-  ),
   imageUrl: (id: string, image: string, preview = false) =>
     `${sessionPath(id)}/images/${encodeURIComponent(image)}/content${preview ? '?preview=true' : ''}`,
   stop: (id: string) => request<{ stopped: boolean }>(`${sessionPath(id)}/control/stop`, post()),

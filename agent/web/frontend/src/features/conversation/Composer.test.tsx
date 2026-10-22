@@ -8,7 +8,7 @@ describe('single composer action', () => {
       const html = renderToStaticMarkup(<Composer busy={busy} ready connected readOnly={false}
         status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
         onAccessChange={() => {}} model={null} models={[]} sessionId="test" images={[]}
-        onUploaded={() => {}} onRenameImage={async () => true} onSend={async () => true}
+        onUploaded={() => {}} onSend={async () => true}
         onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
       expect(html.match(/class="send-button /g)).toHaveLength(1);
       const action = html.match(/<button type="submit"[^>]*>/)?.[0] ?? '';

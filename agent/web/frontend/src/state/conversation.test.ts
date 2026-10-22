@@ -71,7 +71,7 @@ describe('existing event protocol -> conversation', () => {
     const image = { id: 'img', name: 'latest', ordinal: 1, filename: 'x.png', mime: 'image/png', width: 1, height: 1, size: 1 };
     const selected = { provider: 'local', name: 'selected' };
     const view = replay([{ ...start, images: [{ ...image, name: 'old' }] },
-      { seq: 2, type: 'image.renamed', image: { ...image, name: 'older' } },
+      { seq: 2, type: 'model.started', round: 0 },
       { seq: 3, type: 'model.changed', new: model }], { ...initialState(3), model: selected, images: [image] });
     expect(view.images[0].name).toBe('latest');
     expect(view.model).toEqual(selected);
@@ -325,5 +325,31 @@ describe('bounded history and live event merging', () => {
     expect(joined.minSeq).toBe(6);
     expect(reduce(joined, { type: 'events', events: [{ ...text, seq: 12 }] })).toEqual(joined);
     expect(reduce(joined, { type: 'history', page: older, older: true })).toEqual(joined);
+  });
+});
+
+describe('context usage snapshot and live updates', () => {
+  const usage = { usedTokens: 1000, limitTokens: 128000, estimated: true };
+  const measured: AgentEvent = { seq: 1, type: 'context.measured', ...usage };
+  it('restores snapshot usage and ignores older measurements during replay', () => {
+    const current = { ...usage, usedTokens: 2000 };
+    const view = replay([measured], { ...initialState(1), contextUsage: current });
+    expect(view.contextUsage).toEqual(current);
+  });
+  it('updates live measurements without adding chat messages and invalidates on model switch', () => {
+    const view = reduce(emptyConversation(), { type: 'events', events: [measured] });
+    expect(view.contextUsage).toEqual(usage);
+    expect(view.items).toEqual([]);
+    const switched = reduce(view, { type: 'events', events: [{ seq: 2, type: 'model.changed', new: model }] });
+    expect(switched.contextUsage).toBeNull();
+  });
+  it('keeps current usage when loading an older history page', () => {
+    const first = reduce(emptyConversation(), { type: 'history', page: {
+      events: [{ ...measured, seq: 2 }], snapshot_seq: 2, min_seq: 2, has_more: true,
+    } });
+    const loaded = reduce(first, { type: 'history', older: true, page: {
+      events: [{ ...measured, usedTokens: 10 }], snapshot_seq: 2, min_seq: 1, has_more: false,
+    } });
+    expect(loaded.contextUsage).toEqual(usage);
   });
 });

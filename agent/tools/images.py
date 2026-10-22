@@ -11,15 +11,13 @@ def show_image(
     workspace: Path,
     images: ImageStore,
     path: str,
-    name: str | None = None,
     context: ExecutionContext | None = None,
 ) -> ToolResult:
     _check(context)
     source = _read_path(workspace, path)
-    image = images.add_file(source, name)
+    image = images.add_file(source)
     _check(context)
-    text = (f"图片已展示 ({image['width']} × {image['height']})\n"
-            f"{images.describe(image)}\n来源：{source}\n报告图片引用：{images.markdown(image)}")
+    text = f"图片已展示，报告可用 Markdown 引用：{images.markdown(image)}"
     return ToolResult(text, [image])
 
 
@@ -42,6 +40,5 @@ def read_image(
     if not images.path(image["id"]).is_file():
         raise FileNotFoundError("会话图片文件不存在")
     _check(context)
-    text = (f"图片已读取，仅供模型查看，尚未向用户展示 ({image['width']} × {image['height']})\n"
-            f"{images.describe(image)}\n来源：{source}")
+    text = f"图片已读取，仅供模型查看，尚未向用户展示\n{images.describe(image)}"
     return ToolResult(text, model_images=[image])

@@ -17,10 +17,7 @@ def main() -> None:
     parser.add_argument("--session", help="继续已有 session")
     parser.add_argument("--access", choices=["audit", "full_access"], help="本会话及子 Agent 的访问模式")
     parser.add_argument("--image", action="append", default=[], help="图片文件，可重复指定")
-    parser.add_argument("--image-name", action="append", default=[], help="图片名称；提供时与 --image 一一对应")
     args = parser.parse_args()
-    if args.image_name and len(args.image_name) != len(args.image):
-        parser.error("--image-name 需要与 --image 一一对应")
 
     config = load()
     registry = SessionRegistry(config)
@@ -57,9 +54,8 @@ def main() -> None:
     print(f"当前模型：{agent.state['model']}")
     print("访问模式：" + ("审计" if runtime.approvals.snapshot()["mode"] == "audit" else "完全访问"))
     image_commands = ImageCommands(agent)
-    for index, source in enumerate(args.image):
-        name = args.image_name[index] if args.image_name else None
-        image_commands.add(source, name)
+    for source in args.image:
+        image_commands.add(source)
     if args.prompt or args.image:
         runtime.enqueue(image_commands.take_input(args.prompt or ""))
         wait_for_execution(registry, runtime, prompt_session, include_children=True)
@@ -69,7 +65,7 @@ def main() -> None:
     print("输入 /model provider model 切换模型；输入 /exit 或 /quit 退出。")
     print("输入 /rename 新名称 修改当前会话名称。")
     print('执行期间直接输入补充要求即可引导；Ctrl+C 或 /stop 停止当前执行。')
-    print("图片：/image 文件路径；/image-name 会话图片路径 新名称；/images；/send；/clear-images。")
+    print("图片：/image 文件路径；/images；/send；/clear-images。")
     print("审批：/access audit|full_access；/approvals；/approve <审批ID>；/reject <审批ID>；/stop <会话ID>。")
     while True:
         try:

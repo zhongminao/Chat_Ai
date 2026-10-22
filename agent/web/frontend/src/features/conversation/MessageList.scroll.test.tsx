@@ -37,7 +37,6 @@ function render() {
   const tree = MessageList({
     items: [{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'running' }],
     busy: true, loading: false, assistantId: null, sessionId: 'test', images: [],
-    editingImage: false, onRenameImage: async () => true,
   }) as Node;
   const log = find(tree, node => node.props?.role === 'log')!;
   log.props.ref.current = viewport;

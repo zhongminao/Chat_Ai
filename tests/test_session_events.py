@@ -14,6 +14,7 @@ from starlette.requests import Request as HttpRequest
 from agent.core.session_registry import SessionRegistry
 from agent.web import app as web
 from agent.web.events import session_events
+from agent.web.history import history_page
 from agent.workflow.config import load
 
 
@@ -66,6 +67,7 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(frames[0].startswith('id: 0\n'))
         self.assertFalse(frames[1].startswith('id:'))
         self.assertEqual(ready, {'type': 'session.ready', 'seq': 0})
+        self.assertIsNone(initial['contextUsage'])
         self.assertIsNone(self.runtime._agent)
         self.assertIsNone(self.runtime._state)
         self.assertEqual(self.runtime.session.events.read(), [])
@@ -80,6 +82,45 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state['parent_session_id'], self.runtime.session.id)
         self.assertEqual([decode(frame)['type'] for frame in frames],
                          ['session.init', 'model.changed', 'session.ready'])
+
+    async def test_context_usage_comes_from_full_journal_when_replay_starts_after_history_page(self):
+        log = self.runtime.session.events
+        old = {'usedTokens': 12, 'limitTokens': 100, 'estimated': True}
+        usage = {'usedTokens': 25, 'limitTokens': 100, 'estimated': False}
+        log.append('context.measured', **old)
+        measured = log.append('context.measured', **usage)
+        for index in range(205):
+            log.append('turn.completed', answer=str(index))
+        page = history_page(log)
+        self.assertGreater(page['min_seq'], measured['seq'])
+        _, frames = await self.replay(after=page['snapshot_seq'])
+        self.assertEqual(decode(frames[0])['contextUsage'], usage)
+        self.assertEqual([decode(frame)['type'] for frame in frames], ['session.init', 'session.ready'])
+
+    async def test_model_change_invalidates_measurement_until_a_new_check(self):
+        log = self.runtime.session.events
+        usage = {'usedTokens': 25, 'limitTokens': 100, 'estimated': True}
+        log.append('context.measured', **usage)
+        changed = log.append('model.changed', new=self.config.model)
+        _, frames = await self.replay(after=changed['seq'])
+        self.assertIsNone(decode(frames[0])['contextUsage'])
+        measured = log.append('context.measured', **{**usage, 'usedTokens': 40})
+        _, frames = await self.replay(after=measured['seq'])
+        self.assertEqual(decode(frames[0])['contextUsage'], {**usage, 'usedTokens': 40})
+
+    async def test_context_usage_is_restored_from_journal_after_restart(self):
+        usage = {'usedTokens': 25, 'limitTokens': 100, 'estimated': False}
+        measured = self.runtime.session.events.append('context.measured', **usage)
+        restarted = SessionRegistry(self.config)
+        runtime = restarted.get(self.runtime.session.id)
+        try:
+            stream, frames = await self.replay(after=measured['seq'], runtime=runtime)
+            self.assertEqual(decode(frames[0])['contextUsage'], usage)
+            await stream.aclose()
+        finally:
+            runtime.queue.put(None)
+            runtime.worker.join(3)
+            restarted.store.database.close()
 
     async def test_writes_during_initial_read_are_delivered_after_replay_without_duplicates(self):
         log = self.runtime.session.events

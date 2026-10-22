@@ -7,7 +7,7 @@ describe('guidance delivery position', () => {
   const render = (guidance: TextItem['guidance']) => renderToStaticMarkup(<MessageList
     items={[{ id: 'old', kind: 'text', role: 'assistant', content: 'original response' },
       { id: 'guide', kind: 'text', role: 'user', content: 'new direction', guidance }]}
-    busy loading={false} assistantId="old" sessionId="test" images={[]} editingImage={false} onRenameImage={async () => true} />);
+    busy loading={false} assistantId="old" sessionId="test" images={[]} />);
 
   it('keeps progress before a submitted but unapplied user message without badges', () => {
     const html = render('queued');
@@ -33,7 +33,7 @@ describe('context feedback', () => {
   it('keeps existing messages visible while reconnecting and catching up', () => {
     const html = renderToStaticMarkup(<MessageList
       items={[{ id: 'old', kind: 'text', role: 'assistant', content: 'previously received text' }]}
-      busy loading assistantId="old" sessionId="test" images={[]} editingImage={false} onRenameImage={async () => true} />);
+      busy loading assistantId="old" sessionId="test" images={[]} />);
     expect(html).toContain('previously received text');
     expect(html).not.toContain('加载会话');
     expect(html).toContain('aria-busy="true"');
@@ -43,7 +43,7 @@ describe('context feedback', () => {
     for (const status of ['running', 'completed'] as const) {
       const html = renderToStaticMarkup(<MessageList items={[{ id: 'context:1', kind: 'context', status }]}
         busy={status === 'running'} loading={false} assistantId={null} sessionId="test" images={[]}
-        editingImage={false} onRenameImage={async () => true} />);
+        />);
       expect(html).toContain(status === 'running' ? '正在自动压缩上下文' : '上下文已自动压缩');
       expect(html).toContain('context-marker');
       expect(html).not.toContain('正在执行');
@@ -55,8 +55,7 @@ describe('tool expansion', () => {
   it('renders tool parameters and result underneath the clickable title in a details element', () => {
     const html = renderToStaticMarkup(<MessageList
       items={[{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'done' }]}
-      busy={false} loading={false} assistantId={null} sessionId="test" images={[]} editingImage={false}
-      onRenameImage={async () => true} />);
+      busy={false} loading={false} assistantId={null} sessionId="test" images={[]} />);
     expect(html).toMatch(/<details class="tool-card"><summary[^>]*>/);
     expect(html.indexOf('read_file')).toBeLessThan(html.indexOf('调用参数'));
     expect(html.indexOf('调用参数')).toBeLessThan(html.indexOf('工具结果'));

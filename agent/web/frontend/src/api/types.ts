@@ -37,7 +37,10 @@ export interface HistoryPage {
   has_more: boolean;
 }
 
+export interface ContextUsage { usedTokens: number; limitTokens: number; estimated: boolean }
+
 export interface SessionState {
+  contextUsage?: ContextUsage | null;
   id: string;
   seq: number;
   after: number;
@@ -73,7 +76,6 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'guidance.queued' | 'guidance.applied'; messageId: string; content: string; images?: ImageAsset[] }
   | { type: 'guidance.undelivered'; messageId: string }
   | { type: 'mailbox.notified'; messageIds: string[] }
-  | { type: 'image.renamed'; image: ImageAsset }
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
@@ -82,6 +84,7 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }
   | { type: 'completion.reminded'; content: string }
+  | ({ type: 'context.measured' } & ContextUsage)
   | { type: 'context.compaction.started'; compactionId: string; beforeTokens: number }
   | { type: 'context.compacted'; compactionId: string; beforeTokens: number; afterTokens: number }
   | { type: 'context.compaction.failed'; compactionId: string; reason: string }

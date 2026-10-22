@@ -1,0 +1,4 @@
+.context-meter { position: relative; display: inline-flex; align-items: center; margin-right: 8px; color: #858b96; vertical-align: middle; }
+.context-meter-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 10; padding: 6px 9px; border-radius: 6px; background: #34383f; color: white; font-size: 11px; white-space: nowrap; pointer-events: none; visibility: hidden; }
+.context-meter:hover .context-meter-tooltip, .context-meter:focus .context-meter-tooltip { visibility: visible; }
+.context-meter:focus-visible { outline: 2px solid #557cd6; outline-offset: 3px; border-radius: 50%; }

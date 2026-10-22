@@ -22,11 +22,15 @@ def initialize(runtime: SessionRuntime, after: int) -> tuple[dict, list[dict]]:
         cursor = 0 if reset else after
         model = next((event['new'] for event in reversed(records) if event['type'] == 'model.changed'), None)
         model = model or runtime.meta.get('model') or ModelCatalog(runtime.registry.config.providers_file).default().as_dict()
+        measurement = next((event for event in reversed(records)
+                            if event['type'] in {'context.measured', 'model.changed'}), None)
+        usage = ({key: measurement[key] for key in ('usedTokens', 'limitTokens', 'estimated')}
+                 if measurement and measurement['type'] == 'context.measured' else None)
         last_turn = next((event['type'] for event in reversed(records)
                           if event['type'] in TERMINAL | {'turn.started'}), None)
         state = {'type': 'session.init', 'id': runtime.session.id, 'seq': sequence, 'after': cursor,
                  'reset': reset, 'busy': runtime.busy and last_turn not in TERMINAL,
-                 'model': model, 'parent_session_id': runtime.parent_session_id,
+                 'model': model, 'contextUsage': usage, 'parent_session_id': runtime.parent_session_id,
                  'images': runtime.session.images.list()}
     return state, [event for event in records if event['seq'] > cursor]
 

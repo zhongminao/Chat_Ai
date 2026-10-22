@@ -17,10 +17,6 @@ MAX_IMAGE_PIXELS = 20_000_000
 FORMATS = {"PNG": ("image/png", "png"), "JPEG": ("image/jpeg", "jpg"), "WEBP": ("image/webp", "webp")}
 
 
-def image_number(ordinal: int) -> str:
-    return f"{ordinal:02d}"
-
-
 class ImageStore:
     def __init__(self, database: Database, session_id: str, session_directory: Path):
         self.database = database
@@ -39,14 +35,7 @@ class ImageStore:
                 return image
         raise FileNotFoundError("图片不存在")
 
-    @staticmethod
-    def _name(name: str) -> str:
-        name = name.strip()
-        if not name or len(name) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in name):
-            raise ValueError("图片名称需要 1–80 个字符，不能包含换行")
-        return name
-
-    def add(self, data: bytes, filename: str = "image", name: str | None = None) -> dict:
+    def add(self, data: bytes, filename: str = "image") -> dict:
         if not data or len(data) > MAX_IMAGE_BYTES:
             raise ValueError("图片不能为空，单张图片不能超过 10 MB")
         try:
@@ -65,7 +54,7 @@ class ImageStore:
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
             raise ValueError("无法读取图片文件") from exc
         filename = filename.replace("\\", "/").rsplit("/", 1)[-1][:200] or "image"
-        label = self._name(filename[:80] if name is None else name)
+        label = filename[:80]
         identifier = uuid.uuid4().hex
         digest = hashlib.sha256(data).hexdigest()
         self.root.mkdir(parents=True, exist_ok=True)
@@ -89,11 +78,11 @@ class ImageStore:
         return {"id": identifier, "name": label, "ordinal": ordinal, "mime": mime, "filename": filename,
                 "width": width, "height": height, "size": len(data), "extension": extension, "sha256": digest}
 
-    def add_file(self, path: Path, name: str | None = None) -> dict:
+    def add_file(self, path: Path) -> dict:
         if image := self.find_file(path):
-            return self.rename(image["id"], name) if name is not None else image
+            return image
         with path.expanduser().open("rb") as file:
-            return self.add(file.read(MAX_IMAGE_BYTES + 1), path.name, name)
+            return self.add(file.read(MAX_IMAGE_BYTES + 1), path.name)
 
     def find_file(self, path: Path) -> dict | None:
         """Reuse a saved path or an identical snapshot; changed bytes get a new ID."""
@@ -115,15 +104,6 @@ class ImageStore:
                 return image
         return None
 
-    def rename(self, selector: str, name: str) -> dict:
-        image = self.get(selector)
-        label = self._name(name)
-        with self.database.connect(write=True) as connection:
-            if not connection.execute('UPDATE images SET name=? WHERE session_id=? AND id=?',
-                                      (label, self.session_id, image['id'])).rowcount:
-                raise FileNotFoundError('图片不存在')
-        return {**image, 'name': label}
-
     def path(self, selector: str, preview: bool = False) -> Path:
         return self._path(self.get(selector), preview)
 
@@ -139,8 +119,7 @@ class ImageStore:
         return f"![{label}]({self.url(image)})"
 
     def describe(self, image: dict) -> str:
-        return (f"编号：{image_number(image['ordinal'])}\n名称：{image['name']}\n"
-                f"路径：{self._path(image).resolve()}")
+        return f"图片编号 {image['ordinal']}\n路径：{self._path(image).resolve()}"
 
     def data_url(self, selector: str) -> str:
         image = self.get(selector)

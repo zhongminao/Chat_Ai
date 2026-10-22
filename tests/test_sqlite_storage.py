@@ -121,7 +121,9 @@ time.sleep(60)
         image = self.session.images.add(png(), 'plot.png')
         messages = [{'role': 'system', 'content': 'system'}, {'role': 'user', 'content': 'summary', 'images': [image['id']]}]
         self.session.events.append('context.compacted', messages=messages)
-        self.session.images.rename(image['id'], '结果图')
+        # Legacy labels remain readable without a rename API.
+        with self.store.database.connect(write=True) as connection:
+            connection.execute('UPDATE images SET name=? WHERE id=?', ('结果图', image['id']))
         self.store.rename(self.session.id, '重启恢复')
         reopened = self.new_store()
         restored = reopened.open(self.session.id)

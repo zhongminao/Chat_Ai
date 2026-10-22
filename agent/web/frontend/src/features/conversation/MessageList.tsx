@@ -7,11 +7,10 @@ import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
 
-export function MessageList({ scrollRef, items, busy, loading, assistantId, sessionId, images, onRenameImage, editingImage, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
+export function MessageList({ scrollRef, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
   scrollRef?: RefObject<HTMLDivElement | null>;
   items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
-  sessionId: string | null; images: ImageAsset[]; editingImage: boolean;
-  onRenameImage: (id: string, name: string) => Promise<boolean>;
+  sessionId: string | null; images: ImageAsset[];
   waitingCallIds?: string[]; hasMore?: boolean; loadingMore?: boolean; historyError?: string | null;
   onLoadMore?: () => void; revision?: number;
 }) {
@@ -68,8 +67,7 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
   const renderExecution = (item: ExecutionItem) => item.kind === 'tool'
     ? <ToolCallCard key={item.id} item={item} onInspect={pauseFollowing} sessionId={sessionId} images={images} waiting={waitingCallIds.some(id => item.id === `tool:${id}`)} />
     : <article key={item.id} className={`message ${item.role}`} aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
-      {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId}
-        disabled={busy || editingImage} onRename={onRenameImage} /> : null}
+      {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId} /> : null}
       {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && !loading && item.id === assistantId} />}
     </article>;
 

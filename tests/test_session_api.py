@@ -19,12 +19,12 @@ from agent.web.images import image_router
 
 
 class SessionApiTests(unittest.TestCase):
-    def test_image_upload_rename_and_download_use_persisted_sqlite_metadata(self):
+    def test_image_upload_and_download_without_rename(self):
         with tempfile.TemporaryDirectory() as directory:
             registry = SessionRegistry(replace(load(), storage_dir=Path(directory), mcp={}))
             runtime = registry.create()
             app = FastAPI()
-            app.include_router(image_router(registry.store, registry.get))
+            app.include_router(image_router(registry.store))
             data = BytesIO()
             Image.new('RGB', (20, 10), 'blue').save(data, format='PNG')
             try:
@@ -34,12 +34,16 @@ class SessionApiTests(unittest.TestCase):
                     self.assertEqual(uploaded.status_code, 200)
                     image = uploaded.json()['image']
                     path = prefix + '/' + image['id']
-                    self.assertEqual(client.patch(path, json={'name': '结果图'}).status_code, 200)
+                    self.assertEqual(client.patch(path, json={'name': '结果图'}).status_code, 404)
                     self.assertEqual(client.get(path + '/content').content, data.getvalue())
                     self.assertEqual(client.get(path + '/content?preview=true').headers['content-type'], 'image/png')
-                    restored = SessionStore(Path(directory)).open(runtime.session.id)
-                    self.assertEqual(restored.images.list()[0]['name'], '结果图')
-                    self.assertEqual(restored.events.read()[-1]['type'], 'image.renamed')
+                    reopened = SessionStore(Path(directory))
+                    try:
+                        restored = reopened.open(runtime.session.id)
+                        self.assertEqual(restored.images.list()[0]['name'], 'plot.png')
+                        self.assertEqual(restored.events.read(), [])
+                    finally:
+                        reopened.database.close()
                     self.assertEqual(client.get(prefix + '/missing/content').status_code, 404)
             finally:
                 registry.delete(runtime.session.id)

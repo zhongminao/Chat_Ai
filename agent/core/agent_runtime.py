@@ -7,7 +7,6 @@ from ..model.buffer import TextBuffer
 from ..model.catalog import ModelCatalog, ModelTarget
 from ..model.tokens import count_request_tokens
 from ..model.context_summary import summarize_context
-from ..workflow.commands import RenameImage
 from ..workflow.input import UserInput, normalize_input
 from ..model.request_messages import model_image_ids
 from ..storage.images import ImageStore
@@ -109,11 +108,6 @@ class AgentRuntime:
                 result=result,
             )
             self.apply(message_updates.receive_tool(self.state, call.id, result))
-
-    def dispatch(self, command: RenameImage) -> dict:
-        image = self.images.rename(command.image, command.name)
-        self.log.append("image.renamed", image=image)
-        return image
 
     def run(
         self,
@@ -359,25 +353,28 @@ class AgentRuntime:
         identifiers = {"runId": transitions.execution(self.state)["id"], "compactionId": uuid.uuid4().hex}
         try:
             selected = context_compaction.plan(self.state, before, config)
-            if selected is None:
-                return
-            self.log.append("context.compaction.started", **identifiers, beforeTokens=before, counter=method)
-            summary = summarize_context(client, self.state["model"]["name"], provider, selected, config, context)
-            update = context_compaction.build_update(selected, summary)
-            after = measure(update["messages"])
-            context_compaction.validate_compacted_size(before, after, config)
-            context.cancellation.raise_if_cancelled()
-            # Commit the exact replacement before mutating memory. No await or
-            # cancellation check may split durable commit from applying it.
-            self.log.append("context.compacted", **identifiers, messages=update["messages"],
-                            beforeTokens=before, afterTokens=after, counter=method)
-            self.apply(update)
+            if selected is not None:
+                self.log.append("context.compaction.started", **identifiers, beforeTokens=before, counter=method)
+                summary = summarize_context(client, self.state["model"]["name"], provider, selected, config, context)
+                update = context_compaction.build_update(selected, summary)
+                after = measure(update["messages"])
+                context_compaction.validate_compacted_size(before, after, config)
+                context.cancellation.raise_if_cancelled()
+                # Commit the exact replacement before mutating memory. No await or
+                # cancellation check may split durable commit from applying it.
+                self.log.append("context.compacted", **identifiers, messages=update["messages"],
+                                beforeTokens=before, afterTokens=after, counter=method)
+                self.apply(update)
+                before = after
         except (RunCancelled, KeyboardInterrupt):
             self.log.append("context.compaction.cancelled", **identifiers)
             raise
         except Exception as exc:
             self.log.append("context.compaction.failed", **identifiers, reason=str(exc))
             raise
+
+        self.log.append("context.measured", usedTokens=before, limitTokens=config["trigger_tokens"],
+                        estimated=method != "llama_cpp")
 
     def prepare_input(self, prompt: str | UserInput) -> UserInput:
         value = normalize_input(prompt)

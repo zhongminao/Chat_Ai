@@ -5,15 +5,15 @@ from typing import Any
 
 DELEGATE_SCHEMA = {"type": "function", "function": {
     "name": "delegate",
-    "description": "Start an independent child task asynchronously and return its session_id immediately. Provide only user_prompt: the framework supplies the child's system instructions. The child receives this task, its own history and the shared workspace, and must submit a final report. It keeps running after your reply ends or is stopped. To check progress call watch() for all monitored resources, then reuse the latest watch cursor to wait. Results are not automatically injected into your conversation.",
+    "description": "Start an independent child task and return its session_id immediately. The child has its own history, configured system prompt and shared workspace, but cannot delegate. It keeps running after your reply ends. Results require watch and reading result_path.",
     "parameters": {"type": "object", "properties": {
-        "user_prompt": {"type": "string", "description": "Complete task, role if useful, necessary context, exact paths and expected deliverables."}},
+        "user_prompt": {"type": "string", "description": "Complete task, scope, permissions, context, paths, acceptance criteria and deliverables."}},
         "required": ["user_prompt"], "additionalProperties": False}}}
 
 
 NOTIFY_SCHEMA = {"type": "function", "function": {
     "name": "notify_agent",
-    "description": "Send a private, durable task-tree mailbox message. Main agents notify their children; children send feedback to their main agent and may cc siblings. New mail IDs are automatically batched as system runtime metadata at the same safe boundaries as user guidance, without bodies or read acknowledgement. Does not inject an ordinary conversation message or wake an idle main agent. Delivery to a child already submitting or finished fails.",
+    "description": "Send durable private task-tree mail: parent to active children, children to parent or siblings. Delivery fails when a child is submitting or finished. Mail IDs are notified automatically; bodies require read_agent_message. Mail does not wake an idle agent.",
     "parameters": {"type": "object", "properties": {
         "to": {"type": "string", "description": "Recipient session_id; child agents may use parent"},
         "content": {"type": "string", "description": "Message body"},
@@ -23,49 +23,48 @@ NOTIFY_SCHEMA = {"type": "function", "function": {
 
 INBOX_SCHEMA = {"type": "function", "function": {
     "name": "agent_inbox",
-    "description": "List agent-to-agent mailbox messages addressed to this agent. Use unread_only for unacknowledged messages; listing does not mark messages as read. New mail IDs are notified automatically; no inbox polling is required. Use read_agent_message for bodies and acknowledgement.",
+    "description": "List received task-tree mail without marking it read. unread_only filters unacknowledged mail. Use read_agent_message for bodies; automatic ID notifications make polling unnecessary.",
     "parameters": {"type": "object", "properties": {
         "unread_only": {"type": "boolean", "default": False}}, "additionalProperties": False}}}
 
 READ_MAIL_SCHEMA = {"type": "function", "function": {
     "name": "read_agent_message",
-    "description": "Read the body and acknowledge one agent-to-agent mailbox message addressed to this agent. Automatic ID-only runtime notifications do neither.",
+    "description": "Read and acknowledge one received task-tree message by message_id.",
     "parameters": {"type": "object", "properties": {
         "message_id": {"type": "string"}}, "required": ["message_id"], "additionalProperties": False}}}
 
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query background resources and private mailbox changes in this agent session; use only to query state or genuinely wait, not to poll for mail. New mail IDs are notified automatically as body-free system runtime metadata, without marking mail read; use read_agent_message to read/acknowledge. Notifications do not wake an idle main agent. Main agents also see child task progress. watch() immediately returns a full snapshot. One cursor covers the entire monitor, not one agent. watch(cursor=<latest returned cursor>, timeout=60) returns resources changed since that version, waiting for any change if needed. Always reuse the latest returned cursor; timeouts return empty changes and leave it unchanged. Each changed resource contains its latest state, not a full event history. Querying does not consume results; other readers keep independent cursors. For completed agents read result_path using read_file. For failed/cancelled agents inspect error before deciding what to do. Returns references/status, not report contents.",
+    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error. Do not poll for mail or wait when no relevant task remains.",
     "parameters": {"type": "object", "properties": {
         "cursor": {"type": ["integer", "null"], "minimum": 0,
-                   "description": "The exact cursor from your latest watch result: a version of this main session's entire monitor, never an agent index or session ID. Omit/null for a full snapshot."},
+                   "description": "Latest watch cursor; omit/null for a full snapshot."},
         "timeout": {"type": "number", "minimum": 0, "maximum": 120, "default": 0,
-                    "description": "Maximum seconds to wait for any resource change when cursor is provided. Without cursor, the snapshot returns immediately."}},
+                    "description": "Seconds to wait with cursor; ignored without cursor."}},
         "additionalProperties": False}}}
 
 
 SUBMIT_SCHEMA = {"type": "function", "function": {
     "name": "submit",
-    "description": "Attempt to submit the complete Markdown final report and end this execution. If new input is pending, submission is rejected: process that input and call submit again. A successful submission ends execution. Call alone. Main agents follow their system instructions to decide when to use it; child agents must successfully submit to complete their task.",
+    "description": "Submit the complete Markdown final report and end execution. Call alone. If rejected for pending input, process it and retry. Children must submit successfully to finish; main agents follow their system prompt.",
     "parameters": {"type": "object", "properties": {
-        "content": {"type": "string", "description": "The complete final report in Markdown. Include exact image URLs from show_image or child reports when displaying images."}},
+        "content": {"type": "string", "description": "Self-contained final report; preserve exact image URLs and local paths."}},
         "required": ["content"], "additionalProperties": False}}}
 
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
         "name": "read_image",
-        "description": "Inspect an existing PNG, JPEG or WebP image using the current model's vision. Use this to examine a plot or screenshot before deciding what to change. Requires a vision-capable model; does not publish a preview to the user.",
+        "description": "Inspect an existing PNG/JPEG/WebP with model vision; does not publish it. Requires a vision-capable model.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact file path, workspace-relative or absolute. Use the full saved session path supplied with an existing image. Image names, numbers and IDs are not paths; do not invent directories."}},
+            "path": {"type": "string", "description": "Exact workspace-relative or absolute file path. Reuse saved paths; image labels and IDs are not paths."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "show_image",
-        "description": "Publish an existing PNG, JPEG or WebP file as a conversation image and return its saved path. After generating a plot or screenshot, call this tool with the file path. It does not generate images.",
+        "description": "Publish an existing PNG/JPEG/WebP and return its Markdown reference. Does not generate or render images; render HTML first.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact file path, workspace-relative or absolute. Reuse the full saved session path returned by read_image to display that same image. Do not use a name, number or ID as a path."},
-            "name": {"type": "string", "description": "Optional display name; defaults to the original filename for new images. Names may repeat and are not image references. Setting a name for an existing image renames it."}},
+            "path": {"type": "string", "description": "Exact existing file path; reuse the saved path from read_image when publishing that image."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "read_file",

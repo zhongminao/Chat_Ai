@@ -20,6 +20,7 @@ from agent.storage.session import SessionStore
 from agent.tools.mcp.client import McpClient
 from agent.tools.mcp.results import convert_result
 from agent.tools.result import ToolResult
+from agent.tools.images import read_image, show_image
 from agent.tools.router import ToolRouter
 
 
@@ -54,6 +55,41 @@ class ImageTests(unittest.TestCase):
         again = convert_result(response, self.images, vision=True, known_images={identifier}, max_images=1)
         self.assertEqual(again.model_images[0]["id"], identifier)
         self.assertEqual(len(self.images.list()), 1)
+
+    def test_local_read_and_publish_have_compact_receipts(self):
+        source = self.root / 'plot.png'
+        source.write_bytes(base64.b64decode(picture().data))
+        read = read_image(self.root, self.images, str(source))
+        self.assertFalse(read.images)
+        self.assertIn('尚未向用户展示', read.text)
+        self.assertNotIn('来源：', read.text)
+        self.assertNotIn('名称：', read.text)
+        image = read.model_images[0]
+        messages = [{"role": "assistant", "content": "", "tool_calls": [
+            {"id": "read", "type": "function", "function": {"name": "read_image", "arguments": "{}"}}]},
+            build_tool_message('read', read.text, [image['id']])]
+        outgoing = request_messages(messages, self.images)
+        self.assertEqual(str(outgoing).count(str(self.images.path(image['id']))), 1)
+        published = show_image(self.root, self.images, str(self.images.path(image['id'])))
+        self.assertEqual(published.images[0]['id'], image['id'])
+        self.assertFalse(published.model_images)
+        self.assertIn(self.images.markdown(image), published.text)
+        self.assertEqual(len(self.images.list()), 1)
+
+    def test_separate_uploads_of_identical_bytes_keep_distinct_numbers_and_images(self):
+        data = base64.b64decode(picture().data)
+        first = self.images.add(data, 'same.png')
+        second = self.images.add(data, 'same.png')
+        self.assertNotEqual(first['id'], second['id'])
+        messages = [{"role": "user", "content": "比较图片", "images": [first['id'], second['id']]}]
+        content = request_messages(messages, self.images)[0]['content']
+        self.assertEqual(sum(part['type'] == 'image_url' for part in content), 2)
+        labels = [part['text'] for part in content if part['type'] == 'text']
+        self.assertIn(f"图片编号 1\n路径：{self.images.path(first['id'])}", labels)
+        self.assertIn(f"图片编号 2\n路径：{self.images.path(second['id'])}", labels)
+        repeated = request_messages([*messages, {"role": "user", "content": "再看第一张", "images": [first['id']]}], self.images)
+        self.assertFalse(any(part['type'] == 'image_url' for part in repeated[-1]['content']))
+        self.assertIn('此前已附图', repeated[-1]['content'][-1]['text'])
 
     def test_nonvision_model_displays_without_image_input(self):
         result = convert_result(types.CallToolResult(content=[picture()]), self.images)

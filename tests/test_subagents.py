@@ -137,7 +137,7 @@ class SubagentTests(unittest.TestCase):
             self.assertIn('<!-- image_file:', report)
             self.assertEqual(sum('](' + url + ')' in line for line in report.splitlines()), 1)
             api = FastAPI()
-            api.include_router(image_router(self.registry.store, self.registry.get))
+            api.include_router(image_router(self.registry.store))
             with TestClient(api) as client:
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200)

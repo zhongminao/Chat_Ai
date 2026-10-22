@@ -1,23 +1,24 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AccessMode, ImageAsset, Model, ModelGroup } from '../../api/types';
+import type { AccessMode, ContextUsage, ImageAsset, Model, ModelGroup } from '../../api/types';
 import { Icon } from '../../ui/Icon';
 import { ModelPicker } from '../models/ModelPicker';
 import { useImageDraft } from '../images/useImageDraft';
 import { ImageAttachments } from '../images/ImageAttachments';
+import { ContextMeter } from './ContextMeter';
 import { GuidanceQueue } from './GuidanceQueue';
 import { useGuidanceQueue } from './useGuidanceQueue';
 
 interface Props {
+  contextUsage?: ContextUsage | null;
   accessMode: AccessMode; accessDisabled: boolean; approvals: ReactNode;
   onAccessChange: (mode: AccessMode) => void;
   ready: boolean; connected: boolean; busy: boolean;
   status: string; readOnly: boolean;
-  pending: 'send' | 'guide' | 'stop' | 'model' | 'image' | null;
+  pending: 'send' | 'guide' | 'stop' | 'model' | null;
   model: Model | null; models: ModelGroup[];
   sessionId: string | null; images: ImageAsset[];
   onUploaded: (image: ImageAsset) => void;
-  onRenameImage: (id: string, name: string) => Promise<boolean>;
   onSend: (text: string, images: string[]) => Promise<boolean>;
   onGuide: (id: string, text: string, images: string[]) => Promise<boolean>;
   acceptedGuidance: string[];
@@ -42,7 +43,7 @@ export function Composer(props: Props) {
   const hasInput = Boolean(text.trim() || draft.ids.length);
   const stopAction = props.busy && !hasInput;
   const disabled = (props.readOnly && !stopAction) || !props.ready || !props.connected ||
-    Boolean(props.pending && props.pending !== 'image') || (!stopAction && (draft.uploading || !hasInput));
+    Boolean(props.pending) || (!stopAction && (draft.uploading || !hasInput));
   async function submit() {
     if (disabled) return;
     if (stopAction) { await props.onStop(); return; }
@@ -72,7 +73,7 @@ export function Composer(props: Props) {
       }}>
       {props.sessionId && <ImageAttachments sessionId={props.sessionId}
         images={draft.ids.map(id => props.images.find(image => image.id === id)).filter((image): image is ImageAsset => Boolean(image))}
-        disabled={!canEditImages} onRename={props.onRenameImage} onRemove={id => draft.remove([id])} />}
+        disabled={!canEditImages} onRemove={id => draft.remove([id])} />}
       {draft.uploading && <div className="image-draft-status" role="status">正在上传图片…</div>}
       {draft.error && <div className="image-draft-status image-draft-error" role="alert">{draft.error}</div>}
       <textarea ref={textarea} rows={2} aria-label="消息" placeholder={props.readOnly ? '子 agent 会话仅供查看' : '输入消息…'} value={text}
@@ -108,6 +109,7 @@ export function Composer(props: Props) {
       </div>
     </form>
     <div className="composer-hint connection-status" role="status">
+      <ContextMeter usage={props.contextUsage} />
       <span className={`connection-dot ${props.connected ? 'connected' : ''}`} />
       {props.pending === 'stop' ? '正在停止…' : props.status}
     </div>

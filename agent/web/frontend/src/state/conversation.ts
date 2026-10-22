@@ -1,4 +1,4 @@
-import type { AgentEvent, HistoryPage, ImageAsset, Model, SessionState } from '../api/types';
+import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionState } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
@@ -8,6 +8,7 @@ export type ContextCompactionItem = { id: string; kind: 'context'; status: 'runn
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
 export type Item = ExecutionItem | ReportItem | ContextCompactionItem;
 export interface Conversation {
+  contextUsage: ContextUsage | null;
   items: Item[];
   images: ImageAsset[];
   seq: number;
@@ -27,7 +28,7 @@ export interface Conversation {
 }
 
 export const emptyConversation = (): Conversation => ({
-  items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
+  contextUsage: null, items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
   model: null, error: null, session: null, execution: null,
   minSeq: 0, hasMore: false, history: [], snapshotSeq: 0, live: [], revision: 0,
 });
@@ -55,9 +56,6 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
         items: [...state.items, { id: `user:${event.seq}`, kind: 'text', role: 'user', content: event.prompt,
           images: event.images?.map(image => image.id) }] };
       break;
-    case 'image.renamed':
-      if (event.seq > (state.session?.seq ?? 0)) next.images = upsertImage(state.images, event.image);
-      break;
     case 'guidance.queued':
       next.items = [...state.items, { id: `guidance:${event.messageId}`, kind: 'text', role: 'user',
         content: event.content, images: event.images?.map(image => image.id), guidance: 'queued' }];
@@ -75,6 +73,9 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
         ? { ...item, guidance: 'undelivered' } : item);
       break;
     case 'model.started': next.assistantId = null; break;
+    case 'context.measured':
+      if (event.seq > (state.session?.seq ?? 0)) next.contextUsage = { usedTokens: event.usedTokens, limitTokens: event.limitTokens, estimated: event.estimated };
+      break;
     case 'context.compaction.started':
       next.assistantId = null;
       next.items = appendExecution(state.items, { id: `context:${event.compactionId}`, kind: 'context', status: 'running' });
@@ -130,7 +131,10 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       next.assistantId = null;
       break;
     }
-    case 'model.changed': next.model = event.new; break;
+    case 'model.changed':
+      next.model = event.new;
+      if (event.seq > (state.session?.seq ?? 0)) next.contextUsage = null;
+      break;
     case 'turn.failed':
     case 'error':
       next.error = event.type === 'turn.failed' ? event.reason : event.reason ?? event.message;
@@ -185,13 +189,12 @@ function rebuild(state: Conversation, history: AgentEvent[], live: AgentEvent[],
   const later = live.filter(event => event.seq > snapshot);
   const changedModel = later.filter(event => event.type === 'model.changed').at(-1);
   const images = later.reduce((assets, event) => {
-    if (event.type === 'image.renamed') assets = upsertImage(assets, event.image);
     if ('images' in event) for (const image of event.images ?? []) assets = upsertImage(assets, image);
     return assets;
   }, state.images);
   result = { ...result,
     model: changedModel?.type === 'model.changed' ? changedModel.new : state.model,
-    images,
+    images, contextUsage: state.contextUsage,
     busy: state.busy,
     ready: state.ready, error: state.error };
   if (state.ready && !state.busy) result.items = interruptPending(result.items);
@@ -217,7 +220,7 @@ export function conversationReducer(state: Conversation, action: Action): Conver
       return rebuild(state, history, state.live, page);
     }
     case 'initialize': return { ...(action.session.reset ? emptyConversation() : state),
-      session: action.session, ready: false, model: action.session.model,
+      session: action.session, contextUsage: action.session.contextUsage ?? null, ready: false, model: action.session.model,
       images: action.session.images ?? [], busy: action.session.busy };
     case 'ready': {
       if (!state.session || action.seq !== state.session.seq || state.seq < action.seq) return state;
@@ -233,7 +236,7 @@ export function conversationReducer(state: Conversation, action: Action): Conver
       return incoming.length ? { ...next, live: [...state.live, ...incoming] } : next;
     }
     case 'busy': return { ...state, busy: action.busy };
-    case 'model': return { ...state, model: action.model };
+    case 'model': return { ...state, model: action.model, contextUsage: null };
     case 'image': return { ...state, images: upsertImage(state.images, action.image) };
     case 'error': return { ...state, error: action.error };
   }

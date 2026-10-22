@@ -28,10 +28,9 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
   const moreController = useRef<AbortController | null>(null);
   const [historyAttempt, setHistoryAttempt] = useState(0);
   const [streamFailed, setStreamFailed] = useState(false);
-  const [pending, setPending] = useState<'send' | 'guide' | 'stop' | 'model' | 'image' | null>(null);
+  const [pending, setPending] = useState<'send' | 'guide' | 'stop' | 'model' | null>(null);
   const generation = useRef(0);
   const commandPending = useRef(false);
-  const renameBarrier = useRef<Promise<boolean>>(Promise.resolve(true));
   const changed = useRef(onSessionsChanged);
   changed.current = onSessionsChanged;
 
@@ -43,7 +42,6 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     if (id) cache.current.delete(id);
     sendAction(cached && cached.history.length ? { type: 'restore', view: cached } : { type: 'reset' });
     setLoadedId(null); setConnected(false); setPending(null); setStopRequested(false); commandPending.current = false;
-    renameBarrier.current = Promise.resolve(true);
     let replayThrough = 0;
     const controller = new AbortController();
     let close: (() => void) | undefined;
@@ -135,7 +133,7 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     }
   }
 
-  async function command(kind: 'send' | 'guide' | 'stop' | 'model' | 'image', operation: (session: string) => Promise<unknown>): Promise<boolean> {
+  async function command(kind: 'send' | 'guide' | 'stop' | 'model', operation: (session: string) => Promise<unknown>): Promise<boolean> {
     if (!id || commandPending.current) return false;
     const version = generation.current;
     commandPending.current = true;
@@ -157,35 +155,15 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     }
   }
 
-  function renameImage(image: string, name: string) {
-    const operation = command('image', async session => {
-      const version = generation.current;
-      const result = await api.renameImage(session, image, name);
-      if (version === generation.current) sendAction({ type: 'image', image: result.image });
-    });
-    renameBarrier.current = operation;
-    return operation;
-  }
-
-  async function sendMessage(content: string, images: string[] = []) {
-    const version = generation.current;
-    const barrier = renameBarrier.current;
-    const saved = await barrier;
-    if (barrier === renameBarrier.current) renameBarrier.current = Promise.resolve(true);
-    if (!saved || version !== generation.current) return false;
-    return command('send', session => api.send(session, content, images));
-  }
-
   return {
     ...displayed,
     loadMore, loadingMore, historyError, retryHistory: () => setHistoryAttempt(value => value + 1),
     ready: displayed.ready && loadedId === id && !streamFailed,
     connected: connected && loadedId === id && !streamFailed,
     pending: pending ?? (displayed.busy && stopRequested ? 'stop' : null),
-    send: sendMessage,
+    send: (content: string, images: string[] = []) => command('send', session => api.send(session, content, images)),
     guide: (messageId: string, text: string, images: string[]) => command('guide', session => api.guide(session, messageId, text, images)),
     registerImage: (image: ImageAsset) => sendAction({ type: 'image', image }),
-    renameImage,
     stop: () => command('stop', session => api.stop(session)),
     switchModel: (provider: string, model: string) => command('model', async session => {
       const version = generation.current;

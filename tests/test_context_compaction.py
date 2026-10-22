@@ -159,7 +159,25 @@ class CompactionRuntimeTests(unittest.TestCase):
         self.runtime.queue.put(None)
         self.runtime.worker.join(5)
         self.binding.stop()
+        self.registry.store.database.close()
         self.temp.cleanup()
+
+    def test_under_threshold_records_existing_count_without_extra_requests(self):
+        for method in ["estimate", "llama_cpp", "other"]:
+            with self.subTest(method=method), \
+                 patch.object(self.agent.catalog, "token_counter", return_value=method), \
+                 patch("agent.core.agent_runtime.count_request_tokens", return_value=42) as counter, \
+                 patch("agent.core.agent_runtime.summarize_context") as summary, \
+                 patch("agent.core.agent_runtime.stream", return_value=iter([ModelChunk(content="ok")])):
+                self.runtime.enqueue("new")
+                self.registry.wait()
+            counter.assert_called_once()
+            self.assertEqual(counter.call_args.kwargs["method"], method)
+            summary.assert_not_called()
+            event = next(event for event in reversed(self.runtime.session.events.read())
+                         if event["type"] == "context.measured")
+            self.assertEqual({key: event[key] for key in ("usedTokens", "limitTokens", "estimated")},
+                             {"usedTokens": 42, "limitTokens": 100, "estimated": method != "llama_cpp"})
 
     def test_user_boundary_commits_before_request_and_factory_restores(self):
         def model(*args, **kwargs):
@@ -169,13 +187,20 @@ class CompactionRuntimeTests(unittest.TestCase):
             self.assertEqual(checkpoint["messages"][-1]["content"], "new")
             yield ModelChunk(content="continued")
 
-        with patch("agent.core.agent_runtime.count_request_tokens", side_effect=[150, 50]), \
+        with patch("agent.core.agent_runtime.count_request_tokens", side_effect=[150, 50]) as counter, \
              patch("agent.core.agent_runtime.summarize_context", return_value="summary") as summary, \
              patch("agent.core.agent_runtime.stream", side_effect=model):
             self.runtime.enqueue("new")
             self.registry.wait()
         summary.assert_called_once()
+        self.assertEqual(counter.call_count, 2)
         records = self.runtime.session.events.read()
+        measured = [event for event in records if event["type"] == "context.measured"]
+        self.assertEqual(len(measured), 1)
+        self.assertEqual(measured[0]["usedTokens"], 50)
+        self.assertEqual(measured[0]["limitTokens"], 100)
+        checkpoint = next(event for event in records if event["type"] == "context.compacted")
+        self.assertGreater(measured[0]["seq"], checkpoint["seq"])
         restored = build_state(self.config, {}, records)
         self.assertEqual(restored["messages"], self.agent.state["messages"])
         self.assertEqual(self.agent.state["execution"]["status"], "completed")
@@ -220,6 +245,7 @@ class CompactionRuntimeTests(unittest.TestCase):
         kinds = [e["type"] for e in self.runtime.session.events.read()]
         self.assertNotIn("context.compacted", kinds)
         self.assertEqual(kinds.count("context.compaction.failed"), 3)
+        self.assertNotIn("context.measured", kinds)
 
     def test_stop_during_summary_keeps_messages_and_publishes_cancelled(self):
         entered = threading.Event()
@@ -242,6 +268,7 @@ class CompactionRuntimeTests(unittest.TestCase):
         self.assertEqual(self.agent.state["messages"][-1], {"role": "user", "content": "new"})
         kinds = [e["type"] for e in self.runtime.session.events.read()]
         self.assertIn("context.compaction.cancelled", kinds)
+        self.assertNotIn("context.measured", kinds)
         self.assertNotIn("context.compacted", kinds)
         self.assertEqual(self.agent.state["execution"]["status"], "cancelled")
 
@@ -254,6 +281,7 @@ class CompactionRuntimeTests(unittest.TestCase):
             self.registry.wait()
         counter.assert_not_called()
         summary.assert_not_called()
+        self.assertNotIn("context.measured", [event["type"] for event in self.runtime.session.events.read()])
 
     def test_cli_one_shot_consumes_the_same_runtime_events(self):
         from agent.cli.main import main

@@ -56,7 +56,7 @@ export function App() {
       <MessageList scrollRef={layout.viewport} key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
         waitingCallIds={waitingCallIds} hasMore={conversation.hasMore} loadingMore={conversation.loadingMore}
         historyError={conversation.historyError} onLoadMore={() => { void conversation.loadMore(); }} revision={conversation.revision}
-        sessionId={sessions.selected} images={conversation.images} editingImage={Boolean(conversation.pending)} onRenameImage={conversation.renameImage}
+        sessionId={sessions.selected} images={conversation.images}
         loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error && !conversation.items.length)} />
       <div ref={layout.bottom} className="workspace-bottom">
         <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={conversation.ready} connected={conversation.connected}
@@ -64,9 +64,9 @@ export function App() {
           onAccessChange={approvals.setMode}
           approvals={<ApprovalPanel requests={approvals.snapshot?.pending ?? []} sessionId={sessions.selected}
             disabled={approvals.pending} onDecide={approvals.decide} onStop={approvals.stop} />}
-          status={status} readOnly={readOnly}
+          contextUsage={conversation.contextUsage} status={status} readOnly={readOnly}
           busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}
-          sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage} onRenameImage={conversation.renameImage}
+          sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage}
           acceptedGuidance={conversation.items.filter(item => item.kind === 'text' && item.guidance).map(item => item.id.slice('guidance:'.length))}
           onSend={conversation.send} onGuide={conversation.guide} onStop={conversation.stop} onModelChange={conversation.switchModel} />
       </div>

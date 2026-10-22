@@ -86,7 +86,7 @@ def runtime(session_id: str) -> SessionRuntime:
         raise HTTPException(404, "Session not found") from exc
 
 
-app.include_router(image_router(session_store, runtime))
+app.include_router(image_router(session_store))
 
 
 @app.get("/")
