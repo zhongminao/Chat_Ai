@@ -140,7 +140,7 @@ class AgentRuntime:
         self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
 
         for round_no in range(self.max_rounds):
-            self._deliver_guidance(context)
+            self._deliver_inputs(context)
             self.apply(transitions.start_round(self.state, round_no))
             model = self.state["model"]
             client, provider = self.catalog.get_binding(ModelTarget(**model))
@@ -148,7 +148,7 @@ class AgentRuntime:
             self.tools.vision = vision
             self.tools.image_limit = image_limit
             self._compact(client, provider, vision, context)
-            if self._deliver_guidance(context):
+            if self._deliver_inputs(context):
                 self._compact(client, provider, vision, context)
             assembler = ToolCallAssembler()
             stream_guard = ModelStreamGuard()
@@ -317,17 +317,16 @@ class AgentRuntime:
 
     def _begin_submit(self, context):
         if self.begin_submit:
-            return self.begin_submit(self._deliver_guidance, context)
-        return self._deliver_guidance(context, finish=True)
+            return self.begin_submit(self._deliver_inputs, context)
+        return self._deliver_inputs(context, finish=True)
 
-    def _deliver_guidance(self, context, *, finish=False):
+    def _deliver_inputs(self, context, *, finish=False):
         context.cancellation.raise_if_cancelled()
         if not self.steering:
             return False
         values = self.steering.take(transitions.execution(self.state)['id'], finish=finish)
-        for value in values:
-            self.apply(message_updates.receive_user(self.state, value.text, value.images))
         if values:
+            self.apply({"messages": [*self.state["messages"], *values]})
             # A submit generated before the new requirements is only a candidate.
             self.apply(transitions.update_execution(self.state, report=None, report_path=None, completion_reminders=0))
         return bool(values)

@@ -16,6 +16,16 @@ function replay(events: AgentEvent[], snap = initialState(events.at(-1)?.seq ?? 
 }
 
 describe('existing event protocol -> conversation', () => {
+  it('does not render runtime mailbox notices in live or restored conversation', () => {
+    const notice: AgentEvent = { seq: 4, type: 'mailbox.notified', messageIds: ['private-mail-id'] };
+    const before = replay([start, modelStart, text], initialState(3, true));
+    const live = reduce(before, { type: 'events', events: [notice] });
+    expect(live.items).toEqual(before.items);
+    const restored = replay([start, modelStart, text, notice], initialState(4, true));
+    expect(restored.items).toEqual(before.items);
+    expect(JSON.stringify(restored.items)).not.toContain('private-mail-id');
+  });
+
   it('waits for explicit replay completion, including empty history', () => {
     const empty = reduce(emptyConversation(), { type: 'initialize', session: initialState(0) });
     expect(empty.ready).toBe(false);

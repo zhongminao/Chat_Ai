@@ -13,7 +13,7 @@ DELEGATE_SCHEMA = {"type": "function", "function": {
 
 NOTIFY_SCHEMA = {"type": "function", "function": {
     "name": "notify_agent",
-    "description": "Send a private, durable task-tree mailbox message. Main agents notify their children; children send feedback to their main agent and may cc siblings. Does not inject a chat message. Delivery to a child already submitting or finished fails.",
+    "description": "Send a private, durable task-tree mailbox message. Main agents notify their children; children send feedback to their main agent and may cc siblings. New mail IDs are automatically batched as system runtime metadata at the same safe boundaries as user guidance, without bodies or read acknowledgement. Does not inject an ordinary conversation message or wake an idle main agent. Delivery to a child already submitting or finished fails.",
     "parameters": {"type": "object", "properties": {
         "to": {"type": "string", "description": "Recipient session_id; child agents may use parent"},
         "content": {"type": "string", "description": "Message body"},
@@ -23,20 +23,20 @@ NOTIFY_SCHEMA = {"type": "function", "function": {
 
 INBOX_SCHEMA = {"type": "function", "function": {
     "name": "agent_inbox",
-    "description": "List agent-to-agent mailbox messages addressed to this agent. Use unread_only for unacknowledged messages; listing does not mark messages as read.",
+    "description": "List agent-to-agent mailbox messages addressed to this agent. Use unread_only for unacknowledged messages; listing does not mark messages as read. New mail IDs are notified automatically; no inbox polling is required. Use read_agent_message for bodies and acknowledgement.",
     "parameters": {"type": "object", "properties": {
         "unread_only": {"type": "boolean", "default": False}}, "additionalProperties": False}}}
 
 READ_MAIL_SCHEMA = {"type": "function", "function": {
     "name": "read_agent_message",
-    "description": "Read and acknowledge one agent-to-agent mailbox message addressed to this agent.",
+    "description": "Read the body and acknowledge one agent-to-agent mailbox message addressed to this agent. Automatic ID-only runtime notifications do neither.",
     "parameters": {"type": "object", "properties": {
         "message_id": {"type": "string"}}, "required": ["message_id"], "additionalProperties": False}}}
 
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query background resources and private mailbox changes in this agent session. Main agents also see child task progress. watch() immediately returns a full snapshot. One cursor covers the entire monitor, not one agent. watch(cursor=<latest returned cursor>, timeout=60) returns resources changed since that version, waiting for any change if needed. Always reuse the latest returned cursor; timeouts return empty changes and leave it unchanged. Each changed resource contains its latest state, not a full event history. Querying does not consume results; other readers keep independent cursors. For completed agents read result_path using read_file. For failed/cancelled agents inspect error before deciding what to do. Returns references/status, not report contents.",
+    "description": "Query background resources and private mailbox changes in this agent session; use only to query state or genuinely wait, not to poll for mail. New mail IDs are notified automatically as body-free system runtime metadata, without marking mail read; use read_agent_message to read/acknowledge. Notifications do not wake an idle main agent. Main agents also see child task progress. watch() immediately returns a full snapshot. One cursor covers the entire monitor, not one agent. watch(cursor=<latest returned cursor>, timeout=60) returns resources changed since that version, waiting for any change if needed. Always reuse the latest returned cursor; timeouts return empty changes and leave it unchanged. Each changed resource contains its latest state, not a full event history. Querying does not consume results; other readers keep independent cursors. For completed agents read result_path using read_file. For failed/cancelled agents inspect error before deciding what to do. Returns references/status, not report contents.",
     "parameters": {"type": "object", "properties": {
         "cursor": {"type": ["integer", "null"], "minimum": 0,
                    "description": "The exact cursor from your latest watch result: a version of this main session's entire monitor, never an agent index or session ID. Omit/null for a full snapshot."},

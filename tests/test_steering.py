@@ -14,13 +14,13 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from agent.core.session_registry import SessionRegistry
-from agent.core.steering import SteeringQueue
+from agent.core.steering import InputDelivery
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.web import app as web
 from agent.workflow.config import load
 from agent.workflow.context_compaction import plan
 from agent.workflow.input import UserInput
-from agent.workflow.message_replay import restore_model_messages
+from agent.workflow.message_replay import restore_model_messages, restore_display_messages
 
 
 class SteeringTests(unittest.TestCase):
@@ -159,10 +159,10 @@ class SteeringTests(unittest.TestCase):
 
     def test_finalization_closes_acceptance_atomically_and_sent_content_is_immutable(self):
         records = []
-        queue = SteeringQueue(threading.RLock(), lambda typ, **e: records.append({'type': typ, **e}), [])
+        queue = InputDelivery(threading.RLock(), lambda typ, **e: records.append({'type': typ, **e}), [])
         queue.begin()
         queue.add('a', UserInput('original'), [])
-        self.assertEqual(queue.take('run', finish=True), [UserInput('original')])
+        self.assertEqual(queue.take('run', finish=True), [{'role': 'user', 'content': 'original'}])
         self.assertTrue(queue.accepting)
         self.assertEqual(queue.take('run', finish=True), [])
         self.assertFalse(queue.accepting)
@@ -179,6 +179,92 @@ class SteeringTests(unittest.TestCase):
                     {'role': 'user', 'content': 'guide one'}, {'role': 'user', 'content': 'guide two'}]
         selected = plan({'messages': messages}, 10, {'enabled': True, 'trigger_tokens': 5})
         self.assertEqual(selected['retained'], messages[4:])
+
+    def test_mail_and_guidance_share_one_safe_batch_without_exposing_bodies(self):
+        child = self.registry.create(parent_session_id=self.main.session.id)
+        with self.patched():
+            self.main.enqueue('initial request')
+            self.assertTrue(self.entered.wait(3))
+            self.main.send('user revision', 'guide')
+            ids = [self.registry.notify_agent(child.session.id, self.main.session.id, body, kind='feedback')['id']
+                   for body in ('private body one', 'private body two')]
+            self.release.set()
+            self.registry.wait()
+        self.assertEqual(len(self.requests), 2)
+        messages = self.requests[1]
+        self.assertEqual([m['role'] for m in messages[-4:]], ['tool', 'tool', 'user', 'system'])
+        self.assertEqual(messages[-2]['content'], 'user revision')
+        for identifier in ids:
+            self.assertIn(identifier, messages[-1]['content'])
+        self.assertNotIn('private body', str(messages))
+        self.assertEqual(self.registry.mailbox_unread_count(self.main.session.id), 2)
+        events = self.main.session.events.read()
+        self.assertEqual(sum(e['type'] == 'mailbox.notified' for e in events), 1)
+        display = restore_display_messages(events)
+        self.assertFalse(any(message['role'] == 'system' for message in display))
+        self.assertFalse(any(identifier in str(display) for identifier in ids))
+        self.assertEqual(restore_model_messages(events, messages[0]), self.main.state['messages'])
+
+    def test_child_receives_parent_mail_without_polling_and_seals_submission(self):
+        child = self.registry.create(parent_session_id=self.main.session.id)
+        def stream(client, model, messages, *args, **kwargs):
+            self.requests.append(copy.deepcopy(messages))
+            if len(self.requests) == 1:
+                self.entered.set()
+                self.assertTrue(self.release.wait(3))
+            yield ModelChunk(tool_deltas=(ToolCallDelta(
+                0, str(len(self.requests)), 'submit', json.dumps({'content': 'done'})),), finish_reason='tool_calls')
+        with self.patched(stream):
+            child.start(UserInput('child task'))
+            self.assertTrue(self.entered.wait(3))
+            identifier = self.registry.notify_agent(self.main.session.id, child.session.id, 'parent direction')['id']
+            self.release.set()
+            self.registry.wait()
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.requests[1][-1]['role'], 'system')
+        self.assertIn(identifier, self.requests[1][-1]['content'])
+        self.assertEqual(self.registry.mailbox_unread_count(child.session.id), 1)
+        with self.assertRaises(ValueError):
+            self.registry.notify_agent(self.main.session.id, child.session.id, 'too late')
+
+    def test_mail_blocks_submission_once_and_restores_deduplication(self):
+        records, mail = [], [{'id': 'first'}]
+        emit = lambda typ, **fields: records.append({'type': typ, **fields})
+        delivery = InputDelivery(threading.RLock(), emit, [], inbox=lambda: mail)
+        delivery.begin()
+        delivery.add('guide', UserInput('revision'), [])
+        batch = delivery.take('run', finish=True)
+        self.assertEqual([m['role'] for m in batch], ['user', 'system'])
+        self.assertTrue(delivery.accepting)
+        # Arrival after the first batch is delivered at the next boundary.
+        mail.append({'id': 'second'})
+        self.assertIn('second', delivery.take('run', finish=True)[0]['content'])
+        self.assertEqual(delivery.take('run', finish=True), [])
+        self.assertFalse(delivery.accepting)
+        restored = InputDelivery(threading.RLock(), emit, records, inbox=lambda: mail)
+        restored.begin()
+        self.assertEqual(restored.take('next'), [])
+
+    def test_new_mail_invalidates_candidate_submit_without_watch(self):
+        child = self.registry.create(parent_session_id=self.main.session.id)
+        def stream(client, model, messages, *args, **kwargs):
+            self.requests.append(copy.deepcopy(messages))
+            if len(self.requests) == 1:
+                self.entered.set()
+                self.assertTrue(self.release.wait(3))
+            answer = 'old' if len(self.requests) == 1 else 'revised'
+            yield ModelChunk(tool_deltas=(ToolCallDelta(
+                0, answer, 'submit', json.dumps({'content': answer})),), finish_reason='tool_calls')
+        with self.patched(stream):
+            self.main.enqueue('initial')
+            self.assertTrue(self.entered.wait(3))
+            identifier = self.registry.notify_agent(child.session.id, self.main.session.id, 'change plan', kind='feedback')['id']
+            self.release.set()
+            self.registry.wait()
+        self.assertEqual(len(self.requests), 2)
+        self.assertIn(identifier, self.requests[1][-1]['content'])
+        self.assertEqual([e['content'] for e in self.main.session.events.read()
+                          if e['type'] == 'report.submitted'], ['revised'])
 
     def test_cli_reads_guidance_while_execution_is_running(self):
         from agent.cli.main import main

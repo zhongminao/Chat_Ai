@@ -5,7 +5,7 @@ import uuid
 
 from .bus import EventBus
 from .control import ExecutionControl
-from .steering import SteeringQueue
+from .steering import InputDelivery
 from .agent_factory import build_agent, build_state
 from ..storage import reports
 from ..model.catalog import ModelCatalog
@@ -34,7 +34,9 @@ class SessionRuntime:
             self.approvals = ApprovalGate(mode, self.session.events.append)
         self.control = ExecutionControl()
         self.lock = threading.RLock()
-        self.steering = SteeringQueue(self.lock, self.session.events.append, self.session.events.read())
+        self.steering = InputDelivery(
+            self.lock, self.session.events.append, self.session.events.read(),
+            inbox=lambda: registry.mailbox_list(session_id, unread_only=True))
         self._agent_lock = threading.Lock()
         self._state_lock = threading.Lock()
         self._state: AgentState | None = None

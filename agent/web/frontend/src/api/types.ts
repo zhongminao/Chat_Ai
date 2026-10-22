@@ -70,6 +70,7 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'turn.started'; prompt: string; images?: ImageAsset[] }
   | { type: 'guidance.queued' | 'guidance.applied'; messageId: string; content: string; images?: ImageAsset[] }
   | { type: 'guidance.undelivered'; messageId: string }
+  | { type: 'mailbox.notified'; messageIds: string[] }
   | { type: 'image.renamed'; image: ImageAsset }
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }

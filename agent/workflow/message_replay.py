@@ -1,4 +1,4 @@
-from .message_updates import assistant_message
+from .message_updates import assistant_message, mailbox_notice
 from ..tools.schema import ToolCallAssembler
 from ..model.request_messages import build_user_message, build_tool_message
 
@@ -15,11 +15,11 @@ def restore_model_messages(events: list[dict], system: dict) -> list[dict]:
             saved = events[index]["messages"]
             # As before compaction, explicit config changes update the role's
             # system prompt. All persisted conversation messages stay exact.
-            return _restore(events[index + 1:], [system, *saved[1:]], tool_names=False)
-    return [system, *_restore(events, [], tool_names=False)]
+            return _restore(events[index + 1:], [system, *saved[1:]], tool_names=False, runtime_notices=True)
+    return [system, *_restore(events, [], tool_names=False, runtime_notices=True)]
 
 
-def _restore(events: list[dict], initial: list[dict], *, tool_names=True) -> list[dict]:
+def _restore(events: list[dict], initial: list[dict], *, tool_names=True, runtime_notices=False) -> list[dict]:
     messages = list(initial)
     text = []
     assembler = ToolCallAssembler()
@@ -38,6 +38,8 @@ def _restore(events: list[dict], initial: list[dict], *, tool_names=True) -> lis
         kind = event["type"]
         if kind == 'guidance.applied':
             messages.append(build_user_message(event['content'], [i['id'] for i in event.get('images', [])]))
+        elif kind == 'mailbox.notified' and runtime_notices:
+            messages.append(mailbox_notice(event['messageIds']))
         elif kind == "turn.started":
             close_pending()
             text = []
