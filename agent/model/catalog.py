@@ -14,6 +14,7 @@ class ModelTarget:
     provider: str
     name: str
     thinking: str
+    reasoning_effort: str = ""
 
     def as_dict(self) -> dict[str, str]:
         return {
@@ -47,6 +48,7 @@ class ModelCatalog:
             provider=provider_name,
             name=model_name,
             thinking=provider.get("thinking", "disabled"),
+            reasoning_effort=(entry or {}).get("reasoning_effort", ""),
         )
 
     def default(self) -> ModelTarget:
@@ -72,7 +74,8 @@ class ModelCatalog:
         api_key = api_key or provider.get("api_key_default")
         if not api_key:
             raise RuntimeError(f"missing environment variable: {env_name}")
-        adapter = create_provider(target.provider, target.thinking, model=target.name)
+        adapter = create_provider(target.provider, target.thinking, model=target.name,
+                                  reasoning_effort=target.reasoning_effort)
         base_url = os.getenv(provider.get("base_url_env", "")) or provider["base_url"]
         binding = (ModelHttpClient(api_key=api_key, base_url=base_url), adapter)
         previous = self._binding

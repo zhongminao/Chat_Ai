@@ -7,18 +7,23 @@ providers:
     api_key_default: gateway
     base_url: http://127.0.0.1:18100/gpt/v1
     thinking: disabled
-    default_model: gpt-6-sol
+    default_model: gpt-6.1-sol
     models:
       - id: gpt-5.5
         name: GPT-5.5
+        reasoning_effort: medium
       - id: gpt-5.6-terra
         name: GPT-5.6 Terra
+        reasoning_effort: medium
       - id: gpt-5.6-sol
         name: GPT-5.6 Sol
+        reasoning_effort: medium
       - id: gpt-6-astra
         name: GPT-6 Astra
-      - id: gpt-6-sol
-        name: GPT-6 Sol
+        reasoning_effort: medium
+      - id: gpt-6.1-sol
+        name: GPT-6.1 Sol
+        reasoning_effort: high
 
   deepseek:
     display_name: DeepSeek
