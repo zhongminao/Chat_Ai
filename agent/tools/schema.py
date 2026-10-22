@@ -110,7 +110,10 @@ class ToolCallAssembler:
     def add(self, delta: dict[str, Any]) -> None:
         index = int(delta.get("index", 0))
         call = self.calls.setdefault(index, {"id": "", "name": "", "arguments": ""})
-        call["id"] += str(delta.get("id") or "")
+        call_id = str(delta.get("id") or "")
+        # Some providers repeat the complete ID instead of sending only fragments.
+        if call_id != call["id"]:
+            call["id"] += call_id
         function = delta.get("function") or {}
         call["name"] += str(function.get("name") or "")
         call["arguments"] += str(function.get("arguments") or "")
