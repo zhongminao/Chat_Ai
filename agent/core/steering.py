@@ -32,6 +32,10 @@ class InputDelivery:
             self.received[identifier] = value
             self.pending.append(item)
 
+    def has_pending(self):
+        with self.lock:
+            return bool(self.pending or any(item['id'] not in self.notified for item in self.inbox()))
+
     def take(self, run_id, *, finish=False):
         with self.lock:
             items = list(self.pending)

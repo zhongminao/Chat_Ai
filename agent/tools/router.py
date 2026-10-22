@@ -87,7 +87,7 @@ class ToolRouter:
                     raise ValueError(f"{name} is unavailable")
                 if name == "watch":
                     return json.dumps(handler(context=context, **arguments), ensure_ascii=False)
-                return handler(**arguments)
+                return handler(context=context, **arguments) if name == "submit" else handler(**arguments)
             except RunCancelled:
                 raise
             except Exception as exc:

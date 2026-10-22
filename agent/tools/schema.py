@@ -47,7 +47,7 @@ WATCH_SCHEMA = {"type": "function", "function": {
 
 SUBMIT_SCHEMA = {"type": "function", "function": {
     "name": "submit",
-    "description": "Submit the complete Markdown final report and end this execution. Call alone. Main agents follow their system instructions to decide when to use it; child agents must call it exactly once on completion.",
+    "description": "Attempt to submit the complete Markdown final report and end this execution. If new input is pending, submission is rejected: process that input and call submit again. A successful submission ends execution. Call alone. Main agents follow their system instructions to decide when to use it; child agents must successfully submit to complete their task.",
     "parameters": {"type": "object", "properties": {
         "content": {"type": "string", "description": "The complete final report in Markdown. Include exact image URLs from show_image or child reports when displaying images."}},
         "required": ["content"], "additionalProperties": False}}}

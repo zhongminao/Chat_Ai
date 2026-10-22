@@ -265,6 +265,16 @@ class SteeringTests(unittest.TestCase):
         self.assertIn(identifier, self.requests[1][-1]['content'])
         self.assertEqual([e['content'] for e in self.main.session.events.read()
                           if e['type'] == 'report.submitted'], ['revised'])
+        events = self.main.session.events.read()
+        results = [e for e in events if e['type'] == 'tool.completed' and e['tool'] == 'submit']
+        self.assertIn('Report not submitted', results[0]['result'])
+        self.assertEqual(results[1]['result'], 'Report submitted.')
+        notice = next(e for e in events if e['type'] == 'mailbox.notified')
+        saved = next(e for e in events if e['type'] == 'report.submitted')
+        self.assertLess(results[0]['seq'], notice['seq'])
+        self.assertLess(saved['seq'], results[1]['seq'])
+        self.assertEqual(sum(e['type'] == 'model.started' for e in events), 2)
+
 
     def test_cli_reads_guidance_while_execution_is_running(self):
         from agent.cli.main import main

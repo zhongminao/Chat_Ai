@@ -131,6 +131,7 @@ class SessionRuntime:
         with self.lock:
             received = deliver(context, finish=True)
             if not received:
+                self.steering.accepting = False
                 self.submitting = True
             return received
 

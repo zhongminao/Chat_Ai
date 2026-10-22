@@ -75,8 +75,27 @@ class AgentRuntime:
     def apply(self, update: StateUpdate) -> None:
         self.state.update(update)
 
-    def _submit(self, content: str) -> str:
-        self.apply(transitions.submit(self.state, content))
+    def _submit(self, content: str, *, context=None) -> str:
+        update = transitions.submit(self.state, content)
+        if context:
+            context.cancellation.raise_if_cancelled()
+        pending = lambda *_args, **_kwargs: bool(self.steering and self.steering.has_pending())
+        blocked = self.begin_submit(pending, context) if self.begin_submit else pending()
+        if blocked:
+            return "Report not submitted: new runtime input is pending. Process it and call submit again."
+        if self.steering:
+            self.steering.accepting = False
+        self.apply(update)
+        run_id = transitions.execution(self.state)['id']
+        try:
+            if self.on_submit:
+                self.on_submit(transitions.execution(self.state)['report'], run_id)
+            else:
+                self.log.append('report.submitted', runId=run_id, content=content.strip())
+        except Exception:
+            self.apply(transitions.update_execution(self.state, report=None, report_path=None))
+            self.release_submit()
+            raise
         return "Report submitted."
 
     def _cancel_pending_tools(self, run_id: str, calls: list[Any]) -> None:
@@ -301,13 +320,7 @@ class AgentRuntime:
                     context.cancellation.raise_if_cancelled()
 
             if transitions.after_tools(self.state) == "submit":
-                if self._begin_submit(context):
-                    continue
                 report = transitions.execution(self.state)["report"]
-                if self.on_submit:
-                    report = self.on_submit(report, run_id)
-                else:
-                    self.log.append("report.submitted", runId=run_id, content=report)
                 self.output(report)
                 self.apply(transitions.complete(self.state, report))
                 self.log.append("turn.completed", runId=run_id, answer=report)
