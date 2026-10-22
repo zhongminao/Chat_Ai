@@ -51,11 +51,7 @@ providers:
       - id: local-qwen3p5-9b
         name: Qwen3.5-9B 本地
         vision: true
-        max_images: 8
-        pricing:
-          input: 0.0
-          output: 0.0
-          cached_input: 0.0
+        max_images: 50
 
   local-qwen3-coder-30b:
     display_name: 本地 Qwen3-Coder-30B (llama.cpp · Q4)
@@ -70,10 +66,6 @@ providers:
       - id: qwen3-coder-30b
         name: Qwen3-Coder-30B 本地
         vision: false
-        pricing:
-          input: 0.0
-          output: 0.0
-          cached_input: 0.0
 
   local-qwen3p6-35b:
     display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
