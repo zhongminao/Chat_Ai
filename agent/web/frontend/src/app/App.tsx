@@ -35,7 +35,7 @@ export function App() {
   return <div className="app-layout">
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
       creating={sessions.creating} deleting={sessions.deleting} busy={conversation.busy} open={sidebarOpen}
-      renaming={sessions.renaming} onRename={sessions.rename}
+      renaming={sessions.renaming} onRename={sessions.rename} updating={sessions.updating} onUpdate={sessions.update}
       onClose={() => setSidebarOpen(false)} onSelect={id => { sessions.select(id); setSidebarOpen(false); }}
       onCreate={() => { void sessions.create(); setSidebarOpen(false); }} onDelete={id => { void sessions.remove(id); }} />
     <main ref={layout.workspace} className="workspace">

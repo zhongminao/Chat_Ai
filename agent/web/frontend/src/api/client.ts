@@ -38,6 +38,9 @@ export const api = {
   renameSession: (id: string, title: string) => request<{ id: string; title: string }>(
     sessionPath(id), { ...post({ title }), method: 'PATCH' },
   ),
+  updateSession: (id: string, changes: { pinned?: boolean; archived?: boolean }) => request<{ id: string; pinned?: boolean; archived?: boolean }>(
+    sessionPath(id), { ...post(changes), method: 'PATCH' },
+  ),
   send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),
   guide: (id: string, messageId: string, content: string, images: string[]) => request<{ accepted: boolean }>(
     `${sessionPath(id)}/guidance`, post({ message_id: messageId, content, images })),

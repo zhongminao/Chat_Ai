@@ -55,7 +55,7 @@ describe('empty session reuse without snapshot queries', () => {
   it('creates directly when summaries contain no reusable session', async () => {
     vi.mocked(api.createSession).mockResolvedValue({ id: 'new' });
     expect(await findOrCreateEmptySession([session('history', { empty: false }), session('busy', { busy: true }),
-      session('child', { parent_session_id: 'parent' })])).toBe('new');
+      session('archived', { archived: true }), session('child', { parent_session_id: 'parent' })])).toBe('new');
     expect(api.sessions).not.toHaveBeenCalled();
   });
 

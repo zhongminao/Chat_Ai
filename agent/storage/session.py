@@ -96,8 +96,12 @@ class SessionStore:
     def list_summaries(self) -> list[dict]:
         with self.database.connect() as connection:
             rows = connection.execute('''SELECT id, parent_session_id, COALESCE(NULLIF(title, ''), auto_title) AS title,
-                empty, status, created_at AS createdAt, updated_at AS updatedAt FROM sessions ORDER BY updated_at DESC''').fetchall()
-        return [{**dict(row), 'empty': bool(row['empty'])} for row in rows]
+                empty, status, created_at AS createdAt, updated_at AS updatedAt,
+                json_type(metadata, '$.pinned') = 'true' AS pinned,
+                json_type(metadata, '$.archived') = 'true' AS archived
+                FROM sessions ORDER BY updated_at DESC''').fetchall()
+        return [{**dict(row), 'empty': bool(row['empty']),
+                 'pinned': bool(row['pinned']), 'archived': bool(row['archived'])} for row in rows]
 
     def children(self, session_id: str) -> list[str]:
         with self.database.connect() as connection:
@@ -111,14 +115,43 @@ class SessionStore:
         for directory in directories:
             shutil.rmtree(directory, ignore_errors=False)
 
-    def rename(self, session_id: str, title: str) -> str:
+    @staticmethod
+    def _validate_title(title: str) -> str:
         title = title.strip()
         if not title or len(title) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in title):
             raise ValueError('会话名称需要 1–80 个字符，不能包含换行或控制字符')
+        return title
+
+    def rename(self, session_id: str, title: str) -> str:
+        title = self._validate_title(title)
         with self.database.connect(write=True) as connection:
             if not connection.execute('UPDATE sessions SET title=? WHERE id=?', (title, session_id)).rowcount:
                 raise FileNotFoundError(session_id)
         return title
+
+    def update(self, session_id: str, **changes: Any) -> dict:
+        """Atomically update user-facing main-session properties without changing recency."""
+        if not changes or changes.keys() - {'title', 'pinned', 'archived'}:
+            raise ValueError('需要提供 title、pinned 或 archived')
+        if 'title' in changes:
+            changes['title'] = self._validate_title(changes['title'])
+        for key in ('pinned', 'archived'):
+            if key in changes and type(changes[key]) is not bool:
+                raise ValueError(f'{key} 必须是布尔值')
+        with self.database.connect(write=True) as connection:
+            row = connection.execute(
+                'SELECT parent_session_id, metadata FROM sessions WHERE id=?', (session_id,)).fetchone()
+            if row is None:
+                raise FileNotFoundError(session_id)
+            if row['parent_session_id'] is not None:
+                raise ValueError('只能修改主会话的名称、置顶或归档状态')
+            metadata = json.loads(row['metadata'])
+            metadata.update({key: changes[key] for key in ('pinned', 'archived') if key in changes})
+            connection.execute('UPDATE sessions SET metadata=? WHERE id=?',
+                               (json.dumps(metadata, ensure_ascii=False), session_id))
+            if 'title' in changes:
+                connection.execute('UPDATE sessions SET title=? WHERE id=?', (changes['title'], session_id))
+        return changes
 
     def read_monitor(self, session_id: str) -> dict:
         with self.database.connect() as connection:

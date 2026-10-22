@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
@@ -31,8 +31,19 @@ class SwitchModelRequest(BaseModel):
     model: str
 
 
-class RenameSessionRequest(BaseModel):
-    title: str
+class UpdateSessionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Omission is allowed; explicit null still fails validation of these non-null types.
+    title: str = None
+    pinned: StrictBool = None
+    archived: StrictBool = None
+
+    @model_validator(mode="after")
+    def require_changes(self):
+        if not self.model_fields_set:
+            raise ValueError("需要提供 title、pinned 或 archived")
+        return self
 
 
 class GuidanceRequest(SendMessageRequest):
@@ -103,14 +114,14 @@ def delete_session(session_id: str):
 
 
 @app.patch("/api/sessions/{session_id}")
-def rename_session(session_id: str, request: RenameSessionRequest):
+def update_session(session_id: str, request: UpdateSessionRequest):
     try:
-        title = session_store.rename(session_id, request.title)
+        changes = session_store.update(session_id, **request.model_dump(exclude_unset=True))
     except FileNotFoundError as exc:
         raise HTTPException(404, "Session not found") from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    return {"id": session_id, "title": title}
+    return {"id": session_id, **changes}
 
 
 @app.get("/api/sessions")
