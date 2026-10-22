@@ -36,7 +36,7 @@ def encode(data: dict, sequence: int | None = None) -> str:
     return prefix + 'data: ' + json.dumps(data, ensure_ascii=False) + '\n\n'
 
 
-async def session_events(runtime: SessionRuntime, request, after: int):
+async def session_events(runtime: SessionRuntime, request, after: int, *, stopping=None):
     # Subscribe before reading the journal so writes during initialization enter the queue.
     channel = runtime.bus.subscribe()
     try:
@@ -48,7 +48,7 @@ async def session_events(runtime: SessionRuntime, request, after: int):
             yield encode(event, cursor)
         yield encode({'type': 'session.ready', 'seq': state['seq']})
         ticks = 0
-        while not await request.is_disconnected():
+        while not (stopping is not None and stopping.is_set()) and not await request.is_disconnected():
             try:
                 event = channel.get_nowait()
             except queue.Empty:

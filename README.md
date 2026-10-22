@@ -49,6 +49,15 @@ cd ../../..
 python -m uvicorn agent.web.app:app --host 127.0.0.1 --port 8764
 ```
 
+服务正常运行时使用一次 Ctrl+C（或 SIGTERM）即可退出，即使浏览器仍保持 SSE
+连接。请保留 uvicorn 默认的 lifespan（不要传 `--lifespan off`）：应用启动时会
+转发并保留服务器原有信号处理，同时通知 SSE 结束，再由 uvicorn 正常排空请求。
+嵌入非主线程的 ASGI 服务应由宿主负责取消长连接；若部署环境还包含可能阻塞的
+第三方请求，可额外设置 `--timeout-graceful-shutdown 10` 作为退出时间上限。
+退出回归测试（独立随机端口、临时配置与 storage，不访问模型）：
+`python -m unittest discover -s tests -p 'test_web_shutdown.py' -v`。
+
+
 访问 `http://127.0.0.1:8764`，后端同时提供构建后的页面、静态资源与 `/api`。
 前端开发可在 `agent/web/frontend/` 执行 `npm run dev`，访问 `http://127.0.0.1:5173`；Vite 默认将 `/api` 转到 `127.0.0.1:8764`。
 修改 Python 后端需重启进程，生产前端修改后需重新构建。

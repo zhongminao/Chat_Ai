@@ -56,7 +56,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .sidebar-footer { display: flex; align-items: center; gap: 10px; padding: 14px 8px 2px; border-top: 1px solid var(--border); color: #7a7e86; font-size: 12px; }
 .brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: #e7eaf0; color: #626974; font-weight: 700; }
 .workspace { flex: 1; min-width: 0; height: 100%; position: relative; isolation: isolate;
-  --chat-top: 64px; --chat-bottom: 160px; --chat-rail: 0px; }
+  --chat-top: 64px; --chat-bottom: 160px; --chat-rail: 16px; }
 .workspace-top, .workspace-bottom { position: absolute; left: 0; right: var(--chat-rail); background: var(--surface); z-index: 2; }
 .workspace-top { top: 0; }
 .workspace-bottom { bottom: 0; display: flex; flex-direction: column; }

@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
+import threading
 from pathlib import Path
 from typing import Literal
 
@@ -16,6 +18,7 @@ from ..workflow.input import UserInput
 from .images import image_router
 from .events import session_events
 from .history import history_page
+from .shutdown import shutdown_signals
 
 
 class SendMessageRequest(BaseModel):
@@ -44,7 +47,15 @@ class AccessModeRequest(BaseModel):
     mode: Literal["audit", "full_access"]
 
 
-app = FastAPI(title="chat_ai")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # A fresh token per lifespan also supports repeated embedded/TestClient runs.
+    app.state.stopping = threading.Event()
+    with shutdown_signals(app.state.stopping):
+        yield
+
+
+app = FastAPI(title="chat_ai", lifespan=lifespan)
 frontend_dist = Path(__file__).parent / "frontend" / "dist"
 app.mount("/assets", StaticFiles(directory=frontend_dist / "assets", check_dir=False), name="assets")
 registry = SessionRegistry()
@@ -227,7 +238,7 @@ async def events(session_id: str, request: Request, after: int = Query(0, ge=0))
     except ValueError:
         raise HTTPException(400, 'Last-Event-ID must be a non-negative integer') from None
     return StreamingResponse(
-        session_events(rt, request, cursor), media_type="text/event-stream",
+        session_events(rt, request, cursor, stopping=getattr(app.state, "stopping", None)), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 

@@ -2,6 +2,7 @@
 import asyncio
 import json
 import tempfile
+import threading
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -41,12 +42,15 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         self.registry.store.database.close()
         self.temp.cleanup()
 
+    async def close_stream(self, stream):
+        await stream.aclose()
+
     async def frame(self, stream):
         return await asyncio.wait_for(anext(stream), 3)
 
     async def replay(self, after=0, runtime=None):
         stream = session_events(runtime or self.runtime, Request(), after)
-        self.addAsyncCleanup(stream.aclose)
+        self.addAsyncCleanup(self.close_stream, stream)
         frames = []
         while True:
             frame = await self.frame(stream)
@@ -145,6 +149,20 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         stream, _ = await self.replay()
         self.assertEqual(len(self.runtime.bus.subscribers), 1)
         await stream.aclose()
+        self.assertEqual(self.runtime.bus.subscribers, [])
+
+    async def test_shutdown_token_closes_live_stream_and_releases_subscription(self):
+        stopping = threading.Event()
+        stream = session_events(self.runtime, Request(), 0, stopping=stopping)
+        self.addAsyncCleanup(self.close_stream, stream)
+        self.assertEqual(decode(await self.frame(stream))['type'], 'session.init')
+        self.assertEqual(decode(await self.frame(stream))['type'], 'session.ready')
+        self.assertEqual(len(self.runtime.bus.subscribers), 1)
+        waiting = asyncio.create_task(anext(stream))
+        await asyncio.sleep(.02)
+        stopping.set()
+        with self.assertRaises(StopAsyncIteration):
+            await asyncio.wait_for(waiting, 1)
         self.assertEqual(self.runtime.bus.subscribers, [])
 
     async def test_last_event_id_header_resumes_without_skipping_unreceived_history(self):

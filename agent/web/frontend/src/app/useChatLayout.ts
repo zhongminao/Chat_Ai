@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 
-// Keep the native scroll rail uncovered and reserve the measured overlay sizes.
+// Keep native and overlay scrollbars above the page masks; reserve overlay sizes.
 export function useChatLayout(sessionId: string | null) {
   const workspace = useRef<HTMLElement>(null);
   const top = useRef<HTMLDivElement>(null);
@@ -22,7 +22,8 @@ export function useChatLayout(sessionId: string | null) {
       const height = header.getBoundingClientRect().height;
       root.style.setProperty('--chat-top', `${height}px`);
       root.style.setProperty('--chat-bottom', `${footer.getBoundingClientRect().height}px`);
-      root.style.setProperty('--chat-rail', `${scroll.offsetWidth - scroll.clientWidth}px`);
+      // Overlay scrollbars report a zero-width gutter but still need a hit area.
+      root.style.setProperty('--chat-rail', `${Math.max(16, scroll.offsetWidth - scroll.clientWidth)}px`);
       // A banner appearing above the messages must not displace the text being read.
       if (atBottom) scroll.scrollTop = scroll.scrollHeight;
       else if (previousTop !== undefined) scroll.scrollTop += height - previousTop;
