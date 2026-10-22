@@ -29,19 +29,14 @@ conda create -n chat-ai-py313 python=3.13.2 'sqlite>=3.51.3' pip
 conda activate chat-ai-py313
 python -m pip install -e .
 mkdir -p workspace
-python -m agent.cli.main
 ```
 
-继续会话或发送一次性图文请求：
-
-```bash
-python -m agent.cli.main --session <session_id>
-python -m agent.cli.main "描述图片" --image /path/to/image.png
-```
+### Web 使用
 
 首次启动 Web 先构建前端，再回到项目根目录启动后端：
 
 ```bash
+conda activate chat-ai-py313
 cd agent/web/frontend
 npm ci
 npm run build
@@ -57,10 +52,25 @@ python -m uvicorn agent.web.app:app --host 127.0.0.1 --port 8764
 退出回归测试（独立随机端口、临时配置与 storage，不访问模型）：
 `python -m unittest discover -s tests -p 'test_web_shutdown.py' -v`。
 
-
 访问 `http://127.0.0.1:8764`，后端同时提供构建后的页面、静态资源与 `/api`。
 前端开发可在 `agent/web/frontend/` 执行 `npm run dev`，访问 `http://127.0.0.1:5173`；Vite 默认将 `/api` 转到 `127.0.0.1:8764`。
 修改 Python 后端需重启进程，生产前端修改后需重新构建。
+
+### CLI 使用
+
+在项目根目录执行：
+
+```bash
+conda activate chat-ai-py313
+python -m agent.cli.main
+```
+
+继续会话或发送一次性图文请求：
+
+```bash
+python -m agent.cli.main --session <session_id>
+python -m agent.cli.main "描述图片" --image /path/to/image.png
+```
 
 ## 配置
 
