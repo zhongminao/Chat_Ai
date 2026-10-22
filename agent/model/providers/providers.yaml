@@ -76,7 +76,7 @@ providers:
           cached_input: 0.0
 
   local-qwen3p6-35b:
-    display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4 · 128K)
+    display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
     api_key_env: LOCAL_QWEN3P6_API_KEY
     api_key_default: local
     base_url: http://127.0.0.1:8003/v1
@@ -85,9 +85,6 @@ providers:
     default_model: Qwen3.6-35B-A3B-128K
     models:
       - id: Qwen3.6-35B-A3B-128K
-        name: Qwen3.6-35B-A3B 本地 128K
-        vision: false
-        pricing:
-          input: 0.0
-          output: 0.0
-          cached_input: 0.0
+        name: Qwen3.6-35B-A3B 本地
+        vision: true
+        max_images: 50
