@@ -79,7 +79,7 @@ class SessionRegistry:
         return json.dumps({"id": f"agent:{child.session.id}", "session_id": child.session.id,
                            "status": "running", "hint": "子任务已在后台独立运行。需要查看状态时调用 watch() 获取全部资源快照。"
                            "返回的 cursor 是当前主会话全部监控资源的版本号，不是 agent 编号；"
-                           "等待变化时原样传入最近一次 watch 的 cursor：watch(cursor=<返回值>, timeout=60)。"
+                           "等待变化时原样传入最近一次 watch 的 cursor，timeout 按需要选择，最多 86400 秒（1 天）；有变化会提前返回。"
                            "每次使用最新返回的 cursor；超时没有变化时保持不变。"
                            "completed 时用 read_file 读取 result_path；failed/cancelled 时按 error 判断原因。"
                            "停止当前回复不会停止子任务；结果不会自动写入主对话。"}, ensure_ascii=False)
