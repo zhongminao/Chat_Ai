@@ -3,7 +3,7 @@ default_provider: deepseek
 
 providers:
   gpt:
-    display_name: GPT (宿主机网关)
+    display_name: GPT (passion8.cc)
     api_key_default: gateway
     base_url: http://127.0.0.1:18100/gpt/v1
     thinking: disabled
@@ -24,6 +24,10 @@ providers:
       - id: gpt-6.1-sol
         name: GPT-6.1 Sol
         reasoning_effort: high
+      - id: gpt-6-sol
+        name: GPT-6 Sol
+        reasoning_effort: high
+
 
   deepseek:
     display_name: DeepSeek
