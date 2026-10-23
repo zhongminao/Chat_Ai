@@ -26,14 +26,14 @@ export function ModelPicker({ groups, model, disabled, refreshing, error, onRefr
       disabled={disabled} onClick={() => setOpen(value => !value)} title={display}>
       <span>{display}</span><Icon name="down" size={14} />
     </button>
-    <button type="button" className={`icon-button model-refresh ${refreshing ? 'refreshing' : ''}`}
+    {!visibleGroups.length && <button type="button" className={`icon-button model-refresh ${refreshing ? 'refreshing' : ''}`}
       disabled={refreshing} aria-label={refreshing ? '正在刷新模型列表' : '刷新模型列表'}
       title={error ? `刷新失败：${error}；点击重试` : refreshing ? '正在刷新模型列表' : '刷新模型列表'}
       onClick={() => { if (!disabled) setOpen(true); void onRefresh(); }}>
       <Icon name="refresh" size={14} />
-    </button>
+    </button>}
     {open && <div id="model-options" className="model-options" role="group" aria-label="选择模型" aria-busy={refreshing}>
-      {error && <div className="model-feedback model-error" role="alert">刷新模型列表失败：{error}。请点击刷新重试。</div>}
+      {error && <div className="model-feedback model-error" role="alert">刷新模型列表失败：{error}。{visibleGroups.length ? '请刷新网页重试。' : '请点击刷新重试。'}</div>}
       {!visibleGroups.length && <div className="model-feedback" role="status">
         {refreshing ? '正在加载模型列表…' : '暂无可用模型，请刷新列表或检查提供商配置。'}
       </div>}
