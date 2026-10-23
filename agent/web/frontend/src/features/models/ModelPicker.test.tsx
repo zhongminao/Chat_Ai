@@ -20,8 +20,40 @@ describe('model list refresh display', () => {
     ]} />);
     expect(html).not.toContain('Empty provider');
     expect(html).not.toContain('Offline provider');
-    expect(html).toContain('暂无可用模型');
+    expect(html).toContain('title="无可用模型"');
+    expect(html).toContain('<span>无可用模型</span>');
+    expect(html).toContain('role="status">无可用模型</div>');
     expect(html).toContain('aria-label="刷新模型列表"');
+  });
+
+  it.each([null, { provider: 'local', name: 'previous-model' }])('does not show a default or stale model for an empty list (model: %j)', model => {
+    const html = renderToStaticMarkup(<ModelPicker {...props} model={model} />);
+    expect(html).toContain('title="无可用模型"');
+    expect(html).toContain('<span>无可用模型</span>');
+    expect(html).toContain('role="status">无可用模型</div>');
+    expect(html).not.toContain('previous-model');
+    expect(html).not.toContain('<span>选择模型</span>');
+    expect(html).toContain('aria-label="刷新模型列表"');
+  });
+
+  it('does not show the previous model when all models are disabled', () => {
+    const html = renderToStaticMarkup(<ModelPicker {...props} model={{ provider: 'local', name: 'qwen' }} groups={[
+      { provider: 'local', displayName: 'Local', models: [{ id: 'qwen', name: 'Qwen', enabled: false }] },
+    ]} />);
+    expect(html).toContain('title="无可用模型"');
+    expect(html).toContain('<span>无可用模型</span>');
+    expect(html).not.toContain('Qwen');
+    expect(html).not.toContain('qwen');
+  });
+
+  it.each([false, true])('preserves the current model name when models are available (refreshing: %s)', refreshing => {
+    const html = renderToStaticMarkup(<ModelPicker {...props} refreshing={refreshing} model={{ provider: 'local', name: 'qwen' }} groups={[
+      { provider: 'local', displayName: 'Local', models: [{ id: 'qwen', name: 'Qwen', enabled: true }] },
+    ]} />);
+    expect(html).toContain('title="Qwen"');
+    expect(html).toContain('<span>Qwen</span>');
+    expect(html).not.toContain('无可用模型');
+    expect(html).not.toContain('model-refresh');
   });
 
   it('keeps existing models visible while refresh is running', () => {
@@ -43,13 +75,17 @@ describe('model list refresh display', () => {
   });
 
   it('shows a disabled refresh button while loading an empty list', () => {
-    const html = renderToStaticMarkup(<ModelPicker {...props} refreshing />);
-    expect(html).toContain('正在加载模型列表');
+    const html = renderToStaticMarkup(<ModelPicker {...props} refreshing model={{ provider: 'local', name: 'previous-model' }} />);
+    expect(html).toContain('title="正在加载模型列表…"');
+    expect(html).toContain('role="status">正在加载模型列表…</div>');
+    expect(html).not.toContain('previous-model');
     expect(html).toMatch(/disabled="" aria-label="正在刷新模型列表"/);
   });
 
   it('shows an error and leaves a retry action', () => {
     const html = renderToStaticMarkup(<ModelPicker {...props} error="network error" />);
+    expect(html).toContain('title="无可用模型"');
+    expect(html).toContain('role="status">无可用模型</div>');
     expect(html).toContain('role="alert"');
     expect(html).toContain('network error');
     expect(html).toContain('aria-label="刷新模型列表"');

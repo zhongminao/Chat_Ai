@@ -63,18 +63,12 @@ async def lifespan(app: FastAPI):
     # A fresh token per lifespan also supports repeated embedded/TestClient runs.
     app.state.stopping = threading.Event()
     catalog = getattr(registry, "catalog", None)
-    refresh = asyncio.create_task(asyncio.to_thread(refresh_catalog, catalog)) if catalog else None
+    # Finish initial discovery before accepting new sessions, so fallback selection
+    # never mistakes an uninitialized directory for an offline default provider.
+    if catalog:
+        await asyncio.to_thread(refresh_catalog, catalog, timeout=2)
     with shutdown_signals(app.state.stopping):
-        try:
-            yield
-        finally:
-            if refresh:
-                if not refresh.done():
-                    refresh.cancel()
-                try:
-                    await refresh
-                except asyncio.CancelledError:
-                    pass
+        yield
 
 
 app = FastAPI(title="chat_ai", lifespan=lifespan)
