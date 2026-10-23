@@ -31,20 +31,20 @@ providers:
         vision: true
   local-qwen3-coder-30b:
     display_name: 本地 Qwen3-Coder-30B (llama.cpp · Q4)
-    base_url: http://127.0.0.1:18080/v1
+    base_url: http://192.168.250.1:18080/v1
     default_model: qwen3-coder-30b
     token_counter: llama_cpp
 
   local-qwen3p5-9b:
     display_name: 本地 Qwen3.5-9B (vLLM · FP8)
-    base_url: http://127.0.0.1:8002/v1
+    base_url: http://192.168.250.1:18081/v1
     default_model: local-qwen3p5-9b
     defaults:
       vision: true
 
   local-qwen3p6-35b:
     display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
-    base_url: http://127.0.0.1:8003/v1
+    base_url: http://192.168.250.1:18082/v1
     default_model: Qwen3.6-35B-A3B-128K
     defaults:
       vision: true
