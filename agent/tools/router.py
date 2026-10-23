@@ -25,7 +25,6 @@ class ToolRouter:
         self.submit = None
         self.images = images
         self.vision = False
-        self.image_limit: int | None = None
         self.model_images: set[str] = set()
         self.schemas = TOOL_SCHEMAS + (mcp.schemas if mcp else [])
         if delegate:
@@ -74,7 +73,7 @@ class ToolRouter:
                     if not self.vision:
                         raise ValueError("当前模型未声明支持视觉，请切换到支持视觉的模型")
                     return read_image(self.workspace, self.images, context=context,
-                                      known_images=self.model_images, max_images=self.image_limit, **arguments)
+                                      known_images=self.model_images, **arguments)
                 return show_image(self.workspace, self.images, context=context, **arguments)
             except RunCancelled:
                 raise
@@ -96,7 +95,7 @@ class ToolRouter:
             try:
                 result = self.mcp.call(name, arguments, context)
                 return convert_result(result, self.images, vision=self.vision,
-                                      known_images=self.model_images, max_images=self.image_limit)
+                                      known_images=self.model_images)
             except RunCancelled:
                 raise
             except Exception as exc:

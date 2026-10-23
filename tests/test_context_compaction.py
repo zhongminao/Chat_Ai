@@ -120,6 +120,17 @@ class CompactionPolicyTests(unittest.TestCase):
             self.assertEqual(summarize_context(None, "model", None, context_compaction.plan(self.state, 100, self.config),
                                        config, ExecutionContext(CancellationToken())), content)
 
+    def test_model_threshold_uses_specific_override_then_global_default(self):
+        config = {"trigger_tokens": 128000, "model_trigger_tokens": {
+            "local-qwen3-coder-30b": 56000,
+        }}
+        self.assertEqual(context_compaction.for_model(config, {
+            "provider": "gpt", "name": "gpt-6.1-sol",
+        })["trigger_tokens"], 128000)
+        self.assertEqual(context_compaction.for_model(config, {
+            "provider": "local-qwen3-coder-30b", "name": "qwen3-coder-30b",
+        })["trigger_tokens"], 56000)
+
     def test_config_validates_thresholds_and_prompt_path(self):
         import yaml
         with tempfile.TemporaryDirectory() as directory:
@@ -132,6 +143,8 @@ class CompactionPolicyTests(unittest.TestCase):
                 {"enabled": "yes"}, {"trigger_tokens": 0},
                 {"trigger_tokens": True},
                 {"enabled": True, "prompt_file": "missing.md"},
+                {"model_trigger_tokens": {"": 100}},
+                {"model_trigger_tokens": {"gpt/model": True}},
             ]:
                 path.write_text(yaml.safe_dump({"system_prompt_file": str(main), "child_system_prompt_file": str(child),
                     "providers_file": str(load().providers_file), "context": context}), encoding="utf-8")

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..workflow.config import load
-from ..model.catalog import ModelCatalog
+from ..model.discovery import refresh_catalog
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
 from .images import image_router
@@ -62,8 +62,19 @@ class AccessModeRequest(BaseModel):
 async def lifespan(app: FastAPI):
     # A fresh token per lifespan also supports repeated embedded/TestClient runs.
     app.state.stopping = threading.Event()
+    catalog = getattr(registry, "catalog", None)
+    refresh = asyncio.create_task(asyncio.to_thread(refresh_catalog, catalog)) if catalog else None
     with shutdown_signals(app.state.stopping):
-        yield
+        try:
+            yield
+        finally:
+            if refresh:
+                if not refresh.done():
+                    refresh.cancel()
+                try:
+                    await refresh
+                except asyncio.CancelledError:
+                    pass
 
 
 app = FastAPI(title="chat_ai", lifespan=lifespan)
@@ -173,12 +184,15 @@ def access_mode(session_id: str, request: AccessModeRequest):
 
 @app.get("/api/models")
 def models():
-    catalog = ModelCatalog(load().providers_file)
+    catalog = registry.catalog
     return {"models": [
         {"provider": provider, "displayName": data.get("display_name", provider),
          "models": [{"id": item["id"], "name": item.get("name", item["id"]),
-                    "enabled": item.get("enabled", True)}
-                    for item in data.get("models", [])]}
+                    "enabled": item.get("enabled", True),
+                    **{key: item[key] for key in ("reasoning_efforts", "default_reasoning_effort",
+                                                    "api_default_reasoning_effort", "chat_completions",
+                                                    "context_window", "input_modalities") if key in item}}
+                    for item in catalog.models_for(provider) if item.get("enabled", True)]}
         for provider, data in catalog.providers.items()
     ]}
 

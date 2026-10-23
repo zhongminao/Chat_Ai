@@ -157,9 +157,8 @@ class AgentRuntime:
             self.apply(transitions.start_round(self.state, round_no))
             model = self.state["model"]
             client, provider = self.catalog.get_binding(ModelTarget(**model))
-            vision, image_limit = self.catalog.vision_options(model) if self.catalog else (False, None)
+            vision = self.catalog.supports_vision(model) if self.catalog else False
             self.tools.vision = vision
-            self.tools.image_limit = image_limit
             self._compact(client, provider, vision, context)
             if self._deliver_inputs(context):
                 self._compact(client, provider, vision, context)
@@ -339,7 +338,7 @@ class AgentRuntime:
         return bool(values)
 
     def _compact(self, client, provider, vision: bool, context: ExecutionContext) -> None:
-        config = self.context_config
+        config = context_compaction.for_model(self.context_config, self.state["model"])
         context.cancellation.raise_if_cancelled()
         if not config.get("enabled", False):
             return

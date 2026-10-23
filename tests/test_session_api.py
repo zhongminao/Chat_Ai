@@ -20,6 +20,23 @@ from agent.web.images import image_router
 
 
 class SessionApiTests(unittest.TestCase):
+    def test_single_model_provider_display_uses_service_title_and_default_model(self):
+        from agent.model.catalog import ModelCatalog
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "providers.yaml"
+            path.write_text("""providers:
+  local-qwen3-coder-30b:
+    display_name: 本地 Qwen3-Coder-30B (llama.cpp · Q4)
+    base_url: http://127.0.0.1:18080/v1
+    default_model: qwen3-coder-30b
+    token_counter: llama_cpp
+""", encoding="utf-8")
+            catalog = ModelCatalog(path)
+            with patch.object(web, "registry", SimpleNamespace(catalog=catalog)):
+                group = web.models()["models"][0]
+            self.assertEqual(group["displayName"], "本地 Qwen3-Coder-30B (llama.cpp · Q4)")
+            self.assertEqual(group["models"], [{"id": "qwen3-coder-30b", "name": "qwen3-coder-30b", "enabled": True}])
+
     def test_child_list_status_uses_summaries_without_reading_events(self):
         with tempfile.TemporaryDirectory() as directory:
             registry = SessionRegistry(replace(load(), storage_dir=Path(directory), mcp={}))

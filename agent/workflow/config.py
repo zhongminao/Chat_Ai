@@ -25,6 +25,7 @@ class Config:
     child_system_prompt: str
     context: dict = field(default_factory=dict)
     approval_mode: str = "audit"
+    model_overrides: dict = field(default_factory=dict)
 
 
 def _path(root: Path, value: str) -> Path:
@@ -58,7 +59,10 @@ def load(path: Path | None = None) -> Config:
         root,
         data.get("providers_file", "agent/model/providers/providers.yaml"),
     )
-    catalog = ModelCatalog(providers_file)
+    model_overrides = data.get("model_overrides") or {}
+    if not isinstance(model_overrides, dict):
+        raise ValueError("config.yaml: model_overrides 必须是映射")
+    catalog = ModelCatalog(providers_file, model_overrides)
     context = dict(data.get("context") or {})
     context.setdefault("enabled", False)
     if type(context["enabled"]) is not bool:
@@ -66,6 +70,12 @@ def load(path: Path | None = None) -> Config:
     context.setdefault("trigger_tokens", 110592)
     if type(context["trigger_tokens"]) is not int or context["trigger_tokens"] < 1:
         raise ValueError("config.yaml: context.trigger_tokens 必须是正整数")
+    thresholds = context.setdefault("model_trigger_tokens", {})
+    if not isinstance(thresholds, dict) or any(
+        not isinstance(key, str) or not key or type(value) is not int or value < 1
+        for key, value in thresholds.items()
+    ):
+        raise ValueError("config.yaml: context.model_trigger_tokens 必须为 provider 到正整数的映射")
     context["prompt_file"] = _path(root, context.get("prompt_file", "prompts/context_compaction.md"))
     if context["enabled"] and not context["prompt_file"].is_file():
         raise ValueError("config.yaml: context.prompt_file 不存在")
@@ -83,6 +93,7 @@ def load(path: Path | None = None) -> Config:
         workspace=workspace,
         storage_dir=storage_dir,
         providers_file=providers_file,
+        model_overrides=model_overrides,
         spill=spill,
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,

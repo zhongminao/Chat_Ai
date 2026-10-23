@@ -27,15 +27,11 @@ def read_image(
     path: str,
     context: ExecutionContext | None = None,
     known_images: set[str] | None = None,
-    max_images: int | None = None,
 ) -> ToolResult:
     _check(context)
     source = _read_path(workspace, path)
     image = images.find_file(source)
     known_images = known_images or set()
-    if (max_images is not None and len(known_images) >= max_images
-            and (image is None or image["id"] not in known_images)):
-        raise ValueError(f"当前视觉上下文最多包含 {max_images} 张不同图片；请使用新会话读取更多图片")
     image = image or images.add_file(source)
     if not images.path(image["id"]).is_file():
         raise FileNotFoundError("会话图片文件不存在")

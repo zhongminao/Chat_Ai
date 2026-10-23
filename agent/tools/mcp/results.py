@@ -17,8 +17,7 @@ def _same_json(text: str, value) -> bool:
 
 
 def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
-                   vision: bool = False, known_images: set[str] | None = None,
-                   max_images: int | None = None) -> str | ToolResult:
+                   vision: bool = False, known_images: set[str] | None = None) -> str | ToolResult:
     texts = [item.text for item in result.content if item.type == "text"]
     if result.structured_content is not None:
         structured = json.dumps(result.structured_content, ensure_ascii=False)
@@ -34,7 +33,6 @@ def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
 
     saved = {item["sha256"]: item for item in images.list()
              if item.get("sha256") and images.path(item["id"]).is_file()}
-    known = set(known_images or ())
     decoded = {}
     for block in blocks:
         if len(block.data) > 4 * ((MAX_IMAGE_BYTES + 2) // 3):
@@ -46,11 +44,7 @@ def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
             raise ValueError("MCP image must be nonempty and <= 10 MiB")
         digest = hashlib.sha256(data).hexdigest()
         asset = saved.get(digest)
-        if vision:
-            known.add(asset["id"] if asset else digest)
         decoded[digest] = (data, block.mime_type)
-    if vision and max_images is not None and len(known) > max_images:
-        raise ValueError(f"当前视觉上下文最多包含 {max_images} 张不同图片；请使用新会话读取更多图片")
 
     assets = []
     for digest, (data, mime) in decoded.items():

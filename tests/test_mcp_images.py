@@ -41,7 +41,7 @@ class ImageTests(unittest.TestCase):
 
     def test_image_reaches_model_and_display_and_deduplicates(self):
         response = types.CallToolResult(content=[types.TextContent(type="text", text="四视图"), picture()])
-        result = convert_result(response, self.images, vision=True, max_images=1)
+        result = convert_result(response, self.images, vision=True)
         self.assertIsInstance(result, ToolResult)
         self.assertEqual(result.images, result.model_images)
         self.assertIn("四视图", result.text)
@@ -52,7 +52,7 @@ class ImageTests(unittest.TestCase):
         outgoing = request_messages(messages, self.images)
         self.assertEqual(outgoing[-1]["role"], "user")
         self.assertTrue(any(item["type"] == "image_url" for item in outgoing[-1]["content"]))
-        again = convert_result(response, self.images, vision=True, known_images={identifier}, max_images=1)
+        again = convert_result(response, self.images, vision=True, known_images={identifier})
         self.assertEqual(again.model_images[0]["id"], identifier)
         self.assertEqual(len(self.images.list()), 1)
 
@@ -97,11 +97,11 @@ class ImageTests(unittest.TestCase):
         self.assertEqual(result.model_images, [])
         self.assertIn("未启用视觉", result.text)
 
-    def test_budget_checked_before_saving(self):
+    def test_multiple_images_are_accepted_without_model_specific_limit(self):
         response = types.CallToolResult(content=[picture(), picture("blue")])
-        with self.assertRaisesRegex(ValueError, "最多包含"):
-            convert_result(response, self.images, vision=True, max_images=1)
-        self.assertEqual(self.images.list(), [])
+        result = convert_result(response, self.images, vision=True)
+        self.assertEqual(len(result.model_images), 2)
+        self.assertEqual(len(self.images.list()), 2)
 
     def test_malformed_image_is_reported_by_router(self):
         mcp = Mock()
@@ -137,7 +137,6 @@ class ImageTests(unittest.TestCase):
         mcp.call.return_value = types.CallToolResult(content=[picture()])
         router = ToolRouter(self.root, mcp, images=self.images)
         router.vision = True
-        router.image_limit = 8
         result = router.call("mcp_local_read_image", {"path": "D:/example.png"})
         self.assertEqual(len(result.model_images), 1)
 

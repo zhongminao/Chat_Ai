@@ -11,11 +11,13 @@ from ..storage.agent_to_agent_mailbox import AgentToAgentMailbox
 from ..storage import reports
 from ..workflow.config import load
 from ..workflow.input import UserInput
+from ..model.catalog import ModelCatalog
 
 
 class SessionRegistry:
     def __init__(self, config=None):
         self.config = config or load()
+        self.catalog = ModelCatalog(self.config.providers_file, self.config.model_overrides)
         self.store = SessionStore(self.config.storage_dir)
         self.mailbox = AgentToAgentMailbox(self.store.database)
         self.items: dict[str, SessionRuntime] = {}

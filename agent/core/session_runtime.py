@@ -8,7 +8,6 @@ from .control import ExecutionControl
 from .steering import InputDelivery
 from .agent_factory import build_agent, build_state
 from ..storage import reports
-from ..model.catalog import ModelCatalog
 from ..workflow.commands import SwitchModel
 from ..workflow.state import AgentState, StateUpdate
 from ..workflow import transitions
@@ -52,7 +51,7 @@ class SessionRuntime:
     def state(self) -> AgentState:
         with self._state_lock:
             if self._state is None:
-                self._state = build_state(self.registry.config, self.meta, self.session.events.read())
+                self._state = build_state(self.registry.config, self.meta, self.session.events.read(), self.registry.catalog)
             return self._state
 
     def apply(self, update: StateUpdate) -> None:
@@ -62,7 +61,7 @@ class SessionRuntime:
         with self.lock:
             if self.busy or self.parent_session_id:
                 raise SessionBusy('This session is running or is a read-only child session')
-            catalog = self._agent.catalog if self._agent else ModelCatalog(self.registry.config.providers_file)
+            catalog = self._agent.catalog if self._agent else self.registry.catalog
             target = catalog.resolve(command.provider, command.model)
             old = self.state['model']
             self.apply(transitions.switch_model(self.state, target.as_dict()))

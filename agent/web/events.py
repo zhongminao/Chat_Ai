@@ -21,7 +21,7 @@ def initialize(runtime: SessionRuntime, after: int) -> tuple[dict, list[dict]]:
         reset = after > sequence
         cursor = 0 if reset else after
         model = next((event['new'] for event in reversed(records) if event['type'] == 'model.changed'), None)
-        model = model or runtime.meta.get('model') or ModelCatalog(runtime.registry.config.providers_file).default().as_dict()
+        model = model or runtime.meta.get('model') or runtime.registry.catalog.default().as_dict()
         measurement = next((event for event in reversed(records)
                             if event['type'] in {'context.measured', 'model.changed'}), None)
         usage = ({key: measurement[key] for key in ('usedTokens', 'limitTokens', 'estimated')}

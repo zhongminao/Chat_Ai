@@ -9,14 +9,17 @@ from ..workflow.message_replay import restore_model_messages
 from ..workflow.state import AgentState
 
 
-def build_state(config, metadata: dict, records: list[dict]) -> AgentState:
+def build_state(config, metadata: dict, records: list[dict], catalog=None) -> AgentState:
     role = "child" if metadata.get("parent_session_id") else "main"
-    catalog = ModelCatalog(config.providers_file)
+    catalog = catalog or ModelCatalog(config.providers_file, config.model_overrides)
     model = metadata.get("model") or catalog.default().as_dict()
     for event in records:
         if event["type"] == "model.changed":
             model = event["new"]
     target = catalog.resolve(model["provider"], model["name"])
+    if "reasoning_effort" in model:
+        from dataclasses import replace
+        target = replace(target, reasoning_effort=model["reasoning_effort"])
     prompt = config.child_system_prompt if role == "child" else config.system_prompt
     return {
         "role": role,
@@ -38,7 +41,7 @@ def build_agent(runtime) -> AgentRuntime:
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,
                                         workspace=str(config.workspace)),
                        registry=registry, session_id=runtime.session.id)
-    return AgentRuntime(state=runtime.state, catalog=ModelCatalog(config.providers_file),
+    return AgentRuntime(state=runtime.state, catalog=registry.catalog.fork(),
                         session_id=runtime.session.id, spill=config.spill,
                         workspace=config.workspace, log=runtime.session.events, images=runtime.session.images, max_rounds=config.max_rounds,
                         output=lambda text: None, tools=tools,

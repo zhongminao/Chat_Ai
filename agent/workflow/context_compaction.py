@@ -2,6 +2,12 @@
 from .state import AgentState, StateUpdate
 
 
+def for_model(config: dict, model: dict) -> dict:
+    threshold = config.get("model_trigger_tokens", {}).get(
+        model["provider"], config.get("trigger_tokens"))
+    return {**config, "trigger_tokens": threshold}
+
+
 def plan(state: AgentState, tokens: int, config: dict) -> dict | None:
     if not config.get("enabled", False) or tokens < config["trigger_tokens"]:
         return None
