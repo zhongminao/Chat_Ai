@@ -21,6 +21,7 @@ describe('model list refresh display', () => {
     expect(html).not.toContain('Empty provider');
     expect(html).not.toContain('Offline provider');
     expect(html).toContain('暂无可用模型');
+    expect(html).toContain('aria-label="刷新模型列表"');
   });
 
   it('keeps existing models visible while refresh is running', () => {
@@ -29,6 +30,21 @@ describe('model list refresh display', () => {
     ]} />);
     expect(html).toContain('Qwen');
     expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain('model-refresh');
+  });
+
+  it.each([null, 'network error'])('hides refresh when models are available (error: %s)', error => {
+    const html = renderToStaticMarkup(<ModelPicker {...props} error={error} groups={[
+      { provider: 'local', displayName: 'Local', models: [{ id: 'qwen', name: 'Qwen', enabled: true }] },
+    ]} />);
+    expect(html).toContain('Qwen');
+    expect(html).not.toContain('model-refresh');
+    expect(html).not.toContain('请点击刷新重试');
+  });
+
+  it('shows a disabled refresh button while loading an empty list', () => {
+    const html = renderToStaticMarkup(<ModelPicker {...props} refreshing />);
+    expect(html).toContain('正在加载模型列表');
     expect(html).toMatch(/disabled="" aria-label="正在刷新模型列表"/);
   });
 
