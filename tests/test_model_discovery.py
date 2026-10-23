@@ -1,13 +1,14 @@
 import tempfile
-import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import yaml
 
 from agent.model.catalog import ModelCatalog
 from agent.model.discovery import refresh_catalog
+from agent.web import app as web
 
 
 class ModelDiscoveryTests(unittest.TestCase):
@@ -15,108 +16,108 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "providers.yaml"
-        self.path.write_text("""# keep file header
-providers:
-  # live GPT provider
-  gpt:
-    base_url: http://gpt/v1
-    api_key_default: key
-    models:
-      - id: gpt-6.1-sol
-        name: GPT Sol
-  deepseek:
-    base_url: http://deepseek/v1
-    api_key_default: key
-    models: []
-  # disabled local provider must remain untouched
-  # local-unused:
-  #   base_url: http://localhost:9/v1
-  #   models: []
-""")
-        self.catalog = ModelCatalog(self.path, {"providers": {
-            "gpt": {"models": {"gpt-6.1-sol": {"reasoning_efforts": ["low", "high"],
-                                              "default_reasoning_effort": "high"}}}
-        }})
+        self.config = {"default_provider": "gpt", "providers": {
+            "gpt": {"base_url": "http://gpt/v1", "api_key_default": "key",
+                    "default_model": "sol", "defaults": {"default_reasoning_effort": "medium"},
+                    "models": {"sol": {"default_reasoning_effort": "high"}}},
+            "deepseek": {"base_url": "http://deepseek/v1", "default_model": "flash"}}}
+        self.save()
+        self.catalog = ModelCatalog(self.path)
 
-    def test_refresh_runs_providers_concurrently_and_merges_manual_override(self):
-        def response(url, key, timeout):
-            time.sleep(0.06)
-            if "gpt" in url:
-                return {"data": [
-                    {"id": "gpt-6.1-sol", "supported_endpoint_types": ["openai"]},
-                    {"id": "gpt-image-2", "supported_endpoint_types": ["image-generation", "openai"]},
-                ]}
-            return {"data": [{"id": "deepseek-flash", "name": "Flash", "effort": {
-                "supported_levels": ["low", "high", "max"], "default_level": "high"}}]}
+    def save(self):
+        self.path.write_text(yaml.safe_dump(self.config, sort_keys=False))
 
-        started = time.perf_counter()
-        with patch("agent.model.discovery.get_json", side_effect=response):
-            statuses = refresh_catalog(self.catalog)
-        self.assertLess(time.perf_counter() - started, 0.11)
-        self.assertEqual(statuses, {"gpt": "ok", "deepseek": "ok"})
-        gpt = self.catalog.providers["gpt"]["models"][0]
-        self.assertEqual(gpt["reasoning_efforts"], ["low", "high"])
-        self.assertEqual(gpt["default_reasoning_effort"], "high")
-        self.assertNotIn("gpt-image-2", [item["id"] for item in self.catalog.providers["gpt"]["models"]])
-        deepseek = self.catalog.providers["deepseek"]["models"][0]
-        self.assertEqual(deepseek["reasoning_efforts"], ["low", "high", "max"])
-        self.assertEqual(deepseek["api_default_reasoning_effort"], "high")
-        persisted = self.path.read_text()
-        self.assertIn("# keep file header", persisted)
-        self.assertIn("# live GPT provider", persisted)
-        self.assertIn("# disabled local provider must remain untouched", persisted)
-        self.assertIn("id: deepseek-flash", persisted)
-        self.assertNotIn("deepseek-v4-pro", persisted)
+    def response(self, url, key, timeout):
+        if "gpt" in url:
+            return {"data": [{"id": "sol", "supported_endpoint_types": ["openai"]},
+                             {"id": "image", "supported_endpoint_types": ["image-generation", "openai"]}]}
+        return {"data": [{"id": "flash", "effort": {"default_level": "low"},
+                          "input_modalities": ["text", "image"]}]}
 
-    def test_failed_provider_keeps_previous_snapshot_while_others_refresh(self):
-        self.catalog.replace_provider("gpt", {**self.catalog.providers["gpt"], "models": [{"id": "old"}]})
-        def response(url, key, timeout):
-            if "gpt" in url:
-                raise OSError("offline")
-            return {"data": [{"id": "deepseek-flash", "effort": {}}]}
-        with patch("agent.model.discovery.get_json", side_effect=response):
-            statuses = refresh_catalog(self.catalog)
-        self.assertTrue(statuses["gpt"].startswith("error:"))
-        self.assertEqual(self.catalog.providers["gpt"]["models"][0]["id"], "old")
-        self.assertEqual(self.catalog.providers["deepseek"]["models"][0]["id"], "deepseek-flash")
+    def test_discovery_merges_policy_without_writing_config_or_using_overrides_as_directory(self):
+        before = self.path.read_bytes()
+        self.assertEqual(self.catalog.models_for("gpt"), [])
+        with patch("agent.model.discovery.get_json", side_effect=self.response):
+            self.assertEqual(refresh_catalog(self.catalog), {"gpt": "ok", "deepseek": "ok"})
+        self.assertEqual([m["id"] for m in self.catalog.models_for("gpt")], ["sol"])
+        self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "high")
+        self.assertEqual(self.catalog.resolve("deepseek").reasoning_effort, "low")
+        self.assertTrue(self.catalog.supports_vision({"provider": "deepseek", "name": "flash"}))
+        self.assertEqual(self.path.read_bytes(), before)
 
-    def test_refresh_preserves_commented_providers_attached_to_replaced_model_lists(self):
-        from agent.model.catalog_file import write_models
-        prefix = "providers:\n  gpt:\n    models:\n    - id: old  # model note\n"
-        disabled = "  # local-disabled:\n  #   models:\n  #   - id: disabled-model\n"
-        suffix = "  deepseek:\n    models: []\n"
-        self.path.write_text(prefix + disabled + suffix)
-        write_models(self.path, {"gpt": [{"id": "new"}]})
-        text = self.path.read_text()
-        self.assertIn(disabled, text)
-        self.assertIn(suffix, text)
-        self.assertIn("# model note", text)
-        self.assertEqual(yaml.safe_load(text)["providers"]["gpt"]["models"], [{"id": "new"}])
-        write_models(self.path, {"gpt": [{"id": "newer"}]})
-        self.assertIn(disabled, self.path.read_text())
+    def test_offline_empty_and_recovery_preserve_config_and_hide_empty_groups(self):
+        before = self.path.read_bytes()
+        with patch.object(web, "registry", SimpleNamespace(catalog=self.catalog)):
+            with patch("agent.model.discovery.get_json", side_effect=self.response):
+                self.assertEqual(len(web.models()["models"]), 2)
+            with patch("agent.model.discovery.get_json", side_effect=OSError("offline")):
+                self.assertEqual(web.models(), {"models": []})
+            self.assertEqual(self.catalog.resolve("gpt").name, "sol")
+            with patch("agent.model.discovery.get_json", return_value={"data": []}):
+                self.assertEqual(web.models(), {"models": []})
+            with patch("agent.model.discovery.get_json", side_effect=self.response):
+                self.assertEqual(len(web.models()["models"]), 2)
+        self.assertEqual(self.path.read_bytes(), before)
 
-    def test_single_model_provider_refresh_checks_availability_without_writing_models(self):
-        self.path.write_text("""# keep local comments
-providers:
-  local-one:
-    base_url: http://local/v1
-    default_model: fixed-model
-    token_counter: llama_cpp
-""")
-        catalog = ModelCatalog(self.path)
-        with patch("agent.model.discovery.get_json", return_value={"data": [{"id": "fixed-model"}]}):
-            statuses = refresh_catalog(catalog)
-        self.assertEqual(statuses, {"local-one": "ok"})
-        self.assertNotIn("models", catalog.providers["local-one"])
-        self.assertNotIn("models:", self.path.read_text())
-        self.assertIn("# keep local comments", self.path.read_text())
-
-    def test_catalog_forks_share_snapshot_but_not_http_bindings(self):
+    def test_user_refresh_rereads_added_removed_providers_and_defaults_shared_with_forks(self):
         child = self.catalog.fork()
-        self.assertIs(child.providers, self.catalog.providers)
-        self.assertIsNot(child, self.catalog)
-        self.assertIsNone(child._binding)
+        self.config["providers"].pop("deepseek")
+        self.config["providers"]["local-new"] = {
+            "base_url": "http://new/v1", "default_model": "new",
+            "defaults": {"vision": True, "thinking": "enabled"}}
+        self.config["default_provider"] = "local-new"
+        self.save()
+        before = self.path.read_bytes()
+        with patch.object(web, "registry", SimpleNamespace(catalog=self.catalog)), \
+             patch("agent.model.discovery.get_json", return_value={"data": [{"id": "new", "supported_endpoint_types": ["openai"]}]}):
+            groups = web.models()["models"]
+        self.assertEqual([g["provider"] for g in groups], ["gpt", "local-new"])
+        self.assertNotIn("deepseek", child.providers)
+        self.assertEqual(child.default().thinking, "enabled")
+        self.assertTrue(child.supports_vision(child.default().as_dict()))
+        self.assertEqual(self.path.read_bytes(), before)
 
+    def test_previous_snapshot_remains_visible_until_all_queries_finish(self):
+        with patch("agent.model.discovery.get_json", side_effect=self.response):
+            refresh_catalog(self.catalog)
+        def response(url, key, timeout):
+            self.assertEqual(self.catalog.models_for("gpt")[0]["id"], "sol")
+            return {"data": []}
+        with patch("agent.model.discovery.get_json", side_effect=response):
+            refresh_catalog(self.catalog)
+        self.assertEqual(self.catalog.models_for("gpt"), [])
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_api_metadata_provider_defaults_and_model_override_precedence(self):
+        self.config["providers"]["deepseek"]["defaults"] = {
+            "default_reasoning_effort": "high", "vision": False}
+        self.config["providers"]["deepseek"]["models"] = {
+            "flash": {"default_reasoning_effort": "max", "vision": True},
+            "hidden": {"enabled": False}, "not-loaded": {"vision": True}}
+        self.save()
+        with patch("agent.model.discovery.get_json", return_value={"data": [
+            {"id": "flash", "effort": {"default_level": "low"}}, {"id": "hidden"}]}):
+            refresh_catalog(self.catalog)
+        self.assertEqual([m["id"] for m in self.catalog.models_for("deepseek")], ["flash"])
+        self.assertEqual(self.catalog.resolve("deepseek").reasoning_effort, "max")
+        self.assertTrue(self.catalog.supports_vision({"provider": "deepseek", "name": "flash"}))
+
+    def test_web_startup_queries_without_changing_provider_file(self):
+        import asyncio
+        before = self.path.read_bytes()
+        async def startup():
+            async with web.lifespan(web.app):
+                await asyncio.sleep(0.05)
+        with patch.object(web, "registry", SimpleNamespace(catalog=self.catalog)), \
+             patch("agent.model.discovery.get_json", side_effect=self.response) as fetch:
+            asyncio.run(startup())
+        self.assertEqual(fetch.call_count, 2)
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_queries_run_concurrently(self):
+        from threading import Barrier
+        barrier = Barrier(2, timeout=2)
+        def response(url, key, timeout):
+            barrier.wait()
+            return {"data": []}
+        with patch("agent.model.discovery.get_json", side_effect=response):
+            self.assertEqual(refresh_catalog(self.catalog), {"gpt": "ok", "deepseek": "ok"})

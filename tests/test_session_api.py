@@ -32,7 +32,8 @@ class SessionApiTests(unittest.TestCase):
     token_counter: llama_cpp
 """, encoding="utf-8")
             catalog = ModelCatalog(path)
-            with patch.object(web, "registry", SimpleNamespace(catalog=catalog)):
+            with patch.object(web, "registry", SimpleNamespace(catalog=catalog)), \
+                 patch("agent.model.discovery.get_json", return_value={"data": [{"id": "qwen3-coder-30b"}]}):
                 group = web.models()["models"][0]
             self.assertEqual(group["displayName"], "本地 Qwen3-Coder-30B (llama.cpp · Q4)")
             self.assertEqual(group["models"], [{"id": "qwen3-coder-30b", "name": "qwen3-coder-30b", "enabled": True}])

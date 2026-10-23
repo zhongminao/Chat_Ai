@@ -17,7 +17,7 @@ from ..model.catalog import ModelCatalog
 class SessionRegistry:
     def __init__(self, config=None):
         self.config = config or load()
-        self.catalog = ModelCatalog(self.config.providers_file, self.config.model_overrides)
+        self.catalog = ModelCatalog(self.config.providers_file)
         self.store = SessionStore(self.config.storage_dir)
         self.mailbox = AgentToAgentMailbox(self.store.database)
         self.items: dict[str, SessionRuntime] = {}
@@ -63,7 +63,8 @@ class SessionRegistry:
             return {"status": "completed", "result_path": str(path.resolve())}
         last = next((e for e in reversed(records) if e["type"] in {"turn.failed", "turn.cancelled"}), {})
         return {"status": "cancelled" if last.get("type") == "turn.cancelled" else "failed",
-                "error": last.get("reason", "Execution was interrupted before submitting a report.")}
+                "error": last.get("reason", "Execution was interrupted before submitting a report."),
+                "events_path": str(session.events.path.resolve())}
 
     def delegate(self, parent_id: str, user_prompt: str) -> str:
         if not isinstance(user_prompt, str) or not user_prompt.strip():
@@ -83,7 +84,7 @@ class SessionRegistry:
                            "返回的 cursor 是当前主会话全部监控资源的版本号，不是 agent 编号；"
                            "等待变化时原样传入最近一次 watch 的 cursor，timeout 按需要选择，最多 86400 秒（1 天）；有变化会提前返回。"
                            "每次使用最新返回的 cursor；超时没有变化时保持不变。"
-                           "completed 时用 read_file 读取 result_path；failed/cancelled 时按 error 判断原因。"
+                           "completed 时用 read_file 读取 result_path；failed/cancelled 时检查 error，并用 read_file 读取 events_path 核对已执行工作，再决定后续处理。"
                            "停止当前回复不会停止子任务；结果不会自动写入主对话。"}, ensure_ascii=False)
 
     def finished(self, child: SessionRuntime):

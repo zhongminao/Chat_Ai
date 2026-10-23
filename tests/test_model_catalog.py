@@ -17,8 +17,8 @@ class ModelBindingTests(unittest.TestCase):
     api_key_default: test-key
     default_model: one
     models:
-      - id: one
-      - id: two
+      one: {}
+      two: {}
 ''')
         self.catalog = ModelCatalog(self.path)
         self.one = self.catalog.resolve('test', 'one')
@@ -28,26 +28,17 @@ class ModelBindingTests(unittest.TestCase):
         self.catalog.close()
         self.temp.cleanup()
 
-    def test_gpt_defaults_to_medium_ignoring_stale_directory_policy(self):
+    def test_provider_defaults_and_model_overrides(self):
         provider = self.catalog.providers.pop("test")
-        provider["models"][0].update(reasoning_effort="high", default_reasoning_effort="high")
+        provider["defaults"] = {"thinking": "enabled", "default_reasoning_effort": "medium"}
+        provider["models"]["one"] = {"default_reasoning_effort": "high"}
         self.catalog.providers["gpt"] = provider
         target = self.catalog.resolve("gpt", "one")
-        self.assertEqual(target.reasoning_effort, "medium")
-        self.assertEqual(target.as_dict()["reasoning_effort"], "medium")
+        self.assertEqual((target.thinking, target.reasoning_effort), ("enabled", "high"))
+        self.assertEqual(self.catalog.resolve("gpt", "two").reasoning_effort, "medium")
         with patch("agent.model.catalog.ModelHttpClient"):
             _, adapter = self.catalog.get_binding(target)
-            self.assertEqual(adapter.request_options(), {"reasoning_effort": "medium"})
-
-    def test_gpt_explicit_config_overrides_medium_default(self):
-        self.catalog.providers["gpt"] = self.catalog.providers.pop("test")
-        self.catalog.overrides = {"providers": {"gpt": {"models": {
-            "one": {"default_reasoning_effort": "high"},
-            "two": {"default_reasoning_effort": "none"},
-        }}}}
-        self.assertEqual(self.catalog.resolve("gpt", "one").reasoning_effort, "high")
-        self.assertEqual(self.catalog.resolve("gpt", "two").reasoning_effort, "none")
-        self.assertEqual(self.one.reasoning_effort, "")  # Other providers unchanged.
+            self.assertEqual(adapter.request_options(), {"reasoning_effort": "high"})
 
     def test_local_provider_without_models_list_resolves_its_single_default(self):
         self.path.write_text("""providers:
@@ -61,7 +52,7 @@ class ModelBindingTests(unittest.TestCase):
         target = catalog.resolve("local-test")
         self.assertEqual(target.name, "only-model")
         self.assertEqual(catalog.token_counter(target.as_dict()), "llama_cpp")
-        self.assertEqual(catalog.models_for("local-test"), [{"id": "only-model", "name": "only-model"}])
+        self.assertEqual(catalog.models_for("local-test"), [])
 
     def test_reuses_only_current_binding_and_keeps_instances_independent(self):
         with patch('agent.model.catalog.ModelHttpClient') as clients, patch('agent.model.catalog.create_provider') as providers:
@@ -76,6 +67,20 @@ class ModelBindingTests(unittest.TestCase):
             self.assertEqual(clients.call_count, 3)
             self.assertIsNot(self.catalog.get_binding(self.one), first)
             self.assertEqual(clients.call_count, 4)
+
+    def test_reload_changes_binding_address_without_network_queries_during_chat(self):
+        from agent.model.discovery import refresh_catalog
+        child = self.catalog.fork()
+        with patch('agent.model.catalog.ModelHttpClient') as clients, \
+             patch('agent.model.catalog.create_provider'), \
+             patch('agent.model.discovery.get_json', return_value={"data": [{"id": "one"}]}) as fetch:
+            first = child.get_binding(self.one)
+            self.path.write_text(self.path.read_text().replace('https://example.invalid/v1', 'http://new/v1'))
+            refresh_catalog(self.catalog)
+            self.assertIsNot(child.get_binding(self.one), first)
+            child.get_binding(self.one)
+            self.assertEqual(fetch.call_count, 1)
+            self.assertEqual(clients.call_args.kwargs['base_url'], 'http://new/v1')
 
     def test_creation_failure_preserves_previous_binding_and_allows_retry(self):
         with patch('agent.model.catalog.ModelHttpClient', side_effect=[Mock(), RuntimeError('creation failed'), Mock()]) as clients, \

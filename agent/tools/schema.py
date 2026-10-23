@@ -36,7 +36,7 @@ READ_MAIL_SCHEMA = {"type": "function", "function": {
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error. Do not poll for mail or wait when no relevant task remains.",
+    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error and read events_path to review work already performed before deciding how to proceed. Do not poll for mail or wait when no relevant task remains.",
     "parameters": {"type": "object", "properties": {
         "cursor": {"type": ["integer", "null"], "minimum": 0,
                    "description": "Latest watch cursor; omit/null for a full snapshot."},

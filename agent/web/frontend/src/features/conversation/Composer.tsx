@@ -17,6 +17,7 @@ interface Props {
   status: string; readOnly: boolean;
   pending: 'send' | 'guide' | 'stop' | 'model' | null;
   model: Model | null; models: ModelGroup[];
+  modelsRefreshing: boolean; modelsError: string | null; onRefreshModels: () => Promise<void>;
   sessionId: string | null; images: ImageAsset[];
   onUploaded: (image: ImageAsset) => void;
   onSend: (text: string, images: string[]) => Promise<boolean>;
@@ -99,6 +100,7 @@ export function Composer(props: Props) {
         </select>
         </div><div className="composer-right-actions">
         <ModelPicker groups={props.models} model={props.model}
+        refreshing={props.modelsRefreshing} error={props.modelsError} onRefresh={props.onRefreshModels}
         disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
         <button type="submit" className={`send-button ${stopAction ? 'stop-button' : ''}`} disabled={disabled}
           aria-label={stopAction ? '停止执行' : queueInput ? '加入引导队列' : '发送消息'}

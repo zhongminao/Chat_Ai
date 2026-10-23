@@ -41,6 +41,32 @@ export function useSessions() {
   const listVersion = useRef(0);
   const creatingRef = useRef(false);
   const renamingRef = useRef(false);
+  const [modelsRefreshing, setModelsRefreshing] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const modelRequest = useRef<AbortController | null>(null);
+
+  const refreshModels = useCallback(async () => {
+    if (modelRequest.current) return;
+    const request = new AbortController();
+    modelRequest.current = request;
+    setModelsRefreshing(true); setModelsError(null);
+    try {
+      const catalog = await api.models(request.signal);
+      if (!request.signal.aborted) setModels(catalog.models);
+    } catch (error) {
+      if (!request.signal.aborted) setModelsError(errorMessage(error));
+    } finally {
+      if (modelRequest.current === request) {
+        modelRequest.current = null;
+        setModelsRefreshing(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshModels();
+    return () => { modelRequest.current?.abort(); modelRequest.current = null; };
+  }, [refreshModels]);
 
   const select = useCallback((id: string | null) => {
     setSelected(id);
@@ -62,9 +88,9 @@ export function useSessions() {
     const abort = new AbortController();
     let active = true;
     setLoading(true); setError(null);
-    Promise.all([api.sessions(abort.signal), api.models(abort.signal)]).then(async ([list, catalog]) => {
+    api.sessions(abort.signal).then(async list => {
       if (!active) return;
-      setModels(catalog.models); setSessions(list.sessions);
+      setSessions(list.sessions);
       const id = await restoreOrCreateSession(list.sessions);
       if (!active) return;
       setSessions(items => items.some(item => item.id === id) ? items : [emptySummary(id), ...items]);
@@ -135,7 +161,7 @@ export function useSessions() {
     finally { updatingRef.current = false; setUpdating(null); }
   }
 
-  return { updating, update, sessions, models, selected, select, loading, creating, deleting, renaming, rename,
+  return { updating, update, sessions, models, modelsRefreshing, modelsError, refreshModels, selected, select, loading, creating, deleting, renaming, rename,
     error, clearError: () => setError(null), create, remove, refresh,
     retry: () => setAttempt(value => value + 1) };
 }

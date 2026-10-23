@@ -34,6 +34,7 @@ def _image_parts(identifiers: Sequence[str], images: ImageStore | None, seen: se
             caption = images.describe(image)
             if identifier in seen:
                 caption += "（此前已附图）"
+            caption += "\n此图片的图像内容已直接附在本条或此前的消息中，可直接查看；路径仅供引用或展示，无需调用 read_image 再次读取。"
             parts.append({"type": "text", "text": caption})
         if identifier not in seen:
             parts.append({"type": "image_url", "image_url": {"url": images.data_url(identifier), "detail": "auto"}})

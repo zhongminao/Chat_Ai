@@ -89,7 +89,41 @@ python -m agent.cli.main "描述图片" --image /path/to/image.png
 | `mcp` | MCP 服务别名到 URL 的映射 |
 
 提示词里的 `{workspace}` 替换为实际工作区路径。配置或提示词变更后重启 Web/CLI。
-模型目录声明接口地址、模型与视觉等能力；`base_url_env` 可覆盖部署地址，`api_key_env` 可指定密钥环境变量。
+模型连接与人工策略统一写在 `providers_file` 指向的 YAML 中，不再放在项目配置里：
+
+- 顶层 `default_provider` 选择默认供应商；`providers.<名称>` 保留 `display_name`、`base_url`、`default_model`、`token_counter` 等连接与部署配置。`base_url_env` 可覆盖部署地址，`api_key_env` 可指定密钥环境变量。
+- `providers.<名称>.defaults` 保存该供应商模型共用的 `thinking`、`vision`、`reasoning_efforts`、`default_reasoning_effort` 等人工策略。
+- `providers.<名称>.models` 是 **模型 ID → 人工覆盖映射**，仅列需要覆盖默认策略的模型，不是模型清单。未列出的模型继承 `defaults`；动态发现得到的全量列表与元数据只保留在运行时，不写回 YAML。
+
+例如，GPT 默认使用 `medium`，仅两个模型例外使用 `high`：
+
+```yaml
+providers:
+  gpt:
+    base_url: http://127.0.0.1:18100/gpt/v1
+    api_key_default: gateway
+    default_model: gpt-6.1-sol
+    defaults:
+      thinking: disabled
+      default_reasoning_effort: medium
+    models:
+      gpt-6.1-sol:
+        default_reasoning_effort: high
+      gpt-6-sol:
+        default_reasoning_effort: high
+```
+
+DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` 和 `default_reasoning_effort: high`；单模型视觉覆盖也写在对应的 `models.<模型 ID>.vision` 下。GPT 的 reasoning 配置是人工策略，不代表网关 `/models` 已返回或确认相关能力。
+参数优先级为：单模型 `models.<ID>` 覆盖 > provider 的 `defaults` > API 返回值；未指定时使用程序默认值。
+
+| 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |
+|---|---|---|---|
+| Web/CLI 启动 | 是 | 是 | 否 |
+| 刷新网页或点击模型列表旁的刷新按钮 | 是 | 是 | 否 |
+| 发送聊天消息 | 否 | 否 | 否 |
+
+刷新期间保留已有模型列表，完成后替换；初次加载显示等待提示。接口离线或返回空列表时隐藏对应空分组，人工配置保持不变；不做后台轮询，也不发推理请求探测。`providers.yaml` 的修改可通过刷新生效，其他应用配置仍需重启。
+
 `CHAT_AI_DEFAULT_PROVIDER` 只覆盖新会话默认 provider；目录展示不代表对应端点当前可用，不自动切换到其他模型。
 
 ## 主要使用规则

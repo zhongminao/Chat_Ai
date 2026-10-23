@@ -25,7 +25,6 @@ class Config:
     child_system_prompt: str
     context: dict = field(default_factory=dict)
     approval_mode: str = "audit"
-    model_overrides: dict = field(default_factory=dict)
 
 
 def _path(root: Path, value: str) -> Path:
@@ -59,10 +58,7 @@ def load(path: Path | None = None) -> Config:
         root,
         data.get("providers_file", "agent/model/providers/providers.yaml"),
     )
-    model_overrides = data.get("model_overrides") or {}
-    if not isinstance(model_overrides, dict):
-        raise ValueError("config.yaml: model_overrides 必须是映射")
-    catalog = ModelCatalog(providers_file, model_overrides)
+    catalog = ModelCatalog(providers_file)
     context = dict(data.get("context") or {})
     context.setdefault("enabled", False)
     if type(context["enabled"]) is not bool:
@@ -93,7 +89,6 @@ def load(path: Path | None = None) -> Config:
         workspace=workspace,
         storage_dir=storage_dir,
         providers_file=providers_file,
-        model_overrides=model_overrides,
         spill=spill,
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,

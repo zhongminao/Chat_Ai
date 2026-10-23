@@ -1,4 +1,4 @@
-# API 供应商与模型目录。
+# API 供应商连接、默认策略与人工模型覆盖；动态发现结果不写回此文件。
 default_provider: deepseek
 
 providers:
@@ -6,88 +6,45 @@ providers:
     display_name: GPT (passion8.cc)
     api_key_default: gateway
     base_url: http://127.0.0.1:18100/gpt/v1
-    thinking: disabled
     default_model: gpt-6.1-sol
+    defaults:
+      thinking: disabled
+      # GPT 网关的 /models 不返回 reasoning 能力；这里是人工策略，非探测结果。
+      default_reasoning_effort: medium
+    # 模型 ID -> 人工覆盖；未列出的模型继承 defaults，不维护发现的全量列表。
     models:
-    - id: gpt-6-sol
-      name: gpt-6-sol
-      reasoning_effort: high
-      default_reasoning_effort: high
-      image_generation: false
-      chat_completions: true
-    - id: codex-auto-review
-      name: codex-auto-review
-      image_generation: false
-      chat_completions: true
-    - id: gpt-6-astra
-      name: gpt-6-astra
-      reasoning_effort: medium
-      default_reasoning_effort: medium
-      image_generation: false
-      chat_completions: true
-    - id: gpt-6.1-sol
-      name: gpt-6.1-sol
-      reasoning_effort: high
-      default_reasoning_effort: high
-      image_generation: false
-      chat_completions: true
-    - id: gpt-5.6-terra
-      name: gpt-5.6-terra
-      reasoning_effort: medium
-      default_reasoning_effort: medium
-      image_generation: false
-      chat_completions: true
-    - id: gpt-5.6-sol
-      name: gpt-5.6-sol
-      reasoning_effort: medium
-      default_reasoning_effort: medium
-      image_generation: false
-      chat_completions: true
+      gpt-6.1-sol:
+        default_reasoning_effort: high
+      gpt-6-sol:
+        default_reasoning_effort: high
   deepseek:
     display_name: DeepSeek
     api_key_default: gateway
     base_url: http://127.0.0.1:18100/deepseek/v1
-    thinking: disabled
     default_model: deepseek-flash
+    defaults:
+      thinking: disabled
+      reasoning_efforts: [low, high, max]
+      default_reasoning_effort: high
     models:
-    - id: deepseek-flash
-      name: DeepSeek-V4.1-Flash
-      vision: true
-      reasoning_efforts:
-      - low
-      - high
-      - max
-      default_reasoning_effort: high
-      api_default_reasoning_effort: high
-      context_window: 1048576
-      input_modalities:
-      - text
-      - image
-    - id: deepseek-v4-pro
-      name: DeepSeek-V4-Pro
-      reasoning_efforts:
-      - low
-      - high
-      - max
-      api_default_reasoning_effort: high
-      context_window: 1048576
-      input_modalities:
-      - text
-      default_reasoning_effort: high
+      deepseek-flash:
+        vision: true
   local-qwen3-coder-30b:
     display_name: 本地 Qwen3-Coder-30B (llama.cpp · Q4)
     base_url: http://127.0.0.1:18080/v1
     default_model: qwen3-coder-30b
     token_counter: llama_cpp
 
-  # local-qwen3p5-9b:
-  #   display_name: 本地 Qwen3.5-9B (vLLM · FP8)
-  #   base_url: http://127.0.0.1:8002/v1
-  #   default_model: local-qwen3p5-9b
-  #   vision: true
+  local-qwen3p5-9b:
+    display_name: 本地 Qwen3.5-9B (vLLM · FP8)
+    base_url: http://127.0.0.1:8002/v1
+    default_model: local-qwen3p5-9b
+    defaults:
+      vision: true
 
-  # local-qwen3p6-35b:
-  #   display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
-  #   base_url: http://127.0.0.1:8003/v1
-  #   default_model: Qwen3.6-35B-A3B-128K
-  #   vision: true
+  local-qwen3p6-35b:
+    display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
+    base_url: http://127.0.0.1:8003/v1
+    default_model: Qwen3.6-35B-A3B-128K
+    defaults:
+      vision: true

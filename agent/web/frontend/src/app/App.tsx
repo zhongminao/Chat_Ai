@@ -66,6 +66,7 @@ export function App() {
             disabled={approvals.pending} onDecide={approvals.decide} onStop={approvals.stop} />}
           contextUsage={conversation.contextUsage} status={status} readOnly={readOnly}
           busy={conversation.busy} pending={conversation.pending} model={conversation.model} models={sessions.models}
+          modelsRefreshing={sessions.modelsRefreshing} modelsError={sessions.modelsError} onRefreshModels={sessions.refreshModels}
           sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage}
           acceptedGuidance={conversation.items.filter(item => item.kind === 'text' && item.guidance).map(item => item.id.slice('guidance:'.length))}
           onSend={conversation.send} onGuide={conversation.guide} onStop={conversation.stop} onModelChange={conversation.switchModel} />
