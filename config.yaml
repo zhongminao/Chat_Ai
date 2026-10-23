@@ -14,10 +14,10 @@ approval:
 context:
   enabled: true
   # 所有模型默认的整理触发阈值（不是模型最大上下文）。
-  trigger_tokens: 128000
+  trigger_tokens: 256000
   # 指定 provider 覆盖默认整理阈值；本地部署按实际上下文填写。
   model_trigger_tokens:
-    local-qwen3-coder-30b: 128000
+    local-qwen3-coder-30b: 64000
   prompt_file: ./prompts/context_compaction.md
 
 
