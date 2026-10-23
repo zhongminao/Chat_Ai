@@ -4,6 +4,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
 from ..core.session_registry import SessionRegistry
+from ..model.discovery import refresh_catalog
 from ..workflow.config import load
 from ..workflow.commands import SwitchModel
 from .images import ImageCommands
@@ -21,6 +22,7 @@ def main() -> None:
 
     config = load()
     registry = SessionRegistry(config)
+    refresh_catalog(registry.catalog)
     session_store = registry.store
     try:
         runtime = registry.get(args.session) if args.session else registry.create()

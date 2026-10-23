@@ -181,6 +181,15 @@ class SubagentTests(unittest.TestCase):
                 self.registry.wait()
         states = self.registry.monitor(parent.session.id).watch()['changes']
         self.assertEqual([s['status'] for s in states], ['failed', 'failed', 'cancelled'])
+        for state in states:
+            journal = self.registry.store.open(state['session_id']).events.path
+            self.assertEqual(state['events_path'], str(journal.resolve()))
+            self.assertTrue(Path(state['events_path']).is_file())
+            self.assertTrue(state['error'])
+            self.assertNotIn('result_path', state)
+            self.assertNotIn('session_url', state)
+        self.assertIn('intentional crash', states[0]['error'])
+        self.assertIn('intentional crash', Path(states[0]['events_path']).read_text())
         executions = [json.loads(json.dumps(self.registry.get(s['session_id']).agent.state))['execution']
                       for s in states]
         self.assertEqual([execution['status'] for execution in executions], ['failed', 'failed', 'cancelled'])
@@ -193,6 +202,8 @@ class SubagentTests(unittest.TestCase):
         states = restored.monitor(parent.session.id).watch()['changes']
         self.assertEqual(states[-1]['session_id'], interrupted.id)
         self.assertEqual(states[-1]['status'], 'failed')
+        self.assertEqual(states[-1]['events_path'], str(interrupted.events.path.resolve()))
+        self.assertNotIn('result_path', states[-1])
         self.assertEqual(restored.items, {}, 'reading the monitor must not start sessions or models')
 
     def test_configured_child_role_retry_and_history_without_false_completion(self):

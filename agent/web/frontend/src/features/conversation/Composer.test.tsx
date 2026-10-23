@@ -7,7 +7,8 @@ describe('single composer action', () => {
     it(busy ? 'has one enabled stop action while running with empty input' : 'has one disabled send action before any input', () => {
       const html = renderToStaticMarkup(<Composer busy={busy} ready connected readOnly={false}
         status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
-        onAccessChange={() => {}} model={null} models={[]} sessionId="test" images={[]}
+        onAccessChange={() => {}} model={null} models={[]}
+        modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="test" images={[]}
         onUploaded={() => {}} onSend={async () => true}
         onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
       expect(html.match(/class="send-button /g)).toHaveLength(1);

@@ -192,7 +192,7 @@ providers:
     base_url: {self.url}
     api_key_default: test
     default_model: test
-    models: [{{id: test}}]
+    models: {{test: {{}}}}
 """)
             config = replace(load(), approval_mode="full_access", providers_file=providers, workspace=root,
                              storage_dir=root, mcp={})

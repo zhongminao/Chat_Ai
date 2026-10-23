@@ -185,6 +185,7 @@ def access_mode(session_id: str, request: AccessModeRequest):
 @app.get("/api/models")
 def models():
     catalog = registry.catalog
+    refresh_catalog(catalog, timeout=2)
     return {"models": [
         {"provider": provider, "displayName": data.get("display_name", provider),
          "models": [{"id": item["id"], "name": item.get("name", item["id"]),
@@ -192,8 +193,8 @@ def models():
                     **{key: item[key] for key in ("reasoning_efforts", "default_reasoning_effort",
                                                     "api_default_reasoning_effort", "chat_completions",
                                                     "context_window", "input_modalities") if key in item}}
-                    for item in catalog.models_for(provider) if item.get("enabled", True)]}
-        for provider, data in catalog.providers.items()
+                    for item in catalog.models_for(provider)]}
+        for provider, data in catalog.providers.items() if catalog.models_for(provider)
     ]}
 
 

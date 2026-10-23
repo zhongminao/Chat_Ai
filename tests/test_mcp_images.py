@@ -85,11 +85,12 @@ class ImageTests(unittest.TestCase):
         content = request_messages(messages, self.images)[0]['content']
         self.assertEqual(sum(part['type'] == 'image_url' for part in content), 2)
         labels = [part['text'] for part in content if part['type'] == 'text']
-        self.assertIn(f"图片编号 1\n路径：{self.images.path(first['id'])}", labels)
-        self.assertIn(f"图片编号 2\n路径：{self.images.path(second['id'])}", labels)
+        self.assertTrue(any(label.startswith(f"图片编号 1\n路径：{self.images.path(first['id'])}") for label in labels))
+        self.assertTrue(any(label.startswith(f"图片编号 2\n路径：{self.images.path(second['id'])}") for label in labels))
         repeated = request_messages([*messages, {"role": "user", "content": "再看第一张", "images": [first['id']]}], self.images)
         self.assertFalse(any(part['type'] == 'image_url' for part in repeated[-1]['content']))
         self.assertIn('此前已附图', repeated[-1]['content'][-1]['text'])
+        self.assertIn('无需调用 read_image 再次读取', labels[1])
 
     def test_nonvision_model_displays_without_image_input(self):
         result = convert_result(types.CallToolResult(content=[picture()]), self.images)

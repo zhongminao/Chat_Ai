@@ -35,25 +35,3 @@ mcp:
 # 主、子 Agent 完整提示词文件；{workspace} 在装配时替换为工作区绝对路径。
 system_prompt_file: ./prompts/main_agent.md
 child_system_prompt_file: ./prompts/child_agent.md
-
-# 人工模型策略；动态发现不会修改这里。
-model_overrides:
-  providers:
-    deepseek:
-      models:
-        deepseek-flash:
-          reasoning_efforts: [low, high, max]
-          default_reasoning_effort: high
-        deepseek-v4-pro:
-          reasoning_efforts: [low, high, max]
-          default_reasoning_effort: high
-  
-    gpt:
-      # 未单独配置的 GPT 模型统一使用 medium，只列例外。
-      # GPT 网关的 /models 不返回 reasoning 能力；以下是当前人工策略，
-      # 不是由接口探测确认的能力列表。
-      models:
-        gpt-6.1-sol:
-          default_reasoning_effort: high
-        gpt-6-sol:
-          default_reasoning_effort: high

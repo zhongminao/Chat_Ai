@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 const paths = {
+  refresh: 'M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-2L20 8M4 16l2.3 3A7 7 0 0 0 17.9 17',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   pin: 'm9 3 6 0-1 6 4 4H6l4-4-1-6ZM12 13v8',
   archive: 'M3 3h18v5H3ZM5 8v13h14V8M10 12h4',

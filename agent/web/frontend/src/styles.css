@@ -121,7 +121,13 @@ button { -webkit-tap-highlight-color: transparent; }
 .send-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #27292f; color: white; }
 .send-button:hover:not(:disabled) { background: #494d57; }
 .stop-square { width: 11px; height: 11px; background: currentColor; border-radius: 2px; }
-.model-picker { position: relative; min-width: 0; }
+.model-picker { position: relative; display: flex; align-items: center; min-width: 0; }
+.model-refresh { width: 26px; height: 28px; flex-shrink: 0; }
+.model-refresh.refreshing svg { animation: model-refresh-spin 1s linear infinite; }
+@keyframes model-refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .model-refresh.refreshing svg { animation: none; } }
+.model-feedback { padding: 9px 10px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.model-error { color: #b33b3b; }
 .model-trigger { display: flex; align-items: center; gap: 6px; max-width: 240px; padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: #777d87; font-size: 12px; }
 .model-trigger span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-trigger:hover:not(:disabled) { background: #f2f4f7; }

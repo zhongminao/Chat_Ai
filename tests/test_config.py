@@ -1,4 +1,4 @@
-"""Prompt files resolve from the config directory and retain role semantics."""
+"""Project config resolves paths/prompts and loads model policy from providers only."""
 import os
 import tempfile
 import unittest
@@ -8,7 +8,7 @@ from unittest.mock import patch
 import yaml
 
 from agent.core.agent_factory import build_state
-from agent.workflow.config import PROJECT_ROOT, load
+from agent.workflow.config import Config, load
 
 
 class PromptConfigTests(unittest.TestCase):
@@ -22,10 +22,27 @@ class PromptConfigTests(unittest.TestCase):
         self.main.write_text('主提示词 {workspace}，保留 JSON：{"ok": true}\n', encoding='utf-8')
         self.child.write_text('child {workspace}\n', encoding='utf-8')
         self.path = self.root / 'config.yaml'
+        self.providers = self.root / 'providers.yaml'
+        self.providers.write_text(yaml.safe_dump({
+            'default_provider': 'gpt',
+            'providers': {
+                'gpt': {
+                    'base_url': 'http://127.0.0.1:1/v1',
+                    'default_model': 'gpt-test-high',
+                    'defaults': {
+                        'thinking': 'disabled',
+                        'default_reasoning_effort': 'medium',
+                    },
+                    'models': {
+                        'gpt-test-high': {'default_reasoning_effort': 'high'},
+                    },
+                },
+            },
+        }), encoding='utf-8')
         self.data = {
             'system_prompt_file': './prompts/main_agent.md',
             'child_system_prompt_file': './prompts/child_agent.md',
-            'providers_file': str(PROJECT_ROOT / 'agent/model/providers/providers.yaml'),
+            'providers_file': './providers.yaml',
             'workspace': './workspace',
             'storage_dir': './session-data',
         }
@@ -33,6 +50,31 @@ class PromptConfigTests(unittest.TestCase):
     def config(self):
         self.path.write_text(yaml.safe_dump(self.data), encoding='utf-8')
         return load(self.path)
+
+    def test_provider_policy_is_loaded_from_relative_providers_file(self):
+        config = self.config()
+        self.assertEqual(config.providers_file, self.providers)
+        self.assertEqual(config.model, {
+            'provider': 'gpt', 'name': 'gpt-test-high',
+            'thinking': 'disabled', 'reasoning_effort': 'high',
+        })
+        self.assertNotIn('model_overrides', Config.__dataclass_fields__)
+        self.assertEqual(build_state(config, {}, [])['model'], config.model)
+
+    def test_config_constructs_catalog_with_only_the_providers_path(self):
+        with patch('agent.workflow.config.ModelCatalog') as catalog:
+            catalog.return_value.default.return_value.as_dict.return_value = {'provider': 'gpt'}
+            self.config()
+        catalog.assert_called_once_with(self.providers)
+
+    def test_unlisted_default_model_inherits_provider_defaults(self):
+        providers = yaml.safe_load(self.providers.read_text(encoding='utf-8'))
+        providers['providers']['gpt']['default_model'] = 'gpt-test-medium'
+        self.providers.write_text(yaml.safe_dump(providers), encoding='utf-8')
+        self.assertEqual(self.config().model, {
+            'provider': 'gpt', 'name': 'gpt-test-medium',
+            'thinking': 'disabled', 'reasoning_effort': 'medium',
+        })
 
     def test_environment_selects_config_when_no_path_is_given(self):
         self.config()

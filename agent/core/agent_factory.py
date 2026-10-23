@@ -11,7 +11,7 @@ from ..workflow.state import AgentState
 
 def build_state(config, metadata: dict, records: list[dict], catalog=None) -> AgentState:
     role = "child" if metadata.get("parent_session_id") else "main"
-    catalog = catalog or ModelCatalog(config.providers_file, config.model_overrides)
+    catalog = catalog or ModelCatalog(config.providers_file)
     model = metadata.get("model") or catalog.default().as_dict()
     for event in records:
         if event["type"] == "model.changed":
