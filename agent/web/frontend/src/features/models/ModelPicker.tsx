@@ -19,7 +19,9 @@ export function ModelPicker({ groups, model, disabled, refreshing, error, onRefr
   }, [open]);
   useEffect(() => { if (disabled) setOpen(false); }, [disabled]);
   const visibleGroups = groups.filter(group => group.models.some(item => item.enabled));
-  const display = groups.find(group => group.provider === model?.provider)?.models.find(item => item.id === model?.name)?.name ?? model?.name ?? '选择模型';
+  const display = !visibleGroups.length
+    ? refreshing ? '正在加载模型列表…' : '无可用模型'
+    : groups.find(group => group.provider === model?.provider)?.models.find(item => item.id === model?.name)?.name ?? model?.name ?? '选择模型';
 
   return <div className="model-picker" ref={container}>
     <button type="button" ref={trigger} className="model-trigger" aria-expanded={open} aria-controls="model-options"
@@ -35,7 +37,7 @@ export function ModelPicker({ groups, model, disabled, refreshing, error, onRefr
     {open && <div id="model-options" className="model-options" role="group" aria-label="选择模型" aria-busy={refreshing}>
       {error && <div className="model-feedback model-error" role="alert">刷新模型列表失败：{error}。{visibleGroups.length ? '请刷新网页重试。' : '请点击刷新重试。'}</div>}
       {!visibleGroups.length && <div className="model-feedback" role="status">
-        {refreshing ? '正在加载模型列表…' : '暂无可用模型，请刷新列表或检查提供商配置。'}
+        {refreshing ? '正在加载模型列表…' : '无可用模型'}
       </div>}
       {visibleGroups.map(group => <div key={group.provider}>
         <div className="model-group">{group.displayName}</div>

@@ -32,6 +32,8 @@ class SessionRegistry:
 
     def create(self, **metadata) -> SessionRuntime:
         with self.lock:
+            if not metadata.get("parent_session_id") and not metadata.get("model"):
+                metadata["model"] = self.catalog.new_session_default().as_dict()
             return self.get(self.store.create(**metadata).id)
 
     def monitor(self, session_id: str) -> Monitor:

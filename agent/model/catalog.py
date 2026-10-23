@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -89,6 +90,21 @@ class ModelCatalog:
 
     def default(self) -> ModelTarget:
         return self.resolve(self.default_provider)
+
+    def new_session_default(self) -> ModelTarget:
+        """Choose from the latest discovery snapshot, without changing configured defaults."""
+        with self._lock:
+            available = [(provider, item["id"]) for provider in self.providers
+                         for item in self.models_for(provider)]
+            configured = (self.default_provider,
+                          self.providers.get(self.default_provider, {}).get("default_model"))
+            if configured in available:
+                return self.resolve(*configured)
+            local = [item for item in available if item[0].startswith("local-")]
+            if local or available:
+                return self.resolve(*random.choice(local or available))
+            # No available alternative: retain the configured identity; the UI shows an empty list.
+            return self.default()
 
     def supports_vision(self, model: dict[str, str]) -> bool:
         entry = self.model_options(model["provider"], model["name"])
