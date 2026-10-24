@@ -18,6 +18,7 @@ context:
   # 指定 provider 覆盖默认整理阈值；本地部署按实际上下文填写。
   model_trigger_tokens:
     local-qwen3-coder-30b: 64000
+    local-qwen3p6-35b: 60000
   prompt_file: ./prompts/context_compaction.md
 
 

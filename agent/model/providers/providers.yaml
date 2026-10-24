@@ -45,6 +45,6 @@ providers:
   local-qwen3p6-35b:
     display_name: 本地 Qwen3.6-35B-A3B (Strata · Q4)
     base_url: http://192.168.250.1:18082/v1
-    default_model: Qwen3.6-35B-A3B-128K
+    default_model: Qwen3.6-35B-A3B
     defaults:
       vision: true
