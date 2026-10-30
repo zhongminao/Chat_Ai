@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import type { ExecutionItem, Item } from '../../state/conversation';
+import type { ExecutionItem, Item, ToolItem } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
 import { ToolCallCard } from './ToolCallCard';
+import { ExecutionSteps } from './ExecutionSteps';
 import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
@@ -70,6 +71,19 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId} /> : null}
       {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && !loading && item.id === assistantId} />}
     </article>;
+  const renderExecutionAt = (source: Item[], index: number) => {
+    const item = source[index];
+    if (item.kind === 'context' || item.kind === 'report') return null;
+    if (item.kind !== 'tool') return renderExecution(item);
+    if (index > 0 && source[index - 1].kind === 'tool') return null;
+    const tools: ToolItem[] = [];
+    for (let cursor = index; cursor < source.length && source[cursor].kind === 'tool'; cursor++) {
+      tools.push(source[cursor] as ToolItem);
+    }
+    if (tools.length === 1) return renderExecution(tools[0]);
+    return <ExecutionSteps key={`steps:${item.id}`} items={tools} onInspect={pauseFollowing}
+      sessionId={sessionId} images={images} waitingCallIds={waitingCallIds} />;
+  };
 
   return <div className="conversation-area">
     <div ref={viewport} className="message-viewport" role="log" aria-label="对话" aria-busy={loading}
@@ -95,7 +109,7 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
           {index === progressIndex && progress}
           {item.kind === 'report'
           ? <ReportCard key={item.id} item={item} onInspect={pauseFollowing}>
-            {item.process.map(renderExecution)}
+            {item.process.map((_, index) => renderExecutionAt(item.process, index))}
           </ReportCard>
           : item.kind === 'context'
             ? <div key={item.id} className="context-marker" role="status" title={item.reason}>
@@ -103,7 +117,7 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
               {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
                 cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
             </div>
-            : renderExecution(item)}
+            : renderExecutionAt(items, index)}
         </Fragment>)}
           {progressIndex === items.length && progress}
         </div>}

@@ -57,7 +57,38 @@ describe('tool expansion', () => {
       items={[{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'done' }]}
       busy={false} loading={false} assistantId={null} sessionId="test" images={[]} />);
     expect(html).toMatch(/<details class="tool-card"><summary[^>]*>/);
+    expect(html).not.toContain('execution-steps');
     expect(html.indexOf('read_file')).toBeLessThan(html.indexOf('调用参数'));
     expect(html.indexOf('调用参数')).toBeLessThan(html.indexOf('工具结果'));
+  });
+
+  it('groups adjacent tools into collapsed execution steps with the latest status', () => {
+    const html = renderToStaticMarkup(<MessageList
+      items={[
+        { id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'one' },
+        { id: 'tool:2', kind: 'tool', name: 'edit_file', status: 'completed', arguments: { path: 'a' }, result: 'two' },
+        { id: 'tool:3', kind: 'tool', name: 'run_bash', status: 'running', arguments: { command: 'npm test' } },
+      ]}
+      busy loading={false} assistantId={null} sessionId="test" images={[]} />);
+    expect(html.match(/class="execution-steps"/g)).toHaveLength(1);
+    expect(html).toContain('执行步骤 · 3 个工具');
+    expect(html).toContain('run_bash · 执行中');
+    expect(html).not.toMatch(/<details class="execution-steps" open/);
+    expect(html.match(/class="tool-card"/g)).toHaveLength(3);
+    expect(html).toContain('read_file');
+    expect(html).toContain('edit_file');
+    expect(html).toContain('run_bash');
+  });
+
+  it('starts a new execution step after non-tool content', () => {
+    const html = renderToStaticMarkup(<MessageList
+      items={[
+        { id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed' },
+        { id: 'assistant:1', kind: 'text', role: 'assistant', content: '继续处理' },
+        { id: 'tool:2', kind: 'tool', name: 'run_bash', status: 'completed' },
+      ]}
+      busy={false} loading={false} assistantId={null} sessionId="test" images={[]} />);
+    expect(html.match(/class="execution-steps"/g)).toBeNull();
+    expect(html.match(/class="tool-card"/g)).toHaveLength(2);
   });
 });

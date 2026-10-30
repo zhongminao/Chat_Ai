@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactElement } from 'react';
 import { MessageList } from './MessageList';
+import { ExecutionSteps } from './ExecutionSteps';
 import { ToolCallCard } from './ToolCallCard';
 
 // Exercise component handlers and layout/resize paths without a DOM dependency.
@@ -44,7 +45,7 @@ function render() {
   hooks.layouts.forEach(effect => effect());
   hooks.effects.forEach(effect => effect());
   return { scroll: () => log.props.onScroll(),
-    inspect: () => find(tree, node => node.type === ToolCallCard)!.props.onInspect() };
+    inspect: () => find(tree, node => node.type === ExecutionSteps || node.type === ToolCallCard)!.props.onInspect() };
 }
 
 beforeEach(() => {
