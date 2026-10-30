@@ -16,7 +16,7 @@ from agent.core.session_registry import SessionRegistry
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.tools.mcp.client import McpClient
 from agent.tools.router import ToolRouter
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class McpResilienceTests(unittest.TestCase):

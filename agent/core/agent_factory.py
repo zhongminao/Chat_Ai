@@ -5,8 +5,8 @@ from .agent_runtime import AgentRuntime
 from ..model.catalog import ModelCatalog
 from ..tools.mcp.client import McpClient
 from ..tools.router import ToolRouter
-from ..workflow.message_replay import restore_model_messages
-from ..workflow.state import AgentState
+from ..agentsessionstate.message_replay import restore_model_messages
+from ..agentsessionstate.state import AgentState
 
 
 def build_state(config, metadata: dict, records: list[dict], catalog=None) -> AgentState:

@@ -17,9 +17,9 @@ from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.model.tokens import count_request_tokens
 from agent.model.context_summary import summarize_context
 from agent.core.cancellation import CancellationToken, ExecutionContext
-from agent.workflow import context_compaction
-from agent.workflow.config import load
-from agent.workflow.message_replay import restore_display_messages, restore_model_messages
+from agent.agentsessionstate import context_compaction
+from agent.agentsessionstate.config import load
+from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
 
 def tool_pair(content="observation"):

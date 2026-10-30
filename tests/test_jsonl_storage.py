@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent.storage.session import SessionStore
-from agent.workflow.message_replay import restore_display_messages, restore_model_messages
+from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
 
 class JSONLStorageTests(unittest.TestCase):

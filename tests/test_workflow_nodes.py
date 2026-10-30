@@ -2,7 +2,7 @@ import json
 import unittest
 
 from agent.tools.schema import ToolCall
-from agent.workflow import message_updates, transitions
+from agent.agentsessionstate import message_updates, transitions
 
 
 class WorkflowNodeTests(unittest.TestCase):

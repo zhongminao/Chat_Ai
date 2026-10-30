@@ -14,7 +14,7 @@ from PIL import Image
 from agent.core.session_registry import SessionRegistry
 from agent.core.session_runtime import SessionBusy
 from agent.web import app as web
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class SessionDeletionTests(unittest.TestCase):

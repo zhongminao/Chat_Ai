@@ -15,7 +15,7 @@ from agent.core.session_registry import SessionRegistry
 from agent.web import app as web
 from agent.web.events import session_events
 from agent.web.history import history_page
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class Request:

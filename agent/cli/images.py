@@ -1,7 +1,7 @@
 import shlex
 from pathlib import Path
 
-from ..workflow.input import UserInput
+from ..agentsessionstate.input import UserInput
 
 
 class ImageCommands:

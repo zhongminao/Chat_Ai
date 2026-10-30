@@ -1,6 +1,6 @@
 """Batch runtime inputs at safe boundaries; share the lock with submission."""
-from ..workflow.input import UserInput
-from ..workflow.message_updates import mailbox_notice
+from ..agentsessionstate.input import UserInput
+from ..agentsessionstate.message_updates import mailbox_notice
 from ..model.request_messages import build_user_message
 
 

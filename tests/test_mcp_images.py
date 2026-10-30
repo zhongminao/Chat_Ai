@@ -61,10 +61,8 @@ class ImageTests(unittest.TestCase):
         source.write_bytes(base64.b64decode(picture().data))
         read = read_image(self.root, self.images, str(source))
         self.assertFalse(read.images)
-        self.assertIn('尚未向用户展示', read.text)
-        self.assertNotIn('来源：', read.text)
-        self.assertNotIn('名称：', read.text)
         image = read.model_images[0]
+        self.assertEqual(read.text, f"session_path: {self.images.path(image['id']).resolve()}")
         messages = [{"role": "assistant", "content": "", "tool_calls": [
             {"id": "read", "type": "function", "function": {"name": "read_image", "arguments": "{}"}}]},
             build_tool_message('read', read.text, [image['id']])]
@@ -72,6 +70,7 @@ class ImageTests(unittest.TestCase):
         self.assertEqual(str(outgoing).count(str(self.images.path(image['id']))), 1)
         published = show_image(self.root, self.images, str(self.images.path(image['id'])))
         self.assertEqual(published.images[0]['id'], image['id'])
+        self.assertEqual(published.text, self.images.markdown(image))
         self.assertFalse(published.model_images)
         self.assertIn(self.images.markdown(image), published.text)
         self.assertEqual(len(self.images.list()), 1)

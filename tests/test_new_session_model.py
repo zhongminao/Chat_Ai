@@ -12,7 +12,7 @@ import yaml
 from agent.core.session_registry import SessionRegistry
 from agent.model.catalog import ModelCatalog
 from agent.web.events import initialize
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class NewSessionModelTests(unittest.TestCase):

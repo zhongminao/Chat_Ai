@@ -14,7 +14,7 @@ from PIL import Image
 
 from agent.storage.session import SessionStore
 from agent.storage.database import Database
-from agent.workflow.message_replay import restore_model_messages
+from agent.agentsessionstate.message_replay import restore_model_messages
 
 
 def png():

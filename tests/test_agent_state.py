@@ -9,9 +9,9 @@ from unittest.mock import Mock, patch
 from agent.core.session_registry import SessionRegistry
 from agent.core.agent_factory import build_state
 from agent.model.protocol import ModelChunk, ToolCallDelta
-from agent.workflow.commands import SwitchModel
-from agent.workflow.config import load
-from agent.workflow.message_replay import restore_display_messages, restore_model_messages
+from agent.agentsessionstate.commands import SwitchModel
+from agent.agentsessionstate.config import load
+from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
 
 class AgentStateTests(unittest.TestCase):

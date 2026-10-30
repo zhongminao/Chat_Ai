@@ -7,10 +7,10 @@ from ..model.buffer import TextBuffer
 from ..model.catalog import ModelCatalog, ModelTarget
 from ..model.tokens import count_request_tokens
 from ..model.context_summary import summarize_context
-from ..workflow.input import UserInput, normalize_input
+from ..agentsessionstate.input import UserInput, normalize_input
 from ..storage.images import ImageStore
-from ..workflow.state import AgentState, StateUpdate
-from ..workflow import context_compaction, completion, message_updates, transitions
+from ..agentsessionstate.state import AgentState, StateUpdate
+from ..agentsessionstate import context_compaction, completion, message_updates, transitions
 from .cancellation import ExecutionContext, RunCancelled, CancellationToken
 from .control import ExecutionControl
 from ..model.openai_compatible import stream

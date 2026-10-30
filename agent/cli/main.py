@@ -5,8 +5,8 @@ from prompt_toolkit.patch_stdout import patch_stdout
 
 from ..core.session_registry import SessionRegistry
 from ..model.discovery import refresh_catalog
-from ..workflow.config import load
-from ..workflow.commands import SwitchModel
+from ..agentsessionstate.config import load
+from ..agentsessionstate.commands import SwitchModel
 from .images import ImageCommands
 from .output import render_context_event, render_tool_result
 from .approval import handle_approval_command, render_approval_event, wait_for_execution

@@ -1,6 +1,6 @@
 import unittest
 
-from agent.workflow.message_replay import restore_display_messages, restore_model_messages
+from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
 
 class MessageReplayTests(unittest.TestCase):

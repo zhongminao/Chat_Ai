@@ -13,7 +13,7 @@ from PIL import Image
 
 from agent.core.session_registry import SessionRegistry
 from agent.web import app as web
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 from agent.model.protocol import ModelChunk
 from agent.storage.session import SessionStore
 from agent.web.images import image_router

@@ -56,15 +56,15 @@ SUBMIT_SCHEMA = {"type": "function", "function": {
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
         "name": "read_image",
-        "description": "Inspect an existing PNG/JPEG/WebP with model vision; does not publish it. Requires a vision-capable model.",
+        "description": "Read an existing PNG/JPEG/WebP image with model vision. This tool does not publish the image. The path may be an original local file or a session attachment path. The result returns a session_path; if the user needs to see the image, call show_image with that path. The path must be a local filesystem path, not Markdown or an /api image URL.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact workspace-relative or absolute file path. Reuse saved paths; image labels and IDs are not paths."}},
+            "path": {"type": "string", "description": "Exact local filesystem path to the image. Image labels, IDs, Markdown references, and API URLs are not paths."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "show_image",
-        "description": "Publish an existing PNG/JPEG/WebP image to the user and return a Markdown reference. This tool only displays the image; it does not read, inspect, analyze, or send the image to model vision. If you need to understand the image, call read_image first. Do not use this tool to generate or render images; render HTML first.",
+        "description": "Publish an existing PNG/JPEG/WebP image to the user and return its Markdown reference. This tool does not read or analyze the image. Prefer the session_path returned by read_image. The path must be a local filesystem path; Markdown references and /api image URLs are not paths.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact existing file path to publish. Reuse the saved path from read_image when publishing an image you have inspected."}},
+            "path": {"type": "string", "description": "Exact local filesystem path to publish, preferably the session_path returned by read_image. Markdown references and API URLs are not paths."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "read_file",

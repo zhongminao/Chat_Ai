@@ -8,7 +8,7 @@ CLI 与 Web 共用运行时、状态更新和事件协议；模型推理、MCP �
 ```text
 agent/core/       Agent 装配、会话运行时、模型与工具循环、子任务监控
 agent/model/      模型目录、provider、HTTP 客户端与请求消息组装
-agent/workflow/   状态类型与更新、历史恢复、上下文整理、配置
+agent/agentsessionstate/   状态类型与更新、历史恢复、上下文整理、配置
 agent/tools/      本地工具、统一路由、审批、输出落盘与 MCP 客户端
 agent/storage/    SQLite 会话摘要与图片元数据、JSONL 事件、附件与报告
 agent/cli/        命令行交互

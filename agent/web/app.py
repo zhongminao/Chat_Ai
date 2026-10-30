@@ -12,8 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
 from ..model.discovery import refresh_catalog
-from ..workflow.commands import SwitchModel
-from ..workflow.input import UserInput
+from ..agentsessionstate.commands import SwitchModel
+from ..agentsessionstate.input import UserInput
 from .images import image_router
 from .events import session_events
 from .history import history_page

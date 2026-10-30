@@ -8,7 +8,7 @@ from unittest.mock import patch
 import yaml
 
 from agent.core.agent_factory import build_state
-from agent.workflow.config import Config, load
+from agent.agentsessionstate.config import Config, load
 
 
 class PromptConfigTests(unittest.TestCase):
@@ -62,7 +62,7 @@ class PromptConfigTests(unittest.TestCase):
         self.assertEqual(build_state(config, {}, [])['model'], config.model)
 
     def test_config_constructs_catalog_with_only_the_providers_path(self):
-        with patch('agent.workflow.config.ModelCatalog') as catalog:
+        with patch('agent.agentsessionstate.config.ModelCatalog') as catalog:
             catalog.return_value.default.return_value.as_dict.return_value = {'provider': 'gpt'}
             self.config()
         catalog.assert_called_once_with(self.providers)

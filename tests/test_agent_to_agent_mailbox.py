@@ -7,7 +7,7 @@ from pathlib import Path
 from agent.core.session_registry import SessionRegistry
 from agent.core.session_runtime import SessionBusy
 from agent.tools.mailbox import send
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class MailboxTests(unittest.TestCase):

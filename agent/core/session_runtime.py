@@ -8,9 +8,9 @@ from .control import ExecutionControl
 from .steering import InputDelivery
 from .agent_factory import build_agent, build_state
 from ..storage import reports
-from ..workflow.commands import SwitchModel
-from ..workflow.state import AgentState, StateUpdate
-from ..workflow import transitions
+from ..agentsessionstate.commands import SwitchModel
+from ..agentsessionstate.state import AgentState, StateUpdate
+from ..agentsessionstate import transitions
 from ..tools.approval import ApprovalGate
 
 

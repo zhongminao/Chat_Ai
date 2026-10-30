@@ -17,10 +17,10 @@ from agent.core.session_registry import SessionRegistry
 from agent.core.steering import InputDelivery
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.web import app as web
-from agent.workflow.config import load
-from agent.workflow.context_compaction import plan
-from agent.workflow.input import UserInput
-from agent.workflow.message_replay import restore_model_messages, restore_display_messages
+from agent.agentsessionstate.config import load
+from agent.agentsessionstate.context_compaction import plan
+from agent.agentsessionstate.input import UserInput
+from agent.agentsessionstate.message_replay import restore_model_messages, restore_display_messages
 
 
 class SteeringTests(unittest.TestCase):

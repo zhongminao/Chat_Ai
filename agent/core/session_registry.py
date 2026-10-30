@@ -9,8 +9,8 @@ from .session_runtime import SessionBusy, SessionRuntime
 from ..storage.session import SessionStore
 from ..storage.agent_to_agent_mailbox import AgentToAgentMailbox
 from ..storage import reports
-from ..workflow.config import load
-from ..workflow.input import UserInput
+from ..agentsessionstate.config import load
+from ..agentsessionstate.input import UserInput
 from ..model.catalog import ModelCatalog
 
 

@@ -16,7 +16,7 @@ from agent.model.openai_compatible import stream
 from agent.model.openai_compatible import OpenAICompatibleAdapter
 from agent.model.http_client import ModelHttpClient
 from agent.model.providers import create as create_provider
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class Handler(BaseHTTPRequestHandler):

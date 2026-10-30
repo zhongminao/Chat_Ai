@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from agent.core.session_registry import SessionRegistry
 from agent.web import app as web
-from agent.workflow.config import load
+from agent.agentsessionstate.config import load
 
 
 class HistoryAPITests(unittest.TestCase):
