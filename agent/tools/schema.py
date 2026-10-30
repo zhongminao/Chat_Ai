@@ -62,9 +62,9 @@ TOOL_SCHEMAS = [
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "show_image",
-        "description": "Publish an existing PNG/JPEG/WebP and return its Markdown reference. Does not generate or render images; render HTML first.",
+        "description": "Publish an existing PNG/JPEG/WebP image to the user and return a Markdown reference. This tool only displays the image; it does not read, inspect, analyze, or send the image to model vision. If you need to understand the image, call read_image first. Do not use this tool to generate or render images; render HTML first.",
         "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact existing file path; reuse the saved path from read_image when publishing that image."}},
+            "path": {"type": "string", "description": "Exact existing file path to publish. Reuse the saved path from read_image when publishing an image you have inspected."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "read_file",
