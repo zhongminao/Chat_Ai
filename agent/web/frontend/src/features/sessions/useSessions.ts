@@ -33,14 +33,12 @@ export function useSessions() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const updatingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const listVersion = useRef(0);
   const creatingRef = useRef(false);
-  const renamingRef = useRef(false);
   const [modelsRefreshing, setModelsRefreshing] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const modelRequest = useRef<AbortController | null>(null);
@@ -116,7 +114,7 @@ export function useSessions() {
   }
 
   async function remove(id: string) {
-    if (deleting || renamingRef.current || updatingRef.current || !window.confirm(
+    if (deleting || updatingRef.current || !window.confirm(
       '删除这个会话及其所有子会话？聊天记录、图片和报告将一并删除，无法恢复。若主会话或子任务正在运行，请先停止。')) return;
     setDeleting(id); setError(null);
     try {
@@ -135,33 +133,20 @@ export function useSessions() {
     finally { setDeleting(null); }
   }
 
-  async function rename(id: string, title: string): Promise<boolean> {
-    if (renamingRef.current || deleting || updatingRef.current) return false;
-    renamingRef.current = true; setRenaming(id); setError(null);
-    try {
-      const renamed = await api.renameSession(id, title);
-      ++listVersion.current;
-      setSessions(items => items.map(item => item.id === id ? { ...item, title: renamed.title } : item));
-      await refresh();
-      return true;
-    } catch (error) { setError(errorMessage(error)); return false; }
-    finally { renamingRef.current = false; setRenaming(null); }
-  }
-
-  async function update(id: string, changes: { pinned?: boolean; archived?: boolean }): Promise<boolean> {
-    if (updatingRef.current || renamingRef.current || deleting) return false;
+  async function update(id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }): Promise<boolean> {
+    if (updatingRef.current || deleting) return false;
     updatingRef.current = true; setUpdating(id); setError(null);
     try {
-      await api.updateSession(id, changes);
+      const saved = await api.updateSession(id, changes);
       ++listVersion.current;
-      setSessions(items => items.map(item => item.id === id ? { ...item, ...changes } : item));
+      setSessions(items => items.map(item => item.id === id ? { ...item, ...saved } : item));
       await refresh();
       return true;
     } catch (error) { setError(errorMessage(error)); return false; }
     finally { updatingRef.current = false; setUpdating(null); }
   }
 
-  return { updating, update, sessions, models, modelsRefreshing, modelsError, refreshModels, selected, select, loading, creating, deleting, renaming, rename,
+  return { updating, update, sessions, models, modelsRefreshing, modelsError, refreshModels, selected, select, loading, creating, deleting,
     error, clearError: () => setError(null), create, remove, refresh,
     retry: () => setAttempt(value => value + 1) };
 }

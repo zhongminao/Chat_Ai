@@ -17,8 +17,8 @@ vi.mock('react', async original => ({
 
 const props = {
   session: { id: 'one', title: '原名称', createdAt: null, updatedAt: 0 },
-  selected: false, busy: false, deleting: null, renaming: null, updating: null,
-  onSelect: vi.fn(), onDelete: vi.fn(), onRename: vi.fn(), onUpdate: vi.fn(),
+  selected: false, busy: false, deleting: null, updating: null,
+  onSelect: vi.fn(), onDelete: vi.fn(), onUpdate: vi.fn(),
 };
 function render() { hooks.index = 0; return SessionRow(props); }
 function form() {
@@ -30,26 +30,26 @@ function form() {
 }
 beforeEach(() => {
   vi.clearAllMocks(); hooks.values = [true, '新名称', false]; hooks.saving.current = false;
-  props.onRename.mockResolvedValue(true);
+  props.onUpdate.mockResolvedValue(true);
 });
 
 describe('session row rename and actions', () => {
   it('saves when focus leaves the rename form', async () => {
     form().props.onBlur({ currentTarget: { contains: () => false }, relatedTarget: null });
     await Promise.resolve();
-    expect(props.onRename).toHaveBeenCalledExactlyOnceWith('one', '新名称');
+    expect(props.onUpdate).toHaveBeenCalledExactlyOnceWith('one', { title: '新名称' });
     expect(hooks.values[0]).toBe(false);
   });
   it('does not save when moving focus to save/cancel controls', () => {
     form().props.onBlur({ currentTarget: { contains: () => true }, relatedTarget: {} });
-    expect(props.onRename).not.toHaveBeenCalled();
+    expect(props.onUpdate).not.toHaveBeenCalled();
   });
   it('prevents duplicate Enter and blur saves', async () => {
     const element = form();
     element.props.onSubmit({ preventDefault() {} });
     element.props.onBlur({ currentTarget: { contains: () => false }, relatedTarget: null });
     await Promise.resolve();
-    expect(props.onRename).toHaveBeenCalledOnce();
+    expect(props.onUpdate).toHaveBeenCalledOnce();
   });
   it('leaves edit mode without sending empty or unchanged names', () => {
     for (const title of ['  ', props.session.title]) {
@@ -57,10 +57,10 @@ describe('session row rename and actions', () => {
       form().props.onSubmit({ preventDefault() {} });
       expect(hooks.values[0]).toBe(false);
     }
-    expect(props.onRename).not.toHaveBeenCalled();
+    expect(props.onUpdate).not.toHaveBeenCalled();
   });
   it('preserves a failed draft for retry', async () => {
-    props.onRename.mockResolvedValue(false);
+    props.onUpdate.mockResolvedValue(false);
     form().props.onSubmit({ preventDefault() {} });
     await Promise.resolve();
     expect(hooks.values).toEqual([true, '新名称', true]);

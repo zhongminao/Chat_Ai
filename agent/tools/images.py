@@ -26,12 +26,10 @@ def read_image(
     images: ImageStore,
     path: str,
     context: ExecutionContext | None = None,
-    known_images: set[str] | None = None,
 ) -> ToolResult:
     _check(context)
     source = _read_path(workspace, path)
     image = images.find_file(source)
-    known_images = known_images or set()
     image = image or images.add_file(source)
     if not images.path(image["id"]).is_file():
         raise FileNotFoundError("会话图片文件不存在")

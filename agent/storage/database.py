@@ -21,14 +21,6 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_parent ON sessions(parent_session_id);
 CREATE INDEX IF NOT EXISTS sessions_updated ON sessions(updated_at DESC);
-CREATE TABLE IF NOT EXISTS events (
-    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    seq INTEGER NOT NULL,
-    time INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    data TEXT NOT NULL,
-    PRIMARY KEY (session_id, seq)
-);
 CREATE TABLE IF NOT EXISTS images (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,

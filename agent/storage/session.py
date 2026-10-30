@@ -28,16 +28,17 @@ class SessionStore:
         self.root = root / 'sessions'
         self.root.mkdir(parents=True, exist_ok=True)
         self.database = Database(root / 'chat_ai.sqlite3')
+        self._event_indexes: dict[str, dict] = {}
         try:
             with self.database.connect() as connection:
                 sessions = connection.execute('SELECT id, event_seq FROM sessions').fetchall()
             for row in sessions:
                 journal = self.root / row['id'] / 'events.jsonl'
                 if not journal.is_file():
-                    raise FileNotFoundError(f'No event journal: {journal}; migrate SQLite events offline before starting')
+                    raise FileNotFoundError(f'No event journal: {journal}; restore the session from a JSONL backup')
             # All journals exist; recover any streaming summary lag and validate history.
             for row in sessions:
-                EventLog(self.database, row['id'], self.root / row['id']).repair_summary()
+                self.open(row['id']).events.repair_summary()
         except BaseException:
             self.database.close()
             raise
@@ -78,7 +79,8 @@ class SessionStore:
 
     def open(self, session_id: str, on_event: Callable[[dict[str, Any]], None] | None = None) -> Session:
         directory = self.path(session_id)
-        return Session(session_id, directory, EventLog(self.database, session_id, directory, on_event),
+        return Session(session_id, directory, EventLog(self.database, session_id, directory, on_event,
+                       index=self._event_indexes.setdefault(session_id, {})),
                        ImageStore(self.database, session_id, directory))
 
     def metadata(self, session_id: str) -> dict:
@@ -114,19 +116,14 @@ class SessionStore:
             connection.executemany('DELETE FROM sessions WHERE id=?', [(identifier,) for identifier in identifiers])
         for directory in directories:
             shutil.rmtree(directory, ignore_errors=False)
+        for identifier in identifiers:
+            self._event_indexes.pop(identifier, None)
 
     @staticmethod
     def _validate_title(title: str) -> str:
         title = title.strip()
         if not title or len(title) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in title):
             raise ValueError('会话名称需要 1–80 个字符，不能包含换行或控制字符')
-        return title
-
-    def rename(self, session_id: str, title: str) -> str:
-        title = self._validate_title(title)
-        with self.database.connect(write=True) as connection:
-            if not connection.execute('UPDATE sessions SET title=? WHERE id=?', (title, session_id)).rowcount:
-                raise FileNotFoundError(session_id)
         return title
 
     def update(self, session_id: str, **changes: Any) -> dict:

@@ -20,7 +20,30 @@ vi.mock('react', () => ({
 
 vi.mock('../../api/client', async importOriginal => {
   const actual = await importOriginal<typeof import('../../api/client')>();
-  return { ...actual, api: { ...actual.api, deleteSession: vi.fn(), createSession: vi.fn(), sessions: vi.fn() } };
+  return { ...actual, api: { ...actual.api, deleteSession: vi.fn(), createSession: vi.fn(), sessions: vi.fn(), updateSession: vi.fn() } };
+});
+
+describe('updating session properties', () => {
+  it('uses the normalized server title and shares the mutation guard with pinning', async () => {
+    let finish!: (value: { id: string; title: string }) => void;
+    vi.mocked(api.updateSession).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(api.sessions).mockResolvedValue({ sessions: [{ ...parent, title: 'new' }, child, other] });
+    const hook = render();
+    const request = hook.update(parent.id, { title: '  new  ' });
+    expect(await hook.update(parent.id, { pinned: true })).toBe(false);
+    expect(api.updateSession).toHaveBeenCalledExactlyOnceWith(parent.id, { title: '  new  ' });
+    finish({ id: parent.id, title: 'new' });
+    expect(await request).toBe(true);
+    expect(render().sessions.find(item => item.id === parent.id)?.title).toBe('new');
+  });
+
+  it('keeps properties unchanged when the server rejects an update', async () => {
+    vi.mocked(api.updateSession).mockRejectedValue(new ApiError('invalid title', 400));
+    expect(await render().update(parent.id, { title: '' })).toBe(false);
+    expect(render().sessions).toEqual([parent, child, other]);
+    expect(render().error).toBe('invalid title');
+    expect(api.sessions).not.toHaveBeenCalled();
+  });
 });
 
 const session = (id: string, changes: Partial<SessionSummary> = {}): SessionSummary => ({

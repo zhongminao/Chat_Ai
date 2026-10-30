@@ -24,17 +24,18 @@ class SessionRuntime:
         self.bus = EventBus()
         self.session = registry.store.open(session_id, self.bus.publish)
         self.meta = registry.store.metadata(session_id)
+        records = self.session.events.read()
         self.parent_session_id = self.meta.get("parent_session_id")
         if self.parent_session_id:
             self.approvals = registry.get(self.parent_session_id).approvals
         else:
-            mode = next((e["mode"] for e in reversed(self.session.events.read())
+            mode = next((e["mode"] for e in reversed(records)
                          if e["type"] == "approval.mode.changed"), registry.config.approval_mode)
             self.approvals = ApprovalGate(mode, self.session.events.append)
         self.control = ExecutionControl()
         self.lock = threading.RLock()
         self.steering = InputDelivery(
-            self.lock, self.session.events.append, self.session.events.read(),
+            self.lock, self.session.events.append, records,
             inbox=lambda: registry.mailbox_list(session_id, unread_only=True))
         self._agent_lock = threading.Lock()
         self._state_lock = threading.Lock()

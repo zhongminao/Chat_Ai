@@ -35,10 +35,7 @@ export const api = {
   models: (signal?: AbortSignal) => request<{ models: ModelGroup[] }>('/api/models', { signal }),
   createSession: () => request<{ id: string }>('/api/sessions', post()),
   deleteSession: (id: string) => request<{ deleted: boolean }>(sessionPath(id), { method: 'DELETE' }),
-  renameSession: (id: string, title: string) => request<{ id: string; title: string }>(
-    sessionPath(id), { ...post({ title }), method: 'PATCH' },
-  ),
-  updateSession: (id: string, changes: { pinned?: boolean; archived?: boolean }) => request<{ id: string; pinned?: boolean; archived?: boolean }>(
+  updateSession: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => request<{ id: string; title?: string; pinned?: boolean; archived?: boolean }>(
     sessionPath(id), { ...post(changes), method: 'PATCH' },
   ),
   send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),

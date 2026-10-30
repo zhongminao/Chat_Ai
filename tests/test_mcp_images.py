@@ -52,7 +52,7 @@ class ImageTests(unittest.TestCase):
         outgoing = request_messages(messages, self.images)
         self.assertEqual(outgoing[-1]["role"], "user")
         self.assertTrue(any(item["type"] == "image_url" for item in outgoing[-1]["content"]))
-        again = convert_result(response, self.images, vision=True, known_images={identifier})
+        again = convert_result(response, self.images, vision=True)
         self.assertEqual(again.model_images[0]["id"], identifier)
         self.assertEqual(len(self.images.list()), 1)
 

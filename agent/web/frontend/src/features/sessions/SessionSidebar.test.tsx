@@ -8,8 +8,8 @@ const session = (id: string, updatedAt = 0) => ({ id, title: `会话-${id}`, cre
 const props = {
   sessions: [session('normal', 100), { ...session('pinned', 1), pinned: true },
     { ...session('archived', 2), archived: true }, { ...session('child'), parent_session_id: 'normal' }],
-  selected: null, loading: false, creating: false, deleting: null, renaming: null, updating: null,
-  open: true, busy: false, onRename: vi.fn(), onUpdate: vi.fn(), onSelect: vi.fn(),
+  selected: null, loading: false, creating: false, deleting: null, updating: null,
+  open: true, busy: false, onUpdate: vi.fn(), onSelect: vi.fn(),
   onCreate: vi.fn(), onDelete: vi.fn(), onClose: vi.fn(),
 };
 beforeEach(() => { state.open = false; state.index = 0; });

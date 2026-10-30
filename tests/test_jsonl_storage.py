@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest.mock import patch
 
 from agent.storage.session import SessionStore
 from agent.workflow.message_replay import restore_display_messages, restore_model_messages
@@ -42,7 +43,7 @@ class JSONLStorageTests(unittest.TestCase):
         self.assertEqual(self.projected()[0], 2)
         self.assertEqual(len(log.read()), 8)
         with self.store.database.connect() as db:
-            self.assertEqual(db.execute('SELECT COUNT(*) FROM events').fetchone()[0], 0)
+            self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='events'").fetchone())
         completed = log.append('model.completed')
         self.assertEqual(self.projected(), (completed['seq'], 'hello', 0, 'idle'))
         self.assertEqual([r['seq'] for r in log.read(first['seq'])], list(range(2, 10)))
@@ -138,7 +139,7 @@ class JSONLStorageTests(unittest.TestCase):
     def test_missing_journal_rejects_old_store_without_recreation(self):
         path = self.session.events.path
         path.unlink()
-        with self.assertRaisesRegex(FileNotFoundError, 'migrat'):
+        with self.assertRaisesRegex(FileNotFoundError, 'restore'):
             self.new_store()
         self.assertFalse(path.exists())
 
@@ -180,6 +181,54 @@ class JSONLStorageTests(unittest.TestCase):
         restored = self.new_store()
         self.assertEqual(self.projected(), (1, 'recover', 0, 'idle'))
         self.assertEqual(restored.open(self.session.id).events.append('turn.completed')['seq'], 2)
+
+    def test_late_reads_share_sparse_checkpoints_between_session_handles(self):
+        log = self.session.events
+        for index in range(600):
+            log.append('message.delta', durable=False, text=str(index))
+        observer = self.store.open(self.session.id).events
+        with patch.object(observer, '_validate', wraps=observer._validate) as validate:
+            self.assertEqual([r['seq'] for r in observer.read(580)], list(range(581, 601)))
+            self.assertLessEqual(validate.call_count, 256)
+        foreign = self.new_store().open(self.session.id).events
+        foreign.append('message.delta', durable=False, text='foreign')
+        self.assertEqual(observer.read(600)[0]['text'], 'foreign')
+
+    def test_large_tail_does_not_need_parsing_again_before_each_append(self):
+        log = self.session.events
+        log.append('context.compacted', messages=[{'role': 'assistant', 'content': 'x' * 200000}])
+        with patch.object(log, '_validate', side_effect=AssertionError('unchanged prefix was rescanned')):
+            log.append('message.delta', durable=False, text='next')
+        self.assertEqual([r['seq'] for r in log.read()], [1, 2])
+
+    def test_same_size_middle_corruption_invalidates_cached_checkpoints(self):
+        log = self.session.events
+        for _ in range(300):
+            log.append('message.delta', durable=False, text='x')
+        data = log.path.read_bytes()
+        damaged = data.replace(b'"seq": 1,', b'"seq": 9,', 1)
+        self.assertEqual(len(damaged), len(data))
+        log.path.write_bytes(damaged)
+        with self.assertRaisesRegex(ValueError, 'Corrupt'):
+            log.read(290)
+
+    def test_recovery_projects_a_stream_batch_with_one_summary_update(self):
+        log = self.session.events
+        log.append('turn.started', durable=False, prompt='first')
+        for _ in range(300):
+            log.append('message.delta', durable=False, text='x')
+        log.append('turn.cancelled', durable=False)
+        log.append('turn.started', durable=False, prompt='second')
+        statements = []
+        with self.store.database.connect() as db:
+            db.set_trace_callback(statements.append)
+        try:
+            log.repair_summary()
+        finally:
+            with self.store.database.connect() as db:
+                db.set_trace_callback(None)
+        self.assertEqual(self.projected(), (303, 'first', 0, 'cancelled'))
+        self.assertEqual(sum(sql.startswith('UPDATE sessions') for sql in statements), 1)
 
 
 if __name__ == '__main__':

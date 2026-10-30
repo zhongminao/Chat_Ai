@@ -103,7 +103,7 @@ def main() -> None:
         parts = text.split(maxsplit=1)
         if parts[0] == "/rename":
             try:
-                title = session_store.rename(session.id, parts[1] if len(parts) == 2 else "")
+                title = session_store.update(session.id, title=parts[1] if len(parts) == 2 else "")["title"]
                 print(f"会话名称：{title}")
             except (ValueError, OSError) as exc:
                 print(f"改名失败：{exc}")

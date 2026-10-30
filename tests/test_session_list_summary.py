@@ -43,7 +43,7 @@ class SessionListSummaryTests(unittest.TestCase):
         self.session.events.append('turn.started', prompt='', images=[{'id': 'image'}])
         self.assertEqual(self.summary()['title'], '图片对话')
         self.assertFalse(self.summary()['empty'])
-        self.store.rename(self.session.id, 'custom title')
+        self.store.update(self.session.id, title='custom title')
         self.assertEqual(self.summary()['title'], 'custom title')
         self.store.delete(self.session.id)
         self.assertFalse(self.session.directory.exists())

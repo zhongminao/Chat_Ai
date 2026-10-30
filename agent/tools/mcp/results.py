@@ -17,7 +17,7 @@ def _same_json(text: str, value) -> bool:
 
 
 def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
-                   vision: bool = False, known_images: set[str] | None = None) -> str | ToolResult:
+                   vision: bool = False) -> str | ToolResult:
     texts = [item.text for item in result.content if item.type == "text"]
     if result.structured_content is not None:
         structured = json.dumps(result.structured_content, ensure_ascii=False)
@@ -43,7 +43,6 @@ def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
         if not data or len(data) > MAX_IMAGE_BYTES:
             raise ValueError("MCP image must be nonempty and <= 10 MiB")
         digest = hashlib.sha256(data).hexdigest()
-        asset = saved.get(digest)
         decoded[digest] = (data, block.mime_type)
 
     assets = []

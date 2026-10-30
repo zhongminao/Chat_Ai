@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
-from ..workflow.config import load
 from ..model.discovery import refresh_catalog
 from ..workflow.commands import SwitchModel
 from ..workflow.input import UserInput
@@ -78,17 +77,21 @@ registry = SessionRegistry()
 session_store = registry.store
 
 
+@app.exception_handler(SessionBusy)
+@app.exception_handler(ValueError)
+@app.exception_handler(FileNotFoundError)
+async def business_error(request: Request, exc: Exception):
+    missing = isinstance(exc, FileNotFoundError)
+    detail = "Session not found" if missing and str(exc) == request.path_params.get("session_id") else str(exc)
+    return JSONResponse(status_code=404 if missing else 409 if isinstance(exc, SessionBusy) else 400,
+                        content={"detail": detail})
+
+
 def directory_for(session_id: str) -> Path:
-    try:
-        return session_store.path(session_id)
-    except FileNotFoundError:
-        raise HTTPException(404, "Session not found")
+    return session_store.path(session_id)
 
 def runtime(session_id: str) -> SessionRuntime:
-    try:
-        return registry.get(session_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(404, "Session not found") from exc
+    return registry.get(session_id)
 
 
 app.include_router(image_router(session_store))
@@ -109,23 +112,13 @@ def create():
 
 @app.delete("/api/sessions/{session_id}")
 def delete_session(session_id: str):
-    try:
-        registry.delete(session_id)
-    except SessionBusy as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(404, "Session not found") from exc
+    registry.delete(session_id)
     return {"deleted": True}
 
 
 @app.patch("/api/sessions/{session_id}")
 def update_session(session_id: str, request: UpdateSessionRequest):
-    try:
-        changes = session_store.update(session_id, **request.model_dump(exclude_unset=True))
-    except FileNotFoundError as exc:
-        raise HTTPException(404, "Session not found") from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
+    changes = session_store.update(session_id, **request.model_dump(exclude_unset=True))
     return {"id": session_id, **changes}
 
 
@@ -145,10 +138,7 @@ def sessions():
 @app.get("/api/sessions/{session_id}/watch")
 async def watch(session_id: str, cursor: int | None = None, timeout: float = Query(0, ge=0, le=30)):
     directory_for(session_id)
-    try:
-        return await asyncio.to_thread(registry.monitor(session_id).watch, cursor, timeout)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
+    return await asyncio.to_thread(registry.monitor(session_id).watch, cursor, timeout)
 
 
 @app.get("/api/sessions/{session_id}/approvals")
@@ -200,36 +190,20 @@ def switch_model(session_id: str, request: SwitchModelRequest):
             model = rt.dispatch(
                 SwitchModel(provider=request.provider, model=request.model)
             )
-        except SessionBusy as exc:
-            raise HTTPException(409, str(exc)) from exc
-        except (ValueError, RuntimeError) as exc:
+        except RuntimeError as exc:
             raise HTTPException(400, str(exc))
     return {"model": model}
 
 
 @app.post("/api/sessions/{session_id}/messages")
 def send(session_id: str, message: SendMessageRequest):
-    try:
-        runtime(session_id).enqueue(UserInput(message.content, tuple(message.images)))
-    except SessionBusy as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(404, str(exc)) from exc
+    runtime(session_id).enqueue(UserInput(message.content, tuple(message.images)))
     return {"accepted": True}
 
 
 @app.post('/api/sessions/{session_id}/guidance')
 def guide(session_id: str, message: GuidanceRequest):
-    try:
-        runtime(session_id).send(UserInput(message.content, tuple(message.images)), message.message_id)
-    except SessionBusy as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(404, str(exc)) from exc
+    runtime(session_id).send(UserInput(message.content, tuple(message.images)), message.message_id)
     return {'accepted': True}
 
 
@@ -244,10 +218,7 @@ def history(session_id: str, before: int | None = Query(None, ge=1),
     directory_for(session_id)
     if (before is None) != (through is None):
         raise HTTPException(400, "before and through must be supplied together")
-    try:
-        return history_page(session_store.open(session_id).events, before=before, through=through)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
+    return history_page(session_store.open(session_id).events, before=before, through=through)
 
 
 @app.get("/api/sessions/{session_id}/events")

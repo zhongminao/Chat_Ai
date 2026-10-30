@@ -9,12 +9,10 @@ interface Props {
   selected: boolean;
   busy: boolean;
   deleting: string | null;
-  renaming: string | null;
   updating: string | null;
-  onUpdate: (id: string, changes: { pinned?: boolean; archived?: boolean }) => Promise<boolean>;
+  onUpdate: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => Promise<boolean>;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
-  onRename: (id: string, title: string) => Promise<boolean>;
 }
 
 export function SessionRow({ session, ...props }: Props) {
@@ -22,7 +20,7 @@ export function SessionRow({ session, ...props }: Props) {
   const [title, setTitle] = useState(session.title);
   const [failed, setFailed] = useState(false);
   const saving = useRef(false);
-  const disabled = Boolean(props.deleting || props.renaming || props.updating);
+  const disabled = Boolean(props.deleting || props.updating);
 
   async function save() {
     if (disabled || saving.current) return;
@@ -30,13 +28,13 @@ export function SessionRow({ session, ...props }: Props) {
     if (!value || value === session.title) { setEditing(false); return; }
     saving.current = true; setFailed(false);
     try {
-      if (await props.onRename(session.id, value)) setEditing(false);
+      if (await props.onUpdate(session.id, { title: value })) setEditing(false);
       else setFailed(true);
     } finally { saving.current = false; }
   }
 
   return <div className={`session-row ${props.selected ? 'active' : ''}`}>
-    {editing ? <form className="session-rename" aria-busy={props.renaming === session.id}
+    {editing ? <form className="session-rename" aria-busy={props.updating === session.id}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) void save();
       }}

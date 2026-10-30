@@ -9,10 +9,8 @@ interface Props {
   loading: boolean;
   creating: boolean;
   deleting: string | null;
-  renaming: string | null;
   updating: string | null;
-  onUpdate: (id: string, changes: { pinned?: boolean; archived?: boolean }) => Promise<boolean>;
-  onRename: (id: string, title: string) => Promise<boolean>;
+  onUpdate: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => Promise<boolean>;
   open: boolean;
   busy: boolean;
   onSelect: (id: string) => void;
@@ -30,9 +28,9 @@ export function SessionSidebar(props: Props) {
   const archived = roots.filter(session => session.archived).sort((a, b) => b.updatedAt - a.updatedAt);
   const selectedRoot = props.sessions.find(session => session.id === props.selected)?.parent_session_id ?? props.selected;
   const row = (session: SessionSummary) => <SessionRow key={session.id} session={session}
-    selected={session.id === selectedRoot} busy={props.busy} deleting={props.deleting} renaming={props.renaming}
+    selected={session.id === selectedRoot} busy={props.busy} deleting={props.deleting}
     updating={props.updating} onUpdate={props.onUpdate}
-    onSelect={props.onSelect} onDelete={props.onDelete} onRename={props.onRename} />;
+    onSelect={props.onSelect} onDelete={props.onDelete} />;
 
   return <>
     {props.open && <button className="sidebar-backdrop" aria-label="关闭会话列表" onClick={props.onClose} />}

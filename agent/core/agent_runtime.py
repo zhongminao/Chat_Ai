@@ -8,7 +8,6 @@ from ..model.catalog import ModelCatalog, ModelTarget
 from ..model.tokens import count_request_tokens
 from ..model.context_summary import summarize_context
 from ..workflow.input import UserInput, normalize_input
-from ..model.request_messages import model_image_ids
 from ..storage.images import ImageStore
 from ..workflow.state import AgentState, StateUpdate
 from ..workflow import context_compaction, completion, message_updates, transitions
@@ -36,27 +35,28 @@ class AgentRuntime:
         log: EventLog,
         max_rounds: int,
         images: ImageStore,
-        output: Callable[[str], None] | None = None,
-        tools: ToolRouter | None = None,
-        on_submit: Callable[[str, str], str] | None = None,
-        control: ExecutionControl | None = None,
+        *,
+        output: Callable[[str], None],
+        tools: ToolRouter,
+        on_submit: Callable[[str, str], str],
+        control: ExecutionControl,
+        context_config: dict,
+        steering,
+        begin_submit,
+        release_submit,
         on_tool_result: Callable[[ToolResult], None] | None = None,
-        context_config: dict | None = None,
-        steering=None,
-        begin_submit=None,
-        release_submit=None,
     ):
         self.state = state
-        self.control = control or ExecutionControl()
+        self.control = control
         self.catalog = catalog
         self.session_id = session_id
         self.spill = spill
         self.max_rounds = max_rounds
-        self.context_config = context_config or {}
+        self.context_config = context_config
         self.steering = steering
         self.begin_submit = begin_submit
-        self.release_submit = release_submit or (lambda: None)
-        self.tools = tools or ToolRouter(workspace)
+        self.release_submit = release_submit
+        self.tools = tools
         self.on_submit = on_submit
         self.tools.submit = self._submit
         self.tools.schemas.append(SUBMIT_SCHEMA)
@@ -66,7 +66,7 @@ class AgentRuntime:
         self.images = images
         self.tools.images = self.images
         self.on_tool_result = on_tool_result
-        self.output = output or (lambda text: print(text, end="", flush=True))
+        self.output = output
 
     def close(self) -> None:
         self.catalog.close()
@@ -78,19 +78,12 @@ class AgentRuntime:
         update = transitions.submit(self.state, content)
         if context:
             context.cancellation.raise_if_cancelled()
-        pending = lambda *_args, **_kwargs: bool(self.steering and self.steering.has_pending())
-        blocked = self.begin_submit(pending, context) if self.begin_submit else pending()
-        if blocked:
+        if self.begin_submit(lambda *_args, **_kwargs: self.steering.has_pending(), context):
             return "Report not submitted: new runtime input is pending. Process it and call submit again."
-        if self.steering:
-            self.steering.accepting = False
         self.apply(update)
         run_id = transitions.execution(self.state)['id']
         try:
-            if self.on_submit:
-                self.on_submit(transitions.execution(self.state)['report'], run_id)
-            else:
-                self.log.append('report.submitted', runId=run_id, content=content.strip())
+            self.on_submit(transitions.execution(self.state)['report'], run_id)
         except Exception:
             self.apply(transitions.update_execution(self.state, report=None, report_path=None))
             self.release_submit()
@@ -157,7 +150,7 @@ class AgentRuntime:
             self.apply(transitions.start_round(self.state, round_no))
             model = self.state["model"]
             client, provider = self.catalog.get_binding(ModelTarget(**model))
-            vision = self.catalog.supports_vision(model) if self.catalog else False
+            vision = self.catalog.supports_vision(model)
             self.tools.vision = vision
             self._compact(client, provider, vision, context)
             if self._deliver_inputs(context):
@@ -240,14 +233,11 @@ class AgentRuntime:
             )
 
             if transitions.after_model(self.state) == "end":
-                if self._begin_submit(context):
+                if self.begin_submit(self._deliver_inputs, context):
                     continue
                 decision = completion.decide(self.state, self.max_rounds)
                 if decision == "remind":
-                    if self.begin_submit:
-                        self.release_submit()
-                    elif self.steering:
-                        self.steering.begin()
+                    self.release_submit()
                     context.cancellation.raise_if_cancelled()
                     self.apply(message_updates.remind_completion(self.state, completion.REMINDER))
                     self.log.append("completion.reminded", runId=run_id, content=completion.REMINDER)
@@ -275,7 +265,6 @@ class AgentRuntime:
                     arguments=call.arguments,
                 )
                 try:
-                    self.tools.model_images = model_image_ids(self.state["messages"])
                     output = normalize_result(
                         "[tool skipped] Report already submitted."
                         if transitions.after_tools(self.state) == "submit"
@@ -321,15 +310,8 @@ class AgentRuntime:
 
         raise RuntimeError("maximum model rounds reached")
 
-    def _begin_submit(self, context):
-        if self.begin_submit:
-            return self.begin_submit(self._deliver_inputs, context)
-        return self._deliver_inputs(context, finish=True)
-
     def _deliver_inputs(self, context, *, finish=False):
         context.cancellation.raise_if_cancelled()
-        if not self.steering:
-            return False
         values = self.steering.take(transitions.execution(self.state)['id'], finish=finish)
         if values:
             self.apply({"messages": [*self.state["messages"], *values]})

@@ -4,7 +4,6 @@ import json
 import queue
 
 from ..core.session_runtime import SessionRuntime
-from ..model.catalog import ModelCatalog
 
 
 TERMINAL = {'turn.completed', 'turn.cancelled', 'turn.failed'}
@@ -14,8 +13,8 @@ def initialize(runtime: SessionRuntime, after: int) -> tuple[dict, list[dict]]:
     with runtime.lock:
         log = runtime.session.events
         # The journal read is authoritative even while its SQLite projection lags
-        # non-durable streaming deltas. read(after) currently validates/scans
-        # JSONL; a future indexed reader can optimize this without API changes.
+        # non-durable streaming deltas. Capture the full initialization snapshot;
+        # live gap recovery below uses indexed read(after).
         records = log.read()
         sequence = records[-1]['seq'] if records else 0
         reset = after > sequence

@@ -10,7 +10,7 @@ agent/core/       Agent 装配、会话运行时、模型与工具循环、子�
 agent/model/      模型目录、provider、HTTP 客户端与请求消息组装
 agent/workflow/   状态类型与更新、历史恢复、上下文整理、配置
 agent/tools/      本地工具、统一路由、审批、输出落盘与 MCP 客户端
-agent/storage/    SQLite 会话与事件、图片元数据、附件与报告
+agent/storage/    SQLite 会话摘要与图片元数据、JSONL 事件、附件与报告
 agent/cli/        命令行交互
 agent/web/        FastAPI、SSE 与 React/TypeScript 前端
 prompts/         主 Agent、子 Agent、上下文整理提示词
@@ -149,13 +149,15 @@ Token 计数方式取决于 provider；估算值不等于模型硬上限。
 
 ```text
 storage/
-├── chat_ai.sqlite3            会话、事件、图片元数据、监控快照
+├── chat_ai.sqlite3            会话摘要、图片元数据、邮箱与监控快照
 └── sessions/<id>/
+    ├── events.jsonl           完整事件日志，历史恢复的权威数据
     ├── attachments/           图片与缩略图
     └── reports/               submit 报告
 ```
 
-数据库复用连接，使用 WAL；流式增量采用 NORMAL，完成、取消等关键事件采用 FULL。事件提交成功后才通知界面。
+数据库复用连接，使用 WAL。事件写入 JSONL，关键边界执行 fsync 后更新 SQLite 摘要，再通知界面；流式增量不逐条更新摘要。摘要可从日志恢复，日志缺失时需从备份恢复。旧 SQLite 事件迁移工具已移除。
+日志使用内存稀疏偏移索引，重复读取可跳过已校验的前缀；外部写入或文件变化会触发重新校验，索引不产生额外持久化文件。
 会话下行统一使用 SSE：初始化 → 历史回放 → 实时事件，以 seq 续传和去重；发送、停止与审批仍通过 HTTP 命令接口。
 
 备份包括整个 storage 目录。最简单的方法是停服务后复制；运行中数据库备份使用 SQLite backup API，不能只复制主数据库文件而遗漏 WAL。图片与报告需配套备份。

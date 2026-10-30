@@ -8,15 +8,15 @@ import { conversationReducer, emptyConversation, type Conversation, type Action 
 export const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 export function useConversation(id: string | null, onSessionsChanged: () => void) {
-  const [, dispatch] = useReducer(conversationReducer, undefined, emptyConversation);
+  const [, render] = useReducer((version: number) => version + 1, 0);
   const cache = useRef(new ConversationCache());
   const active = useRef<{ id: string; view: Conversation } | null>(null);
-  // Mirror reducer actions for immediately switching tabs after an SSE batch.
+  // Keep one synchronous view so a tab switch sees the latest SSE batch.
   const displayed = active.current?.id === id ? active.current.view
     : id ? cache.current.get(id) ?? emptyConversation() : emptyConversation();
   const sendAction = (action: Action) => {
     if (active.current) active.current.view = conversationReducer(active.current.view, action);
-    dispatch(action);
+    render();
   };
   const [connected, setConnected] = useState(false);
   const [stopRequested, setStopRequested] = useState(false);

@@ -72,7 +72,7 @@ class SQLiteStorageTests(unittest.TestCase):
                 self.assertEqual(observer.metadata(self.session.id), original)
                 raise RuntimeError('abort')
         self.assertEqual(observer.metadata(self.session.id), original)
-        self.store.rename(self.session.id, 'committed')
+        self.store.update(self.session.id, title='committed')
         self.assertEqual(observer.metadata(self.session.id)['title'], 'committed')
 
     def test_committed_wal_survives_writer_process_kill(self):
@@ -124,7 +124,7 @@ time.sleep(60)
         # Legacy labels remain readable without a rename API.
         with self.store.database.connect(write=True) as connection:
             connection.execute('UPDATE images SET name=? WHERE id=?', ('结果图', image['id']))
-        self.store.rename(self.session.id, '重启恢复')
+        self.store.update(self.session.id, title='重启恢复')
         reopened = self.new_store()
         restored = reopened.open(self.session.id)
         self.assertEqual(reopened.metadata(self.session.id)['title'], '重启恢复')
@@ -214,7 +214,7 @@ time.sleep(60)
         self.assertEqual([item['id'] for item in self.store.list_summaries()], [other.id])
         self.assertFalse(self.session.directory.exists())
         with self.store.database.connect() as connection:
-            for table in ('events', 'images', 'monitors'):
+            for table in ('images', 'monitors'):
                 self.assertEqual(connection.execute(f'SELECT COUNT(*) FROM {table} WHERE session_id=?', (self.session.id,)).fetchone()[0], 0)
         with self.assertRaises(FileNotFoundError):
             self.store.open(self.session.id)

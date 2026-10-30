@@ -79,7 +79,7 @@ class SessionDeletionTests(unittest.TestCase):
             self.assertNotIn(runtime.session.id, self.registry.items)
             self.assertNotIn(runtime.session.id, self.registry.monitors)
         with self.registry.store.database.connect() as connection:
-            for table, column in [('sessions', 'id'), ('events', 'session_id'),
+            for table, column in [('sessions', 'id'),
                                   ('images', 'session_id'), ('monitors', 'session_id')]:
                 count = connection.execute(
                     f'SELECT COUNT(*) FROM {table} WHERE {column} IN ({",".join("?" for _ in ids)})', ids).fetchone()[0]
