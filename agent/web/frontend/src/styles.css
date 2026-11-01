@@ -93,6 +93,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .execution-steps { width: 100%; color: var(--muted); font-size: 12px; }
 .execution-steps > summary { display: flex; align-items: center; gap: 8px; padding: 5px 2px 8px; border-bottom: 1px solid #eceef1; list-style: none; cursor: pointer; }
 .execution-steps > summary::-webkit-details-marker { display: none; }
+.tool-status-dot { display: block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #83a78e; }
+.tool-status-dot.running { background: #c5a65d; }
+.tool-status-dot.error { background: #c47f7f; }
 .execution-steps > summary > span:first-of-type { color: var(--muted); }
 .execution-steps-status { min-width: 0; margin-left: auto; overflow: hidden; color: #89918a; text-overflow: ellipsis; white-space: nowrap; }
 .execution-steps-status.running { color: #8c7a53; }

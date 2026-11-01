@@ -29,7 +29,7 @@ export function ExecutionSteps({ items, sessionId, images = [], waitingCallIds =
     </summary>
     <div className="execution-step-list">
       {items.map(item => <ToolCallCard key={item.id} item={item} onInspect={onInspect}
-        sessionId={sessionId} images={images} waiting={waiting(item)} />)}
+        sessionId={sessionId} images={images} waiting={waiting(item)} compact />)}
     </div>
   </details>;
 }
