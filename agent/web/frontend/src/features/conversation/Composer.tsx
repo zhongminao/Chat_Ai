@@ -8,6 +8,7 @@ import { ImageAttachments } from '../images/ImageAttachments';
 import { ContextMeter } from './ContextMeter';
 import { GuidanceQueue } from './GuidanceQueue';
 import { useGuidanceQueue } from './useGuidanceQueue';
+import { clearTextDraftIfUnchanged, readTextDraft, writeTextDraft } from './textDraft';
 
 interface Props {
   contextUsage?: ContextUsage | null;
@@ -28,7 +29,8 @@ interface Props {
 }
 
 export function Composer(props: Props) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(() => readTextDraft(props.sessionId));
+  function updateText(value: string) { writeTextDraft(props.sessionId, value); setText(value); }
   const [editingGuidance, setEditingGuidance] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -52,9 +54,9 @@ export function Composer(props: Props) {
     const images = [...draft.ids];
     if (queueInput) {
       guidance.add(content, images);
-      setText(''); setEditingGuidance(false); draft.remove(images);
+      updateText(''); setEditingGuidance(false); draft.remove(images);
     } else if (await props.onSend(content, images)) {
-      if (textRef.current === content) setText('');
+      if (clearTextDraftIfUnchanged(props.sessionId, content) && textRef.current === content) setText('');
       draft.remove(images);
       textarea.current?.focus();
     }
@@ -64,7 +66,7 @@ export function Composer(props: Props) {
     {props.approvals}
     <GuidanceQueue items={guidance.items} disabled={props.readOnly || !props.ready || !props.connected || Boolean(props.pending)}
       canEdit={!text.trim() && !draft.ids.length && !draft.uploading} onRemove={guidance.remove}
-      onEdit={item => { guidance.remove(item.id); setText(item.text); setEditingGuidance(true); draft.restore(item.images); textarea.current?.focus(); }}
+      onEdit={item => { guidance.remove(item.id); updateText(item.text); setEditingGuidance(true); draft.restore(item.images); textarea.current?.focus(); }}
       onGuide={item => { void props.onGuide(item.id, item.text, item.images).then(sent => { if (sent) guidance.remove(item.id); }); }} />
     <form className="composer" onSubmit={event => { event.preventDefault(); void submit(); }}
       onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
@@ -82,7 +84,7 @@ export function Composer(props: Props) {
           const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
           if (files.length && canEditImages) { event.preventDefault(); void draft.upload(files); }
         }}
-        disabled={!props.ready || props.readOnly} onChange={event => setText(event.target.value)} onKeyDown={event => {
+        disabled={!props.ready || props.readOnly} onChange={event => updateText(event.target.value)} onKeyDown={event => {
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
             event.preventDefault(); if (hasInput) void submit();
           }

@@ -1,6 +1,31 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Composer } from './Composer';
+import { writeTextDraft } from './textDraft';
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('composer draft restoration', () => {
+  it('restores unsent text only for its session after switching back', () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => { store.set(key, value); },
+      removeItem: (key: string) => { store.delete(key); },
+    });
+    writeTextDraft('draft-session', '未发送的内容');
+    const render = (sessionId: string) => renderToStaticMarkup(<Composer busy={false} ready connected readOnly={false}
+      status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      onAccessChange={() => {}} model={null} models={[]}
+      modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId={sessionId} images={[]}
+      onUploaded={() => {}} onSend={async () => true}
+      onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
+    expect(render('draft-session')).toContain('未发送的内容</textarea>');
+    expect(render('other-session')).not.toContain('未发送的内容');
+    expect(render('draft-session')).toContain('未发送的内容</textarea>');
+    writeTextDraft('draft-session', '');
+  });
+});
 
 describe('single composer action', () => {
   for (const busy of [false, true]) {
