@@ -53,7 +53,18 @@ SUBMIT_SCHEMA = {"type": "function", "function": {
         "required": ["content"], "additionalProperties": False}}}
 
 
-TOOL_SCHEMAS = [
+SEARCH_SCHEMA = {"type": "function", "function": {
+    "name": "search_resources",
+    "description": "Search registered resources. The default resource_type is skill. For a skill match, return its SKILL.md usage, references, fixed scripts and match_reasons; this tool only searches and reads metadata, it does not execute scripts.",
+    "parameters": {"type": "object", "properties": {
+        "query": {"type": "string", "description": "User intent, file type, path or capability to search for."},
+        "resource_type": {"type": "string", "enum": ["skill", "knowledge"], "default": "skill",
+                          "description": "Resource scope. Omit it to search skills."},
+        "top_k": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}
+    }, "required": ["query"], "additionalProperties": False}}}
+
+
+TOOL_SCHEMAS = [SEARCH_SCHEMA,
     {"type": "function", "function": {
         "name": "read_image",
         "description": "Read an existing PNG/JPEG/WebP image with model vision. This tool does not publish the image. The path may be an original local file or a session attachment path. The result returns a session_path; if the user needs to see the image, call show_image with that path. The path must be a local filesystem path, not Markdown or an /api image URL.",

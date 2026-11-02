@@ -10,6 +10,7 @@ from .result import ToolResult
 from .mcp.client import McpClient
 from .mcp.results import convert_result
 from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, TOOL_SCHEMAS
+from .search import search_resources
 from . import mailbox
 
 
@@ -69,6 +70,8 @@ class ToolRouter:
                         raise ValueError("当前模型未声明支持视觉，请切换到支持视觉的模型")
                     return read_image(self.workspace, self.images, context=context, **arguments)
                 return show_image(self.workspace, self.images, context=context, **arguments)
+            if name == "search_resources":
+                return search_resources(self.workspace, **arguments)
             if name in {"delegate", "watch", "submit"}:
                 handler = getattr(self, name)
                 if handler is None:

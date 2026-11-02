@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "required": ["source", "pages", "method", "text_path"],
+  "properties": {
+    "source": {"type": "string"},
+    "pages": {"type": "integer", "minimum": 1},
+    "method": {"type": "string", "enum": ["native", "ocr", "mixed"]},
+    "text_path": {"type": "string"},
+    "probe_path": {"type": "string"},
+    "page_methods": {"type": "array"}
+  }
+}

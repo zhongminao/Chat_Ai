@@ -1,0 +1,44 @@
+name: pdf_reader
+version: 0.1.0
+description: Read PDF text with native extraction first and use rendering/OCR only when needed.
+delivery: search_result
+
+triggers:
+  extensions:
+    - .pdf
+  mime_types:
+    - application/pdf
+  intents:
+    - pdf
+    - read pdf
+    - extract pdf text
+    - summarize pdf
+    - 读取 PDF
+    - 提取 PDF 文字
+    - 总结 PDF
+  aliases:
+    - 扫描件
+    - 影印件
+    - 图片型 PDF
+    - OCR
+  capabilities:
+    - native text extraction
+    - page rendering
+    - ocr fallback
+    - 文字提取
+    - 页面渲染
+    - OCR
+
+excludes:
+  - PDF 编辑
+  - PDF 签名
+  - PDF 表单填写
+
+allowed_tools:
+  - run_bash
+  - read_file
+entrypoint: SKILL.md
+references:
+  - references/tools.json
+  - references/output_schema.json
+  - references/extraction_policy.md

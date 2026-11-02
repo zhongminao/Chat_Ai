@@ -1,0 +1,3 @@
+# Extraction policy
+
+Use the fixed `pdf_read.sh` for probe + native extraction. The default `auto` recommendation is based on text geometry: single column → layout; probable two-column → raw; very weak native text → explicit OCR fallback. Raw follows content order, not a promise of correct reading order. Validate page transitions, headings, captions, tables, and references. Use `tsv` for word coordinates when layout matters. OCR is a page-level fallback: pages with fewer than 80 non-whitespace bytes, garbled content, or known scanned pages should be checked separately. Document-wide totals can hide scanned pages. Preserve method per page and report partial results. Do not overwrite source PDF.

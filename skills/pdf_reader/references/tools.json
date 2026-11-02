@@ -1,0 +1,17 @@
+{
+  "run_bash": {
+    "allowed_commands": [
+      "skills/pdf_reader/scripts/pdf_probe.sh",
+      "skills/pdf_reader/scripts/pdf_extract.sh",
+      "skills/pdf_reader/scripts/pdf_read.sh",
+      "skills/pdf_reader/scripts/pdf_render.sh",
+      "skills/pdf_reader/scripts/pdf_ocr.sh"
+    ],
+    "network": false,
+    "write_root": "workspace/.skill-cache/pdf_reader/"
+  },
+  "read_file": {
+    "read_only": true,
+    "read_root": "workspace/.skill-cache/pdf_reader/"
+  }
+}
