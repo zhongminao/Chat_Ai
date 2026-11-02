@@ -36,6 +36,18 @@ class McpClient:
                     },
                 })
 
+    def discover_url(self, url: str, alias: str) -> tuple[dict[str, tuple[str, str]], list[dict[str, Any]]]:
+        """Discover an HTTP MCP endpoint without changing active tools/servers."""
+        tools: dict[str, tuple[str, str]] = {}
+        schemas: list[dict[str, Any]] = []
+        for tool in self._list(url):
+            name = f"mcp_{alias}_{tool.name}"
+            tools[name] = (alias, tool.name)
+            schemas.append({"type": "function", "function": {
+                "name": name, "description": tool.description or "", "parameters": tool.input_schema,
+            }})
+        return tools, schemas
+
     def _list(self, url: str):
         async def request():
             async with asyncio.timeout(DISCOVERY_TIMEOUT):

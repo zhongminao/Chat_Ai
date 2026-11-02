@@ -10,7 +10,7 @@ MODES = {"audit", "full_access"}
 
 
 def requires_approval(name: str, is_mcp: bool) -> bool:
-    return is_mcp or name in {"write_file", "edit_file", "run_bash"}
+    return is_mcp or name in {"write_file", "edit_file", "run_bash", "enable_mcp"}
 
 
 class ApprovalGate:

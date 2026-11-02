@@ -34,6 +34,14 @@ READ_MAIL_SCHEMA = {"type": "function", "function": {
         "message_id": {"type": "string"}}, "required": ["message_id"], "additionalProperties": False}}}
 
 
+ENABLE_MCP_SCHEMA = {"type": "function", "function": {
+    "name": "enable_mcp",
+    "description": "Connect a user-requested HTTP(S) MCP endpoint, discover its tools, and enable them for the next model request in this conversation. Only call when the user explicitly asks to connect this URL. Configured MCP servers already load automatically; no config entry is needed here.",
+    "parameters": {"type": "object", "properties": {
+        "url": {"type": "string", "description": "Full HTTP(S) MCP endpoint supplied by the user."}},
+        "required": ["url"], "additionalProperties": False}}}
+
+
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
     "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error and read events_path to review work already performed before deciding how to proceed. Do not poll for mail or wait when no relevant task remains.",
@@ -55,7 +63,12 @@ SUBMIT_SCHEMA = {"type": "function", "function": {
 
 SEARCH_SCHEMA = {"type": "function", "function": {
     "name": "search_resources",
-    "description": "Search registered resources. The default resource_type is skill. For a skill match, return its SKILL.md usage, references, fixed scripts and match_reasons; this tool only searches and reads metadata, it does not execute scripts.",
+    "description": ("Search registered resources; default is skill. Currently only pdf_reader is registered; "
+                    "there is no project-architecture skill and the knowledge index is not configured. "
+                    "For chat_ai development, inspect source directly: agent/core handles sessions and model/tool loops, "
+                    "agent/tools handles routing, approvals and MCP, agent/model handles providers, "
+                    "agent/storage handles events and persistence, and agent/web handles the API/frontend. "
+                    "Skill results provide SKILL.md usage and fixed scripts; this tool does not execute them."),
     "parameters": {"type": "object", "properties": {
         "query": {"type": "string", "description": "User intent, file type, path or capability to search for."},
         "resource_type": {"type": "string", "enum": ["skill", "knowledge"], "default": "skill",

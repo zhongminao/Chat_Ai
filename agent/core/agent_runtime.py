@@ -131,6 +131,9 @@ class AgentRuntime:
             self.apply(transitions.fail(self.state, str(exc)))
             raise
         finally:
+            # A cancelled or failed tool batch must not activate a previous discovery
+            # on an unrelated later user turn.
+            self.tools.pending_tools.clear()
             self.control.unbind(context.cancellation)
 
     def _run(
@@ -300,6 +303,11 @@ class AgentRuntime:
                 completed_call_ids.add(call.id)
                 if transitions.after_tools(self.state) == "model":
                     context.cancellation.raise_if_cancelled()
+
+            # The model's entire tool-call batch uses the schemas it was shown.
+            # Discovered MCP tools are activated only for the next model request.
+            for alias, url in self.tools.commit_pending_tools():
+                self.log.append("mcp.enabled", runId=run_id, alias=alias, url=url)
 
             if transitions.after_tools(self.state) == "submit":
                 report = transitions.execution(self.state)["report"]

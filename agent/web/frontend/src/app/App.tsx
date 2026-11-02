@@ -19,6 +19,8 @@ export function App() {
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = sessions.sessions.find(item => item.id === sessions.selected);
+  const mainId = current?.parent_session_id ?? sessions.selected;
+  const hasChildAgents = Boolean(mainId && sessions.sessions.some(item => item.parent_session_id === mainId));
   const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);
   const error = sessions.error || conversation.error || approvals.error;
   const waitingCallIds = (approvals.snapshot?.pending ?? []).filter(item => item.sessionId === sessions.selected).map(item => item.callId);
@@ -38,15 +40,18 @@ export function App() {
       updating={sessions.updating} onUpdate={sessions.update}
       onClose={() => setSidebarOpen(false)} onSelect={id => { sessions.select(id); setSidebarOpen(false); }}
       onCreate={() => { void sessions.create(); setSidebarOpen(false); }} onDelete={id => { void sessions.remove(id); }} />
-    <main ref={layout.workspace} className="workspace">
+    <main ref={layout.workspace} className={`workspace${hasChildAgents ? "" : " no-agent-header"}`}>
       <div ref={layout.top} className="workspace-top">
-        <header className="workspace-header">
+        {hasChildAgents ? <header className="workspace-header">
           <button className="icon-button mobile-only" aria-label="打开会话列表" onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
           <AgentTabs sessions={sessions.sessions} selected={sessions.selected} onSelect={sessions.select}>
-            <WatchStatus sessionId={current?.parent_session_id ?? sessions.selected}
-              onChange={() => { void sessions.refresh(); }} />
+            <WatchStatus sessionId={mainId} onChange={() => { void sessions.refresh(); }} />
           </AgentTabs>
-        </header>
+        </header> : <>
+          <div hidden><WatchStatus sessionId={mainId} onChange={() => { void sessions.refresh(); }} /></div>
+          <button className="icon-button mobile-only mobile-menu-no-header" aria-label="打开会话列表"
+            onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
+        </>}
         {error && <div className="error-banner" role="alert"><span>{error}</span>
           {conversation.error && !conversation.ready && <button onClick={conversation.retryHistory}>重新打开会话</button>}
           {!sessions.selected && <button onClick={sessions.retry}>重试</button>}

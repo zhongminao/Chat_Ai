@@ -35,7 +35,13 @@ def build_agent(runtime) -> AgentRuntime:
     registry = runtime.registry
     config = registry.config
     main = runtime.state["role"] == "main"
-    tools = ToolRouter(config.workspace, McpClient(config.mcp) if config.mcp else None,
+    # Configured services load by default; previously enabled ad-hoc URLs are
+    # recovered from durable events when this session is reconstructed.
+    servers = dict(config.mcp)
+    for event in runtime.session.events.read():
+        if event["type"] == "mcp.enabled" and event.get("url") and event["alias"] not in config.mcp:
+            servers[event["alias"]] = event["url"]
+    tools = ToolRouter(config.workspace, McpClient(servers),
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
                        watch=registry.monitor(runtime.session.id).watch,
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,

@@ -55,6 +55,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .workspace-top { top: 0; }
 .workspace-bottom { bottom: 0; display: flex; flex-direction: column; }
 .workspace-bottom.is-tall > .composer-wrap { max-height: var(--chat-footer-limit); overflow-y: auto; }
+.mobile-menu-no-header { position: absolute; top: 12px; left: 12px; z-index: 3; }
 .workspace-header { flex: none; display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 28px; border-bottom: 1px solid #f2f3f5; }
 .connection-status { justify-content: center; display: flex; align-items: center; flex: none; gap: 7px; color: var(--muted); font-size: 11px; }
 .connection-dot { width: 6px; height: 6px; border-radius: 50%; background: #bcc1ca; }
@@ -168,6 +169,7 @@ button { -webkit-tap-highlight-color: transparent; }
   .workspace-header { height: 56px; padding: 0 12px; gap: 8px; }
   .connection-status { font-size: 10px; }
   .message-list { gap: 20px; padding: 22px 18px; }
+  .no-agent-header .message-list { padding-top: 56px; }
   .message { font-size: 15px; }
   .message.user { max-width: 90%; }
   .composer-wrap { width: calc(100% - 24px); padding-bottom: max(8px, env(safe-area-inset-bottom)); }

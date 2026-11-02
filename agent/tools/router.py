@@ -1,5 +1,7 @@
+import hashlib
 import json
 from copy import deepcopy
+from urllib.parse import urlsplit
 from typing import Any
 
 from ..core.cancellation import ExecutionContext, RunCancelled
@@ -9,7 +11,7 @@ from .images import read_image, show_image
 from .result import ToolResult
 from .mcp.client import McpClient
 from .mcp.results import convert_result
-from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, TOOL_SCHEMAS
+from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
 from .search import search_resources
 from . import mailbox
 
@@ -27,12 +29,48 @@ class ToolRouter:
         self.images = images
         self.vision = False
         self.schemas = TOOL_SCHEMAS + (mcp.schemas if mcp else [])
+        self.pending_tools: dict[str, tuple[str, dict, list[dict]]] = {}
+        self.schemas.append(ENABLE_MCP_SCHEMA)
         if delegate:
             self.schemas.append(DELEGATE_SCHEMA)
         if watch:
             self.schemas.append(WATCH_SCHEMA)
         if registry is not None and session_id:
             self.schemas.extend([NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA])
+
+    def commit_pending_tools(self) -> list[tuple[str, str]]:
+        if not self.pending_tools:
+            return []
+        enabled = []
+        for alias, (url, tools, schemas) in self.pending_tools.items():
+            self.mcp.servers[alias] = url
+            self.mcp.tools.update(tools)
+            self.schemas.extend(schemas)
+            enabled.append((alias, url))
+        self.pending_tools.clear()
+        return enabled
+
+    def enable_mcp(self, url: str) -> str:
+        if not isinstance(url, str):
+            raise ValueError("MCP URL must be a string")
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("MCP URL must be an HTTP(S) endpoint")
+        if self.mcp is None:
+            self.mcp = McpClient({})
+        alias = "dynamic_" + hashlib.sha256(url.encode()).hexdigest()[:12]
+        if alias in self.mcp.servers:
+            if self.mcp.servers[alias] != url:
+                raise ValueError("MCP alias collision")
+            if alias in (server for server, _ in self.mcp.tools.values()):
+                return f"MCP service already enabled: {alias}"
+        if alias in self.pending_tools:
+            return "MCP service already pending"
+        tools, schemas = self.mcp.discover_url(url, alias)
+        if not tools:
+            raise ValueError("MCP service returned no tools")
+        self.pending_tools[alias] = (url, tools, schemas)
+        return f"MCP service discovered: {alias}; {len(tools)} tools available on next model request"
 
     def call(
         self,
@@ -70,6 +108,8 @@ class ToolRouter:
                         raise ValueError("当前模型未声明支持视觉，请切换到支持视觉的模型")
                     return read_image(self.workspace, self.images, context=context, **arguments)
                 return show_image(self.workspace, self.images, context=context, **arguments)
+            if name == "enable_mcp":
+                return self.enable_mcp(**arguments)
             if name == "search_resources":
                 return search_resources(self.workspace, **arguments)
             if name in {"delegate", "watch", "submit"}:
