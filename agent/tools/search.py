@@ -28,7 +28,7 @@ def _fields(raw: dict[str, Any], field: str) -> tuple[str, ...]:
 
 
 def _tokens(text: str) -> tuple[str, ...]:
-    return tuple(term for term in re.findall(r"[a-z0-9_.+-]+|[\u4e00-\u9fff]", text.casefold())
+    return tuple(term for term in re.findall(r"[a-z0-9_.+-]+|[\u4e00-\u9fff]+", text.casefold())
                  if term)
 
 

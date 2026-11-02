@@ -45,6 +45,8 @@ class SearchResourcesTests(unittest.TestCase):
         value = json.loads(search_resources(self.workspace, "读取扫描件中的文字"))
         self.assertEqual(value["results"][0]["skill_id"], "pdf_reader")
         self.assertIn("alias:扫描件", value["results"][0]["match_reasons"])
+        self.assertFalse(any(reason in {"term:扫", "term:描", "term:件"}
+                             for reason in value["results"][0]["match_reasons"]))
         excluded = json.loads(search_resources(self.workspace, "PDF 编辑"))
         self.assertEqual(excluded["results"], [])
 
