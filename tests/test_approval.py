@@ -117,12 +117,41 @@ class ApprovalTests(unittest.TestCase):
 
     def test_local_read_and_full_access_do_not_wait(self):
         (self.root / 'file').write_text('readable')
-        self.assertEqual(self.router.call('read_file', {'path': 'file'}), 'readable')
+        self.assertIn('readable', self.router.call('read_file', {'path': 'file'}))
         self.assertEqual(self.events.read(), [])
         self.gate.set_mode('full_access')
         self.router.call('write_file', {'path': 'file', 'content': 'written'})
         self.assertEqual((self.root / 'file').read_text(), 'written')
         self.assertEqual(self.events.read()[-1]['type'], 'approval.bypassed')
+
+    def test_full_access_external_write_but_not_edit(self):
+        outside = self.root.parent / f'{self.root.name}-outside.txt'
+        self.addCleanup(outside.unlink, missing_ok=True)
+        self.gate.set_mode('full_access')
+        self.assertIn('wrote', self.router.call('write_file',
+            {'path': str(outside), 'content': 'allowed'}, self.context))
+        self.assertEqual(outside.read_text(), 'allowed')
+        self.assertIn('outside workspace', self.router.call('edit_file',
+            {'path': str(outside), 'old': 'allowed', 'new': 'denied'}, self.context))
+        self.assertEqual(outside.read_text(), 'allowed')
+
+    def test_audit_approval_does_not_allow_external_write(self):
+        outside = self.root.parent / f'{self.root.name}-outside.txt'
+        self.addCleanup(outside.unlink, missing_ok=True)
+        thread, result, item = self.start_call('write_file',
+            {'path': str(outside), 'content': 'blocked'})
+        self.gate.resolve(item['id'], True)
+        thread.join(3)
+        self.assertIn('outside workspace', result[0])
+        self.assertFalse(outside.exists())
+
+    def test_no_gate_does_not_allow_external_write(self):
+        outside = self.root.parent / f'{self.root.name}-outside.txt'
+        self.addCleanup(outside.unlink, missing_ok=True)
+        router = ToolRouter(self.root)
+        self.assertIn('outside workspace', router.call('write_file',
+            {'path': str(outside), 'content': 'blocked'}))
+        self.assertFalse(outside.exists())
 
     def test_parallel_decisions_and_event_sequences_remain_independent(self):
         threads = []

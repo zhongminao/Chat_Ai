@@ -42,6 +42,7 @@ def build_agent(runtime) -> AgentRuntime:
         if event["type"] == "mcp.enabled" and event.get("url") and event["alias"] not in config.mcp:
             servers[event["alias"]] = event["url"]
     tools = ToolRouter(config.workspace, McpClient(servers),
+                       read_file_config=config.read_file,
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
                        watch=registry.monitor(runtime.session.id).watch,
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,

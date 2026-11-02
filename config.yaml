@@ -22,10 +22,16 @@ context:
   prompt_file: ./prompts/context_compaction.md
 
 
+read_file:
+  limit: 50
+  max_line_chars: 3000
+
 spill:
   enabled: true
-  max_inline_chars: 12000
-  preview_chars: 4000
+  max_inline_lines: 500
+  head_lines: 100
+  tail_lines: 100
+  max_line_chars: 3000
   directory: .spill
 
 mcp:

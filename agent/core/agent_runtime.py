@@ -276,8 +276,10 @@ class AgentRuntime:
                     result = spill_tool_output(
                         output.text,
                         enabled=bool(self.spill.get("enabled", True)),
-                        max_inline_chars=int(self.spill.get("max_inline_chars", 12000)),
-                        preview_chars=int(self.spill.get("preview_chars", 4000)),
+                        max_inline_lines=int(self.spill.get("max_inline_lines", 100)),
+                        head_lines=int(self.spill.get("head_lines", 10)),
+                        tail_lines=int(self.spill.get("tail_lines", 10)),
+                        max_line_chars=int(self.spill.get("max_line_chars", 200)),
                         workspace=self.workspace,
                         session_id=self.session_id,
                         directory=str(self.spill.get("directory", ".spill")),

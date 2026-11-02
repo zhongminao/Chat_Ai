@@ -17,8 +17,9 @@ from . import mailbox
 
 
 class ToolRouter:
-    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None):
+    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None, read_file_config=None):
         self.workspace = workspace
+        self.read_file_config = read_file_config or {}
         self.registry = registry
         self.session_id = session_id
         self.approval = approval
@@ -28,7 +29,11 @@ class ToolRouter:
         self.submit = None
         self.images = images
         self.vision = False
-        self.schemas = TOOL_SCHEMAS + (mcp.schemas if mcp else [])
+        self.schemas = deepcopy(TOOL_SCHEMAS) + (mcp.schemas if mcp else [])
+        for schema in self.schemas:
+            if schema["function"]["name"] == "read_file":
+                schema["function"]["parameters"]["properties"]["limit"]["default"] = self.read_file_config.get("limit", 50)
+                break
         self.pending_tools: dict[str, tuple[str, dict, list[dict]]] = {}
         self.schemas.append(ENABLE_MCP_SCHEMA)
         if delegate:
@@ -82,10 +87,12 @@ class ToolRouter:
         if not any(schema["function"]["name"] == name for schema in self.schemas):
             return f"[tool error] 当前工具不可用：{name}"
         arguments = deepcopy(arguments)
-        if (self.approval and name not in {"notify_agent", "agent_inbox", "read_agent_message"}
-                and not self.approval(name, arguments, context, run_id=run_id, call_id=call_id,
-                                      is_mcp=bool(self.mcp and name in self.mcp.tools))):
-            return "[tool denied] 用户拒绝本次操作；此工具未执行。请尊重该决定，不要换用其他工具执行同一操作。"
+        decision = "approved"
+        if self.approval and name not in {"notify_agent", "agent_inbox", "read_agent_message"}:
+            decision = self.approval(name, arguments, context, run_id=run_id, call_id=call_id,
+                                     is_mcp=bool(self.mcp and name in self.mcp.tools))
+            if not decision:
+                return "[tool denied] 用户拒绝本次操作；此工具未执行。请尊重该决定，不要换用其他工具执行同一操作。"
         if context:
             context.cancellation.raise_if_cancelled()
         is_mcp = bool(self.mcp and name in self.mcp.tools)
@@ -122,7 +129,8 @@ class ToolRouter:
             if is_mcp:
                 result = self.mcp.call(name, arguments, context)
                 return convert_result(result, self.images, vision=self.vision)
-            return execute(self.workspace, name, arguments, context)
+            return execute(self.workspace, name, arguments, context, read_file_config=self.read_file_config,
+                           allow_external_write=(name == "write_file" and decision == "full_access"))
         except RunCancelled:
             raise
         except Exception as exc:

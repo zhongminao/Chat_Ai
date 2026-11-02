@@ -25,6 +25,7 @@ class Config:
     child_system_prompt: str
     context: dict = field(default_factory=dict)
     approval_mode: str = "audit"
+    read_file: dict[str, int] = field(default_factory=dict)
 
 
 def _path(root: Path, value: str) -> Path:
@@ -79,6 +80,11 @@ def load(path: Path | None = None) -> Config:
     spill = dict(data.get("spill") or {})
     if spill.get("enabled", True):
         resolve_spill_directory(workspace, spill.get("directory", ".spill"))
+    read_file = dict(data.get("read_file") or {})
+    for key, minimum in (("limit", 1), ("max_line_chars", 12)):
+        value = read_file.get(key, 50 if key == "limit" else 3000)
+        if type(value) is not int or value < minimum:
+            raise ValueError(f"config.yaml: read_file.{key} 必须为不小于 {minimum} 的整数")
     storage_dir = _path(root, data.get("storage_dir", "storage"))
     approval_mode = (data.get("approval") or {}).get("mode", "audit")
     if approval_mode not in MODES:
@@ -90,6 +96,7 @@ def load(path: Path | None = None) -> Config:
         storage_dir=storage_dir,
         providers_file=providers_file,
         spill=spill,
+        read_file=read_file,
         mcp=data.get("mcp", {}),
         max_rounds=max_rounds,
         context=context,

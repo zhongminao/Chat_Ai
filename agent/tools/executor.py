@@ -8,14 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from ..core.cancellation import ExecutionContext, RunCancelled
+from .spill import preview_lines
 
 
 DEFAULT_TIMEOUT = 30
 
 
-def _path(root: Path, value: str) -> Path:
+def _path(root: Path, value: str, *, allow_external: bool = False) -> Path:
     target = (root / value).resolve()
-    if target != root and root not in target.parents:
+    if not (allow_external and Path(value).is_absolute()) and target != root and root not in target.parents:
         raise ValueError("path is outside workspace")
     return target
 
@@ -33,16 +34,28 @@ def _check(context: ExecutionContext | None) -> None:
 def read_file(
     root: Path,
     path: str,
-    offset: int = 0,
-    limit: int = 12000,
+    offset: int = 1,
+    limit: int = 50,
     context: ExecutionContext | None = None,
+    *,
+    max_line_chars: int = 3000,
 ) -> str:
-    if offset < 0 or limit <= 0:
-        raise ValueError("offset must be >= 0 and limit must be > 0")
+    if offset < 1 or limit <= 0 or max_line_chars < 12:
+        raise ValueError("offset must be >= 1, limit > 0 and max_line_chars >= 12")
     _check(context)
-    text = _read_path(root, path).read_text(encoding="utf-8")
+    lines = _read_path(root, path).read_text(encoding="utf-8").splitlines()
     _check(context)
-    return text[offset:offset + limit]
+    total = len(lines)
+    if not total:
+        return f"[read_file] {path}: empty file (0 lines)"
+    if offset > total:
+        raise ValueError(f"offset={offset} beyond end of file ({total} lines)")
+    end = min(total, offset - 1 + limit)
+    body = preview_lines(lines, offset - 1, end, max_line_chars)
+    result = f"[read_file] {path} ({total} lines total, showing lines {offset}-{end})\n{body}"
+    if end < total:
+        result += f"\n[{total - end} more lines. Use offset={end + 1} to continue.]"
+    return result
 
 
 def _atomic_write(target: Path, content: str, context: ExecutionContext | None) -> None:
@@ -66,8 +79,10 @@ def write_file(
     path: str,
     content: str,
     context: ExecutionContext | None = None,
+    *,
+    allow_external: bool = False,
 ) -> str:
-    target = _path(root, path)
+    target = _path(root, path, allow_external=allow_external)
     _atomic_write(target, content, context)
     return f"wrote {path}"
 
@@ -160,6 +175,9 @@ def execute(
     name: str,
     arguments: dict[str, Any],
     context: ExecutionContext | None = None,
+    *,
+    read_file_config: dict | None = None,
+    allow_external_write: bool = False,
 ) -> str:
     functions = {
         "read_file": read_file,
@@ -170,6 +188,11 @@ def execute(
     if name not in functions:
         raise ValueError(f"unknown tool: {name}")
     try:
+        if name == "read_file":
+            options = {**(read_file_config or {}), **arguments}
+            return read_file(root, context=context, **options)
+        if name == "write_file":
+            return write_file(root, context=context, allow_external=allow_external_write, **arguments)
         return functions[name](root, context=context, **arguments)
     except RunCancelled:
         raise

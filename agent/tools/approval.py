@@ -59,12 +59,12 @@ class ApprovalGate:
         if context:
             context.cancellation.raise_if_cancelled()
         if not requires_approval(name, is_mcp):
-            return True
+            return "approved"
         with self._condition:
             if self._mode == "full_access":
                 self._emit("approval.bypassed", sessionId=session_id, runId=run_id,
                            callId=call_id, tool=name, mode=self._mode)
-                return True
+                return "full_access"
             item = {"id": uuid4().hex, "sessionId": session_id, "runId": run_id,
                     "callId": call_id, "tool": name, "arguments": deepcopy(arguments),
                     "workspace": None if is_mcp else workspace}
@@ -88,7 +88,7 @@ class ApprovalGate:
                     self._condition.wait()
                 if context:
                     context.cancellation.raise_if_cancelled()
-                return item["decision"] == "approved"
+                return "approved" if item["decision"] == "approved" else False
             except (RunCancelled, KeyboardInterrupt):
                 if item["id"] in self._pending:
                     self._finish(item, "cancelled")

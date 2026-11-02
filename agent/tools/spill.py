@@ -21,30 +21,59 @@ def resolve_spill_directory(workspace: Path, directory: str) -> Path:
     return root
 
 
+def elide_line(line: str, max_chars: int) -> str:
+    if len(line) <= max_chars:
+        return line
+    marker = "...[cut]..."
+    head = (max_chars - len(marker)) // 2
+    return line[:head] + marker + line[-(max_chars - len(marker) - head):]
+
+
+def preview_lines(lines: list[str], start: int, end: int, max_chars: int) -> str:
+    return "\n".join(elide_line(line, max_chars) for line in lines[start:end])
+
+
 def spill_tool_output(
     text: str,
     *,
     enabled: bool,
-    max_inline_chars: int,
-    preview_chars: int,
+    max_inline_lines: int,
+    head_lines: int,
+    tail_lines: int,
+    max_line_chars: int,
     workspace: Path,
     session_id: str,
     directory: str = ".spill",
 ) -> str:
-    if not enabled or len(text) <= max_inline_chars:
+    if not enabled:
         return text
+    lines = text.splitlines()
+    if len(lines) <= max_inline_lines and all(len(line) <= max_line_chars for line in lines):
+        return text
+    if max_inline_lines < 0 or head_lines < 0 or tail_lines < 0 or max_line_chars < 12:
+        raise ValueError("invalid spill preview limits")
+
+    saved = _redact(text)
+    lines = saved.splitlines()
+    total = len(lines)
+    head = min(head_lines, total)
+    tail = min(tail_lines, total - head)
+    parts = []
+    if head:
+        parts.append(f"[spill] lines 1-{head} of {total}\n{preview_lines(lines, 0, head, max_line_chars)}")
+    if total > head + tail:
+        parts.append(f"[spill] {total - head - tail} lines omitted")
+    if tail:
+        start = total - tail
+        parts.append(f"[spill] lines {start + 1}-{total} of {total}\n{preview_lines(lines, start, total, max_line_chars)}")
+    preview = "\n".join(parts)
 
     try:
         root = (resolve_spill_directory(workspace, directory) / session_id).resolve()
         path = root / f"{uuid.uuid4().hex}.log"
         relative = path.relative_to(workspace.resolve())
         root.mkdir(parents=True, exist_ok=True)
-        path.write_text(_redact(text), encoding="utf-8")
-        preview = text[:preview_chars]
-        return (
-            f"{preview}\n\n"
-            f"[spill] 完整输出已保存到 {relative}，共 {len(text)} 个字符。"
-            " 如需继续查看，请使用 read_file 分页读取。"
-        )
+        path.write_text(saved, encoding="utf-8")
+        return f"{preview}\n[spill] Full output: {relative} ({total} lines). Use read_file with offset/limit."
     except (OSError, ValueError):
-        return text[:max_inline_chars] + "\n\n[spill] 保存失败，以上为截断内容。"
+        return f"{preview}\n[spill] 保存失败，以上为截断内容。"

@@ -92,11 +92,11 @@ TOOL_SCHEMAS = [SEARCH_SCHEMA,
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "read_file",
-        "description": "Read a UTF-8 text file page by page. Absolute paths are allowed.",
+        "description": "Read a UTF-8 file by line (1-based offset). Shows total lines, shown range and next offset. Lines longer than the configured maximum are abbreviated. Absolute paths are allowed.",
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string"},
-            "offset": {"type": "integer", "minimum": 0, "default": 0},
-            "limit": {"type": "integer", "minimum": 1, "default": 12000}},
+            "offset": {"type": "integer", "minimum": 1, "default": 1},
+            "limit": {"type": "integer", "minimum": 1, "default": 50}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "write_file",
