@@ -9,8 +9,9 @@ export function GuidanceQueue({ items, disabled, canEdit, onGuide, onEdit, onRem
   return <div className="guidance-queue" aria-label="前端引导队列">
     <ol className="guidance-queue-items">{items.map(item => <li className="guidance-draft" key={item.id}>
       <div className="guidance-draft-content">
-        <span className="guidance-draft-text" title={item.text}>{item.text || '图片消息'}</span>
+        <span className="guidance-draft-text" title={item.text}>{item.text || '附件消息'}</span>
         {item.images.length > 0 && <span className="guidance-draft-images"><Icon name="image" size={13} />{item.images.length} 张图片</span>}
+        {item.files.length > 0 && <span className="guidance-draft-images"><Icon name="file" size={13} />{item.files.length} 个文件</span>}
       </div>
       <div className="guidance-draft-actions">
         <button type="button" className="icon-button guidance-draft-send" aria-label="引导" title="引导"

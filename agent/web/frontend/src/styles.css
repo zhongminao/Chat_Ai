@@ -118,6 +118,17 @@ button { -webkit-tap-highlight-color: transparent; }
 .composer textarea::placeholder { color: #a0a4ac; }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .composer-left-actions, .composer-right-actions { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.attachment-menu { position: relative; flex: none; }
+.attachment-menu > summary { display: flex; align-items: center; justify-content: center; list-style: none; cursor: pointer; }
+.attachment-menu > summary::-webkit-details-marker { display: none; }
+.attachment-options { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 30; min-width: 112px; padding: 5px; border: 1px solid var(--border); border-radius: 10px; background: white; box-shadow: 0 8px 24px #2021241c; }
+.attachment-options button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #4d535d; text-align: left; font-size: 13px; }
+.attachment-options button:hover:not(:disabled) { background: #f2f4f7; }
+.file-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.file-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px 3px 9px; border: 1px solid #dce2eb; border-radius: 8px; color: #606977; font-size: 12px; }
+.file-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip .icon-button { width: 22px; height: 22px; }
+
 .composer-right-actions { margin-left: auto; }
 .composer-right-actions .model-options { left: auto; right: 0; }
 .access-picker { appearance: none; -webkit-appearance: none; flex: none; width: calc(2em + 8px); padding: 4px; border: 0; border-radius: 4px; background: transparent; color: #62776b; font: inherit; font-size: 12px; cursor: pointer; }

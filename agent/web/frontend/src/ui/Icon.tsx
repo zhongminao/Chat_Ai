@@ -16,6 +16,8 @@ const paths = {
   chat: 'M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-5 3V6a2 2 0 0 1 2-2Z',
   compact: 'M7 4H4v16h3M17 4h3v16h-3M8 9h8M8 12h6M8 15h8',
   tool: 'm14 6 4-4a6 6 0 0 1-7 8L4 17a2 2 0 0 0 3 3l7-7a6 6 0 0 0 8-7l-4 4-4-4Z',
+  folder: 'M3 5h7l2 2h9v12H3V5Z',
+  file: 'M6 2h8l5 5v15H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 0v5h5M8 12h8M8 16h8',
   image: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 13 5-5 4 4 3-3 6 6M8 7h.01',
 };
 

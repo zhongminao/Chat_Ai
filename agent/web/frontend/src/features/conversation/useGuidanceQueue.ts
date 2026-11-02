@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import type { FileAsset } from '../../api/types';
 
-export interface GuidanceDraft { id: string; text: string; images: string[] }
+export interface GuidanceDraft { id: string; text: string; images: string[]; files: FileAsset[] }
 
 export function useGuidanceQueue(sessionId: string | null, accepted: string[]) {
   const key = `chat-ai:guidance:${sessionId}`;
@@ -8,7 +9,7 @@ export function useGuidanceQueue(sessionId: string | null, accepted: string[]) {
     try {
       const saved: unknown = JSON.parse(sessionStorage.getItem(key) ?? '[]');
       return Array.isArray(saved) ? saved.filter(item => typeof item?.id === 'string' &&
-        typeof item.text === 'string' && Array.isArray(item.images) && item.images.every((id: unknown) => typeof id === 'string')) : [];
+        typeof item.text === 'string' && Array.isArray(item.images) && item.images.every((id: unknown) => typeof id === 'string')).map(item => ({ ...item, files: Array.isArray(item.files) ? item.files : [] })) : [];
     } catch { return []; }
   });
   useEffect(() => {
@@ -24,7 +25,7 @@ export function useGuidanceQueue(sessionId: string | null, accepted: string[]) {
   }, [acceptedKey]);
   return {
     items,
-    add: (text: string, images: string[]) => setItems(current => [...current, { id: crypto.randomUUID(), text, images }]),
+    add: (text: string, images: string[], files: FileAsset[]) => setItems(current => [...current, { id: crypto.randomUUID(), text, images, files }]),
     remove: (id: string) => setItems(current => current.filter(item => item.id !== id)),
   };
 }

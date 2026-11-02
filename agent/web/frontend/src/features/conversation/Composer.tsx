@@ -4,6 +4,7 @@ import type { AccessMode, ContextUsage, ImageAsset, Model, ModelGroup } from '..
 import { Icon } from '../../ui/Icon';
 import { ModelPicker } from '../models/ModelPicker';
 import { useImageDraft } from '../images/useImageDraft';
+import { useFileDraft } from './useFileDraft';
 import { ImageAttachments } from '../images/ImageAttachments';
 import { ContextMeter } from './ContextMeter';
 import { GuidanceQueue } from './GuidanceQueue';
@@ -21,8 +22,8 @@ interface Props {
   modelsRefreshing: boolean; modelsError: string | null; onRefreshModels: () => Promise<void>;
   sessionId: string | null; images: ImageAsset[];
   onUploaded: (image: ImageAsset) => void;
-  onSend: (text: string, images: string[]) => Promise<boolean>;
-  onGuide: (id: string, text: string, images: string[]) => Promise<boolean>;
+  onSend: (text: string, images: string[], files: string[]) => Promise<boolean>;
+  onGuide: (id: string, text: string, images: string[], files: string[]) => Promise<boolean>;
   acceptedGuidance: string[];
   onStop: () => Promise<boolean>;
   onModelChange: (provider: string, model: string) => Promise<boolean>;
@@ -33,8 +34,11 @@ export function Composer(props: Props) {
   function updateText(value: string) { writeTextDraft(props.sessionId, value); setText(value); }
   const [editingGuidance, setEditingGuidance] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const menu = useRef<HTMLDetailsElement>(null);
   const draft = useImageDraft(props.sessionId, props.onUploaded);
+  const fileDraft = useFileDraft(props.sessionId);
   const guidance = useGuidanceQueue(props.sessionId, props.acceptedGuidance);
   const queueInput = props.busy || editingGuidance || guidance.items.length > 0;
   const textRef = useRef(text); textRef.current = text;
@@ -42,22 +46,24 @@ export function Composer(props: Props) {
     const element = textarea.current;
     if (element) { element.style.height = 'auto'; element.style.height = `${Math.min(element.scrollHeight, 220)}px`; }
   }, [text]);
-  const canEditImages = !props.readOnly && props.ready && props.connected && !props.pending && !draft.uploading;
-  const hasInput = Boolean(text.trim() || draft.ids.length);
+  const canEditFiles = !props.readOnly && props.ready && props.connected && !props.pending && !draft.uploading && !fileDraft.uploading;
+  const canEditImages = canEditFiles;
+  const hasInput = Boolean(text.trim() || draft.ids.length || fileDraft.files.length);
   const stopAction = props.busy && !hasInput;
   const disabled = (props.readOnly && !stopAction) || !props.ready || !props.connected ||
-    Boolean(props.pending) || (!stopAction && (draft.uploading || !hasInput));
+    Boolean(props.pending) || (!stopAction && (draft.uploading || fileDraft.uploading || !hasInput));
   async function submit() {
     if (disabled) return;
     if (stopAction) { await props.onStop(); return; }
     const content = text;
     const images = [...draft.ids];
+    const files = [...fileDraft.files];
     if (queueInput) {
-      guidance.add(content, images);
-      updateText(''); setEditingGuidance(false); draft.remove(images);
-    } else if (await props.onSend(content, images)) {
+      guidance.add(content, images, files);
+      updateText(''); setEditingGuidance(false); draft.remove(images); fileDraft.remove(files.map(file => file.id));
+    } else if (await props.onSend(content, images, files.map(file => file.id))) {
       if (clearTextDraftIfUnchanged(props.sessionId, content) && textRef.current === content) setText('');
-      draft.remove(images);
+      draft.remove(images); fileDraft.remove(files.map(file => file.id));
       textarea.current?.focus();
     }
   }
@@ -65,20 +71,30 @@ export function Composer(props: Props) {
   return <div className="composer-wrap">
     {props.approvals}
     <GuidanceQueue items={guidance.items} disabled={props.readOnly || !props.ready || !props.connected || Boolean(props.pending)}
-      canEdit={!text.trim() && !draft.ids.length && !draft.uploading} onRemove={guidance.remove}
-      onEdit={item => { guidance.remove(item.id); updateText(item.text); setEditingGuidance(true); draft.restore(item.images); textarea.current?.focus(); }}
-      onGuide={item => { void props.onGuide(item.id, item.text, item.images).then(sent => { if (sent) guidance.remove(item.id); }); }} />
+      canEdit={!text.trim() && !draft.ids.length && !fileDraft.files.length && !draft.uploading && !fileDraft.uploading} onRemove={guidance.remove}
+      onEdit={item => { guidance.remove(item.id); updateText(item.text); setEditingGuidance(true); draft.restore(item.images); fileDraft.restore(item.files); textarea.current?.focus(); }}
+      onGuide={item => { void props.onGuide(item.id, item.text, item.images, item.files.map(file => file.id)).then(sent => { if (sent) guidance.remove(item.id); }); }} />
     <form className="composer" onSubmit={event => { event.preventDefault(); void submit(); }}
       onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
       onDrop={event => {
         event.preventDefault();
-        if (canEditImages) void draft.upload(Array.from(event.dataTransfer.files));
+        if (canEditFiles) {
+          const dropped = Array.from(event.dataTransfer.files);
+          void draft.upload(dropped.filter(file => file.type.startsWith('image/')));
+          void fileDraft.upload(dropped.filter(file => !file.type.startsWith('image/')));
+        }
       }}>
       {props.sessionId && <ImageAttachments sessionId={props.sessionId}
         images={draft.ids.map(id => props.images.find(image => image.id === id)).filter((image): image is ImageAsset => Boolean(image))}
         disabled={!canEditImages} onRemove={id => draft.remove([id])} />}
-      {draft.uploading && <div className="image-draft-status" role="status">正在上传图片…</div>}
-      {draft.error && <div className="image-draft-status image-draft-error" role="alert">{draft.error}</div>}
+      {fileDraft.files.length > 0 && <div className="file-attachments">{fileDraft.files.map(file =>
+        <span className="file-chip" key={file.id} title={file.path}><Icon name="file" size={16} />
+          <span className="file-chip-name">{file.name}</span>
+          <button type="button" className="icon-button" aria-label={`移除文件 ${file.name}`} disabled={!canEditFiles}
+            onClick={() => fileDraft.remove([file.id])}><Icon name="close" size={14} /></button>
+        </span>)}</div>}
+      {(draft.uploading || fileDraft.uploading) && <div className="image-draft-status" role="status">正在上传附件…</div>}
+      {(draft.error || fileDraft.error) && <div className="image-draft-status image-draft-error" role="alert">{draft.error || fileDraft.error}</div>}
       <textarea ref={textarea} rows={2} aria-label="消息" placeholder={props.readOnly ? '子 agent 会话仅供查看' : '输入消息…'} value={text}
         onPaste={event => {
           const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
@@ -89,13 +105,23 @@ export function Composer(props: Props) {
             event.preventDefault(); if (hasInput) void submit();
           }
         }} />
-      <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden
+      <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden
         disabled={!canEditImages} onChange={event => {
           void draft.upload(Array.from(event.target.files ?? [])); event.target.value = '';
         }} />
+      <input ref={fileInput} type="file" multiple hidden disabled={!canEditFiles} onChange={event => {
+        void fileDraft.upload(Array.from(event.target.files ?? [])); event.target.value = '';
+      }} />
       <div className="composer-actions"><div className="composer-left-actions">
-        <button type="button" className="icon-button image-upload-button" aria-label="添加图片" title="选择图片，也可粘贴或拖入图片"
-          disabled={!canEditImages || draft.ids.length >= 8} onClick={() => fileInput.current?.click()}><Icon name="image" /></button>
+        <details className="attachment-menu" ref={menu}>
+          <summary className="icon-button image-upload-button" aria-label="添加附件" title="添加附件"><Icon name="plus" /></summary>
+          <div className="attachment-options">
+            <button type="button" disabled={!canEditImages || draft.ids.length >= 8}
+              onClick={() => { menu.current?.removeAttribute('open'); imageInput.current?.click(); }}><Icon name="image" size={16} />图片</button>
+            <button type="button" disabled={!canEditFiles}
+              onClick={() => { menu.current?.removeAttribute('open'); fileInput.current?.click(); }}><Icon name="folder" size={16} />文件</button>
+          </div>
+        </details>
         <select className={`access-picker ${props.accessMode}`} aria-label="访问模式" value={props.accessMode}
           disabled={props.accessDisabled} onChange={event => props.onAccessChange(event.target.value as AccessMode)}>
           <option value="audit">审计</option><option value="full_access">完全访问</option>

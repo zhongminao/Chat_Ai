@@ -161,8 +161,8 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     ready: displayed.ready && loadedId === id && !streamFailed,
     connected: connected && loadedId === id && !streamFailed,
     pending: pending ?? (displayed.busy && stopRequested ? 'stop' : null),
-    send: (content: string, images: string[] = []) => command('send', session => api.send(session, content, images)),
-    guide: (messageId: string, text: string, images: string[]) => command('guide', session => api.guide(session, messageId, text, images)),
+    send: (content: string, images: string[] = [], files: string[] = []) => command('send', session => api.send(session, content, images, files)),
+    guide: (messageId: string, text: string, images: string[], files: string[] = []) => command('guide', session => api.guide(session, messageId, text, images, files)),
     registerImage: (image: ImageAsset) => sendAction({ type: 'image', image }),
     stop: () => command('stop', session => api.stop(session)),
     switchModel: (provider: string, model: string) => command('model', async session => {

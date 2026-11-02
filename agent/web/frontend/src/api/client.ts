@@ -1,4 +1,4 @@
-import type { HistoryPage, ImageAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
+import type { HistoryPage, ImageAsset, FileAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
 import type { AccessMode, ApprovalSnapshot } from './types';
 
 export class ApiError extends Error {
@@ -38,12 +38,16 @@ export const api = {
   updateSession: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => request<{ id: string; title?: string; pinned?: boolean; archived?: boolean }>(
     sessionPath(id), { ...post(changes), method: 'PATCH' },
   ),
-  send: (id: string, content: string, images: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images })),
-  guide: (id: string, messageId: string, content: string, images: string[]) => request<{ accepted: boolean }>(
-    `${sessionPath(id)}/guidance`, post({ message_id: messageId, content, images })),
+  send: (id: string, content: string, images: string[] = [], files: string[] = []) => request<{ accepted: boolean }>(`${sessionPath(id)}/messages`, post({ content, images, files })),
+  guide: (id: string, messageId: string, content: string, images: string[], files: string[] = []) => request<{ accepted: boolean }>(
+    `${sessionPath(id)}/guidance`, post({ message_id: messageId, content, images, files })),
   uploadImage: (id: string, file: File) => {
     const body = new FormData(); body.append('file', file);
     return request<{ image: ImageAsset }>(`${sessionPath(id)}/images`, { method: 'POST', body });
+  },
+  uploadFile: (id: string, file: File) => {
+    const body = new FormData(); body.append('file', file);
+    return request<{ file: FileAsset }>(`${sessionPath(id)}/files`, { method: 'POST', body });
   },
   imageUrl: (id: string, image: string, preview = false) =>
     `${sessionPath(id)}/images/${encodeURIComponent(image)}/content${preview ? '?preview=true' : ''}`,

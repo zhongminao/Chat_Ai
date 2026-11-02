@@ -15,6 +15,8 @@ from ..model.discovery import refresh_catalog
 from ..agentsessionstate.commands import SwitchModel
 from ..agentsessionstate.input import UserInput
 from .images import image_router
+from .files import file_router
+from ..storage.files import FileStore
 from .events import session_events
 from .history import history_page
 from .shutdown import shutdown_signals
@@ -23,6 +25,7 @@ from .shutdown import shutdown_signals
 class SendMessageRequest(BaseModel):
     content: str = ""
     images: list[str] = Field(default_factory=list)
+    files: list[str] = Field(default_factory=list)
 
 
 class SwitchModelRequest(BaseModel):
@@ -95,6 +98,7 @@ def runtime(session_id: str) -> SessionRuntime:
 
 
 app.include_router(image_router(session_store))
+app.include_router(file_router(session_store))
 
 
 @app.get("/")
@@ -197,13 +201,15 @@ def switch_model(session_id: str, request: SwitchModelRequest):
 
 @app.post("/api/sessions/{session_id}/messages")
 def send(session_id: str, message: SendMessageRequest):
-    runtime(session_id).enqueue(UserInput(message.content, tuple(message.images)))
+    content = FileStore(directory_for(session_id)).format_message(message.content, message.files)
+    runtime(session_id).enqueue(UserInput(content, tuple(message.images)))
     return {"accepted": True}
 
 
 @app.post('/api/sessions/{session_id}/guidance')
 def guide(session_id: str, message: GuidanceRequest):
-    runtime(session_id).send(UserInput(message.content, tuple(message.images)), message.message_id)
+    content = FileStore(directory_for(session_id)).format_message(message.content, message.files)
+    runtime(session_id).send(UserInput(content, tuple(message.images)), message.message_id)
     return {'accepted': True}
 
 
