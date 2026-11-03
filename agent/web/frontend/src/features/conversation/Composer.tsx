@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { AccessMode, ContextUsage, ImageAsset, Model, ModelGroup } from '../../api/types';
 import { Icon } from '../../ui/Icon';
 import { ModelPicker } from '../models/ModelPicker';
 import { useImageDraft } from '../images/useImageDraft';
 import { useFileDraft } from './useFileDraft';
+import { droppedAttachments, selectedFolder } from './folderEntries';
 import { ImageAttachments } from '../images/ImageAttachments';
 import { ContextMeter } from './ContextMeter';
 import { GuidanceQueue } from './GuidanceQueue';
@@ -36,7 +37,22 @@ export function Composer(props: Props) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
   const menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const closeOutside = (event: PointerEvent) => {
+      if (!menu.current?.contains(event.target as Node)) menu.current?.removeAttribute('open');
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') menu.current?.removeAttribute('open');
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
   const draft = useImageDraft(props.sessionId, props.onUploaded);
   const fileDraft = useFileDraft(props.sessionId);
   const guidance = useGuidanceQueue(props.sessionId, props.acceptedGuidance);
@@ -79,18 +95,24 @@ export function Composer(props: Props) {
       onDrop={event => {
         event.preventDefault();
         if (canEditFiles) {
-          const dropped = Array.from(event.dataTransfer.files);
-          void draft.upload(dropped.filter(file => file.type.startsWith('image/')));
-          void fileDraft.upload(dropped.filter(file => !file.type.startsWith('image/')));
+          // Capture DataTransferItemList synchronously; the browser clears it after the drop event.
+          const items = event.dataTransfer.items;
+          void droppedAttachments(items).then(({ files, folders }) => {
+            void draft.upload(files.filter(file => file.type.startsWith('image/')));
+            void (async () => {
+              await fileDraft.upload(files.filter(file => !file.type.startsWith('image/')));
+              for (const folder of folders) await fileDraft.upload(folder);
+            })();
+          });
         }
       }}>
       {props.sessionId && <ImageAttachments sessionId={props.sessionId}
         images={draft.ids.map(id => props.images.find(image => image.id === id)).filter((image): image is ImageAsset => Boolean(image))}
         disabled={!canEditImages} onRemove={id => draft.remove([id])} />}
       {fileDraft.files.length > 0 && <div className="file-attachments">{fileDraft.files.map(file =>
-        <span className="file-chip" key={file.id} title={file.path}><Icon name="file" size={16} />
+        <span className="file-chip" key={file.id} title={file.path}><Icon name="attachment" size={16} />
           <span className="file-chip-name">{file.name}</span>
-          <button type="button" className="icon-button" aria-label={`移除文件 ${file.name}`} disabled={!canEditFiles}
+          <button type="button" className="icon-button" aria-label={`移除附件 ${file.name}`} disabled={!canEditFiles}
             onClick={() => fileDraft.remove([file.id])}><Icon name="close" size={14} /></button>
         </span>)}</div>}
       {(draft.uploading || fileDraft.uploading) && <div className="image-draft-status" role="status">正在上传附件…</div>}
@@ -112,14 +134,22 @@ export function Composer(props: Props) {
       <input ref={fileInput} type="file" multiple hidden disabled={!canEditFiles} onChange={event => {
         void fileDraft.upload(Array.from(event.target.files ?? [])); event.target.value = '';
       }} />
+      <input ref={element => { folderInput.current = element; element?.setAttribute('webkitdirectory', ''); }}
+        type="file" multiple hidden disabled={!canEditFiles} onChange={event => {
+          const folder = selectedFolder(Array.from(event.target.files ?? []));
+          if (folder) void fileDraft.upload(folder);
+          event.target.value = '';
+        }} />
       <div className="composer-actions"><div className="composer-left-actions">
         <details className="attachment-menu" ref={menu}>
-          <summary className="icon-button image-upload-button" aria-label="添加附件" title="添加附件"><Icon name="plus" /></summary>
+          <summary className="icon-button image-upload-button" aria-label="添加内容" title="添加内容"><Icon name="plus" /></summary>
           <div className="attachment-options">
             <button type="button" disabled={!canEditImages || draft.ids.length >= 8}
               onClick={() => { menu.current?.removeAttribute('open'); imageInput.current?.click(); }}><Icon name="image" size={16} />图片</button>
             <button type="button" disabled={!canEditFiles}
-              onClick={() => { menu.current?.removeAttribute('open'); fileInput.current?.click(); }}><Icon name="folder" size={16} />文件</button>
+              onClick={() => { menu.current?.removeAttribute('open'); fileInput.current?.click(); }}><Icon name="attachment" size={16} />附件</button>
+            <button type="button" disabled={!canEditFiles}
+              onClick={() => { menu.current?.removeAttribute('open'); folderInput.current?.click(); }}><Icon name="folder" size={16} />文件夹</button>
           </div>
         </details>
         <select className={`access-picker ${props.accessMode}`} aria-label="访问模式" value={props.accessMode}

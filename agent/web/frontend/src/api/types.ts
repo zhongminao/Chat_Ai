@@ -59,7 +59,7 @@ export interface ApprovalRequest {
 }
 export interface ApprovalSnapshot { mode: AccessMode; instanceId: string; revision: number; pending: ApprovalRequest[] }
 
-export interface FileAsset { id: string; name: string; filename: string; path: string; size: number }
+export interface FileAsset { id: string; name: string; filename: string; path: string; size: number; kind?: 'file' | 'folder' }
 
 export interface ImageAsset {
   id: string;

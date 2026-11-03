@@ -27,6 +27,22 @@ describe('composer draft restoration', () => {
   });
 });
 
+describe('attachment menu', () => {
+  it('offers image, attachment and folder directly under the plus button', () => {
+    const html = renderToStaticMarkup(<Composer busy={false} ready connected readOnly={false}
+      status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      onAccessChange={() => {}} model={null} models={[]}
+      modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="test" images={[]}
+      onUploaded={() => {}} onSend={async () => true}
+      onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
+    expect(html).toContain('aria-label="添加内容"');
+    expect(html).toContain('图片</button>');
+    expect(html).toContain('附件</button>');
+    expect(html).toContain('文件夹</button>');
+    expect(html).not.toContain('attachment-submenu');
+  });
+});
+
 describe('single composer action', () => {
   for (const busy of [false, true]) {
     it(busy ? 'has one enabled stop action while running with empty input' : 'has one disabled send action before any input', () => {

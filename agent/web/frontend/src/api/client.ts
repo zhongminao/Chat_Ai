@@ -49,6 +49,14 @@ export const api = {
     const body = new FormData(); body.append('file', file);
     return request<{ file: FileAsset }>(`${sessionPath(id)}/files`, { method: 'POST', body });
   },
+  uploadFolder: (id: string, name: string, entries: { file: File; path: string }[]) => {
+    const body = new FormData(); body.append('name', name);
+    for (const entry of entries) {
+      body.append('files', entry.file);
+      body.append('paths', entry.path);
+    }
+    return request<{ file: FileAsset }>(`${sessionPath(id)}/files/folder`, { method: 'POST', body });
+  },
   imageUrl: (id: string, image: string, preview = false) =>
     `${sessionPath(id)}/images/${encodeURIComponent(image)}/content${preview ? '?preview=true' : ''}`,
   stop: (id: string) => request<{ stopped: boolean }>(`${sessionPath(id)}/control/stop`, post()),

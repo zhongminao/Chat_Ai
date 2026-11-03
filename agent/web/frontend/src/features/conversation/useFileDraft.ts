@@ -8,12 +8,17 @@ export function useFileDraft(sessionId: string | null) {
   const pending = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(selected: File[]) {
-    if (!sessionId || !selected.length || pending.current) return;
+  async function upload(items: File[] | { name: string; entries: { file: File; path: string }[] }) {
+    if (!sessionId || pending.current || (Array.isArray(items) ? !items.length : !items.entries.length)) return;
     pending.current = true; setUploading(true); setError(null);
     try {
-      for (const input of selected) {
-        const { file } = await api.uploadFile(sessionId, input);
+      if (Array.isArray(items)) {
+        for (const input of items) {
+          const { file } = await api.uploadFile(sessionId, input);
+          setFiles(current => [...current, file]);
+        }
+      } else {
+        const { file } = await api.uploadFolder(sessionId, items.name, items.entries);
         setFiles(current => [...current, file]);
       }
     } catch (reason) {

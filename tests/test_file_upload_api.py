@@ -23,7 +23,7 @@ class FakeRuntime:
         self.guidance.append((value, message_id))
 
 
-class FileUploadApiTests(unittest.TestCase):
+class UploadApiBase(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.store = SessionStore(Path(self.temp.name))
@@ -53,6 +53,7 @@ class FileUploadApiTests(unittest.TestCase):
         return self.client.post(f'/api/sessions/{self.session.id}/files',
                                 files={'file': (name, data, 'application/octet-stream')})
 
+class FileUploadApiTests(UploadApiBase):
     def test_upload_send_and_guidance_with_images_and_plain_text(self):
         response = self.upload()
         self.assertEqual(response.status_code, 200)
@@ -117,6 +118,65 @@ class FileUploadApiTests(unittest.TestCase):
         path.unlink()
         path.symlink_to('/etc/hosts')
         self.assertEqual(self.client.post(url, json={'files': [file['id']]}).status_code, 404)
+        self.assertFalse(self.runtime.messages)
+
+
+class FolderUploadApiTests(UploadApiBase):
+    def folder(self, paths=('src/main.py', 'docs/readme.md'), contents=(b'print(1)', b'hello'),
+               name='project', session_id=None):
+        return self.client.post(f'/api/sessions/{session_id or self.session.id}/files/folder',
+                                data={'name': name, 'paths': list(paths)},
+                                files=[('files', (path.rsplit('/', 1)[-1], body))
+                                       for path, body in zip(paths, contents)])
+
+    def test_folder_upload_single_reference_and_session_isolation(self):
+        response = self.folder()
+        self.assertEqual(response.status_code, 200, response.text)
+        folder = response.json()['file']
+        self.assertEqual(folder['kind'], 'folder')
+        self.assertEqual(folder['count'], 2)
+        self.assertEqual(folder['size'], 13)
+        self.assertEqual(Path(folder['path']) / 'src/main.py',
+                         self.session.directory / 'attachments' / f"{folder['id']}.folder" / 'src/main.py')
+        self.assertEqual((Path(folder['path']) / 'src/main.py').read_bytes(), b'print(1)')
+        self.assertEqual((Path(folder['path']) / 'docs/readme.md').read_bytes(), b'hello')
+        url = f'/api/sessions/{self.session.id}/messages'
+        self.assertEqual(self.client.post(url, json={'files': [folder['id']], 'content': 'inspect'}).status_code, 200)
+        self.assertEqual(self.runtime.messages[-1].text,
+                         f"文件夹附件：project，目录路径：{folder['path']}\n\ninspect")
+        self.assertEqual(self.client.post(f'/api/sessions/{self.other.id}/messages',
+                                          json={'files': [folder['id']]}).status_code, 404)
+        self.assertEqual(self.folder(session_id='invalid').status_code, 404)
+
+    def test_folder_bad_paths_and_collisions_no_leftovers(self):
+        for paths in (('../escape',), ('/absolute',), ('a\\b',), ('a//b',),
+                      ('a/./b',), ('a/../b',), ('a', 'a/b'), ('a/B', 'a/b'), ('a', 'a')):
+            with self.subTest(paths=paths):
+                result = self.folder(paths, tuple(b'x' for _ in paths))
+                self.assertEqual(result.status_code, 400, result.text)
+        self.assertEqual(self.folder(('a',), (b'',)).status_code, 400)
+        self.assertEqual(self.folder(('a',), (b'x',), '../bad').status_code, 400)
+        self.assertEqual(self.folder(('a',), (b'x' * (MAX_FILE_BYTES + 1),)).status_code, 413)
+        attachments = self.session.directory / 'attachments'
+        self.assertFalse(attachments.exists() and list(attachments.iterdir()))
+
+    def test_folder_tamper_and_total_and_count_limits(self):
+        from agent.storage.files import FileStore, MAX_FOLDER_FILES
+        from io import BytesIO
+        store = FileStore(self.session.directory)
+        with patch('agent.storage.files.MAX_FOLDER_BYTES', 3):
+            with self.assertRaises(ValueError):
+                store.add_folder([BytesIO(b'12'), BytesIO(b'34')], ['a', 'b'], 'project')
+        self.assertFalse(list(store.root.iterdir()))
+        with self.assertRaises(ValueError):
+            store.add_folder([BytesIO(b'x')] * (MAX_FOLDER_FILES + 1),
+                             [f'{x}' for x in range(MAX_FOLDER_FILES + 1)], 'project')
+        folder = self.folder().json()['file']
+        url = f'/api/sessions/{self.session.id}/messages'
+        child = Path(folder['path']) / 'docs/readme.md'
+        child.unlink()
+        child.symlink_to('/etc/hosts')
+        self.assertEqual(self.client.post(url, json={'files': [folder['id']]}).status_code, 404)
         self.assertFalse(self.runtime.messages)
 
 
