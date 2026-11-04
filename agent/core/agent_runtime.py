@@ -1,4 +1,6 @@
 import uuid
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -145,8 +147,11 @@ class AgentRuntime:
         context.cancellation.raise_if_cancelled()
         value = self.prepare_input(prompt)
         assets = [self.images.get(image) for image in value.images]
-        self.apply(message_updates.receive_user(self.state, value.text, value.images))
-        self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets)
+        current_time = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
+        self.apply(message_updates.receive_user(self.state, value.text, value.images,
+                                                current_time=current_time))
+        self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets,
+                        currentTime=current_time)
 
         for round_no in range(self.max_rounds):
             self._deliver_inputs(context)

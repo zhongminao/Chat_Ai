@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
+import shlex
+import sys
 from typing import Any
 
 import yaml
@@ -103,7 +105,10 @@ def _package(
     entrypoint = (package / str(raw.get("entrypoint", "SKILL.md"))).resolve()
     if not entrypoint.is_file() or package not in entrypoint.parents:
         raise ValueError(f"skill entrypoint is invalid: {manifest}")
-    usage = entrypoint.read_text(encoding="utf-8")[:_MAX_USAGE_CHARS]
+    usage = entrypoint.read_text(encoding="utf-8")
+    usage = usage.replace("{{python}}", shlex.quote(sys.executable))
+    usage = usage.replace("{{skill_dir}}", shlex.quote(str(package)))
+    usage = usage[:_MAX_USAGE_CHARS]
     scripts_dir = package / "scripts"
     scripts = sorted(
         str(path.resolve())

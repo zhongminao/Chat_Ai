@@ -1,3 +1,4 @@
+from agent.agentsessionstate.message_updates import is_time_notice
 import json
 import tempfile
 import threading
@@ -66,8 +67,9 @@ class SubagentTests(unittest.TestCase):
         parent = self.registry.create()
 
         def stream(client, model, messages, schemas, **kwargs):
-            if messages[1]['content'].startswith('child-'):
-                entered.add(messages[1]['content'])
+            first_user = next(message['content'] for message in messages if message['role'] == 'user')
+            if first_user.startswith('child-'):
+                entered.add(first_user)
                 tokens.append(kwargs['context'].cancellation)
                 self.assertNotIn('delegate', [s['function']['name'] for s in schemas])
                 while not release.wait(0.01):
@@ -144,7 +146,7 @@ class SubagentTests(unittest.TestCase):
                 self.assertTrue(response.headers['content-type'].startswith('image/png'))
             history = restore_display_messages(parent.session.events.read())
             self.assertNotIn('agent', [m['role'] for m in history])
-            self.assertEqual([m['role'] for m in history], [m['role'] for m in parent.agent.state['messages'][1:]])
+            self.assertEqual([m['role'] for m in history], [m['role'] for m in parent.agent.state['messages'][1:] if not is_time_notice(m)])
             request_messages(history, parent.agent.images)
             self.assertTrue(any(e['type'] == 'turn.cancelled' for e in parent.session.events.read()))
             with self.assertRaises(ValueError):
@@ -160,7 +162,7 @@ class SubagentTests(unittest.TestCase):
         entered = threading.Event()
         parent = self.registry.create()
         def stream(client, model, messages, schemas, **kwargs):
-            prompt = messages[1]['content']
+            prompt = next(message['content'] for message in messages if message['role'] == 'user')
             if prompt.startswith('crash'):
                 raise RuntimeError('intentional crash')
             if prompt.startswith('cancel'):
@@ -238,7 +240,8 @@ class SubagentTests(unittest.TestCase):
             self.assertEqual(sum(e['type'] == kind for e in events), 1)
         self.assertFalse(any(e['type'] == 'turn.failed' for e in events))
         history = [{k: v for k, v in m.items() if k != 'name'} for m in restore_display_messages(events)]
-        self.assertEqual(child.state['messages'][1:], history)
+        self.assertEqual([m for m in child.state['messages'][1:] if not is_time_notice(m)], history)
+        self.assertEqual(sum(is_time_notice(m) for m in child.state['messages']), 1)
         self.assertEqual(len([m for m in history if m['role'] == 'user']), 1)
 
     def test_missing_submit_has_one_reminder_and_obeys_total_round_budget(self):
@@ -266,7 +269,7 @@ class SubagentTests(unittest.TestCase):
             self.registry.wait()
         child = self.registry.get(receipt['session_id'])
         self.assertNotIn('system_prompt', child.meta)
-        self.assertEqual(child.state['messages'][1]['content'], 'complete task context')
+        self.assertEqual(next(m['content'] for m in child.state['messages'] if m['role'] == 'user'), 'complete task context')
         count = len(self.registry.items)
         result = parent.agent.tools.call('delegate', {'system_prompt': 'override', 'user_prompt': 'work'})
         self.assertIn('[tool error]', result)

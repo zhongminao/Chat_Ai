@@ -1,0 +1,4 @@
+aktools==0.1.4
+akshare==1.20.25
+mcp>=2.3.0,<3
+uvicorn>=0.30

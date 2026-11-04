@@ -20,6 +20,7 @@ from agent.web import app as web
 from agent.agentsessionstate.config import load
 from agent.agentsessionstate.context_compaction import plan
 from agent.agentsessionstate.input import UserInput
+from agent.agentsessionstate.message_updates import is_time_notice, time_notice
 from agent.agentsessionstate.message_replay import restore_model_messages, restore_display_messages
 
 
@@ -51,7 +52,7 @@ class SteeringTests(unittest.TestCase):
         else:
             yield ModelChunk(content='guided answer', finish_reason='stop')
 
-    def tool(self, root, name, arguments, context):
+    def tool(self, root, name, arguments, context, **kwargs):
         if arguments['path'] == 'file-0':
             self.entered.set()
             while not self.release.wait(.01): context.cancellation.raise_if_cancelled()
@@ -84,6 +85,10 @@ class SteeringTests(unittest.TestCase):
             records = self.main.session.events.read()
             self.assertEqual(sum(e['type'] == 'guidance.queued' for e in records), 2)
             self.assertEqual(sum(e['type'] == 'turn.started' for e in records), 1)
+            started = next(event for event in records if event['type'] == 'turn.started')
+            for request in self.requests:
+                self.assertEqual([message for message in request if is_time_notice(message)],
+                                 [time_notice(started['currentTime'])])
             self.assertLess(max(e['seq'] for e in records if e['type'] == 'tool.completed'),
                             min(e['seq'] for e in records if e['type'] == 'guidance.applied'))
             self.assertEqual(restore_model_messages(records, self.main.state['messages'][0]), self.main.state['messages'])

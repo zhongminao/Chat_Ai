@@ -1,4 +1,4 @@
-from .message_updates import assistant_message, mailbox_notice
+from .message_updates import assistant_message, mailbox_notice, time_notice
 from ..tools.schema import ToolCallAssembler
 from ..model.request_messages import build_user_message, build_tool_message
 
@@ -45,6 +45,8 @@ def _restore(events: list[dict], initial: list[dict], *, tool_names=True, runtim
             text = []
             model_finished = False
             images = [image["id"] for image in event.get("images", [])]
+            if runtime_notices and event.get("currentTime"):
+                messages.append(time_notice(event["currentTime"]))
             messages.append(build_user_message(event["prompt"], images))
         elif kind == "model.started":
             text = []

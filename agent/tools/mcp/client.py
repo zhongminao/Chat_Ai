@@ -84,15 +84,15 @@ class McpClient:
         def run() -> None:
             asyncio.set_event_loop(loop)
             try:
-                task_box["task"] = loop.create_task(
-                    self._call(url, tool, arguments, context)
-                )
-                result["value"] = loop.run_until_complete(task_box["task"])
+                with asyncio.Runner(loop_factory=lambda: loop):
+                    task_box["task"] = loop.create_task(
+                        self._call(url, tool, arguments, context)
+                    )
+                    result["value"] = loop.run_until_complete(task_box["task"])
             except BaseException as exc:
                 failure.append(exc)
             finally:
                 completed.set()
-                loop.close()
 
         worker = threading.Thread(target=run, daemon=True)
         worker.start()

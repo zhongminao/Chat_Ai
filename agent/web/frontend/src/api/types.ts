@@ -74,7 +74,7 @@ export interface ImageAsset {
 
 interface EventEnvelope { seq: number; runId?: string; time?: number }
 export type AgentEvent = EventEnvelope & (
-  | { type: 'turn.started'; prompt: string; images?: ImageAsset[] }
+  | { type: 'turn.started'; prompt: string; images?: ImageAsset[]; currentTime?: string }
   | { type: 'guidance.queued' | 'guidance.applied'; messageId: string; content: string; images?: ImageAsset[] }
   | { type: 'guidance.undelivered'; messageId: string }
   | { type: 'mailbox.notified'; messageIds: string[] }

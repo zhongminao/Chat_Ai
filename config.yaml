@@ -37,6 +37,7 @@ spill:
 mcp:
   remote_windows: http://127.0.0.1:8767/mcp
   web: http://127.0.0.1:8766/mcp
+  # AKShare 由 skills/akshare 按需启动；MCP 地址使用启动脚本返回值，不在此配置。
 
 
 # 主、子 Agent 完整提示词文件；{workspace} 在装配时替换为工作区绝对路径。

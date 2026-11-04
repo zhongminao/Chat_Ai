@@ -61,6 +61,28 @@ class McpResilienceTests(unittest.TestCase):
         self.assertGreaterEqual(elapsed, 0.9)
         self.assertLess(elapsed, 1.5)
 
+    def test_call_closes_async_response_stream_before_returning(self):
+        closed = threading.Event()
+
+        async def request(*args):
+            async def response_stream():
+                try:
+                    yield "response"
+                finally:
+                    await asyncio.sleep(0)
+                    closed.set()
+
+            stream = response_stream()
+            await anext(stream)
+            return types.CallToolResult(content=[types.TextContent(type="text", text="pong")])
+
+        client = McpClient({})
+        client.tools["ping"] = ("test", "ping")
+        client.servers["test"] = "http://test/mcp"
+        with patch.object(client, "_call", side_effect=request):
+            client.call("ping", {})
+        self.assertTrue(closed.is_set(), "MCP response stream was left open")
+
     def test_unregistered_tools_return_receipts_without_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:
             router = ToolRouter(Path(directory))
@@ -89,7 +111,7 @@ class McpResilienceTests(unittest.TestCase):
                     ))
                 else:
                     self.assertIn('当前工具不可用', messages[-2]['content'])
-                    self.assertEqual(messages[-1]['content'], 'local result')
+                    self.assertEqual(messages[-1]['content'].splitlines()[-1], 'local result')
                     yield ModelChunk(content='continued after unavailable tool')
 
             try:

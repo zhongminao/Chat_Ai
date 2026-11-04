@@ -3,6 +3,8 @@ import tempfile
 import threading
 import unittest
 from dataclasses import replace
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -10,6 +12,7 @@ from agent.core.session_registry import SessionRegistry
 from agent.core.agent_factory import build_state
 from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.agentsessionstate.commands import SwitchModel
+from agent.agentsessionstate.message_updates import time_notice, is_time_notice
 from agent.agentsessionstate.config import load
 from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
@@ -37,6 +40,40 @@ class AgentStateTests(unittest.TestCase):
 
     def serializable(self):
         return json.loads(json.dumps(self.agent.state, ensure_ascii=False, allow_nan=False))
+
+    def test_time_is_sampled_once_per_turn_and_preserved_across_model_loops(self):
+        moments = [datetime(2026, 11, 4, 23, 59, 59, tzinfo=ZoneInfo('Asia/Shanghai')),
+                   datetime(2026, 11, 5, 0, 0, 1, tzinfo=ZoneInfo('Asia/Shanghai'))]
+        snapshots = []
+        self.agent.context_config = {'enabled': False}
+
+        def stream(client, model, messages, schemas, **kwargs):
+            snapshots.append(json.loads(json.dumps(messages)))
+            if messages[-1]['role'] == 'user':
+                yield ModelChunk(tool_deltas=(ToolCallDelta(id='read', name='read_file',
+                                 arguments=json.dumps({'path': 'not-present.txt'})),))
+            else:
+                yield ModelChunk(content='done')
+
+        with patch('agent.core.agent_runtime.datetime') as clock, \
+             patch('agent.core.agent_runtime.stream', side_effect=stream):
+            clock.now.side_effect = moments
+            for text in ['first turn', 'next turn']:
+                self.session.enqueue(text)
+                self.registry.wait()
+            self.assertEqual(clock.now.call_count, 2)
+            self.assertTrue(all(str(call.args[0]) == 'Asia/Shanghai' for call in clock.now.call_args_list))
+        self.assertEqual(len(snapshots), 4)
+        expected_times = [time_notice(moment.isoformat(timespec='seconds')) for moment in moments]
+        for i, snapshot in enumerate(snapshots):
+            self.assertEqual([m for m in snapshot if is_time_notice(m)], expected_times[:1 + i // 2])
+        events = self.session.session.events.read()
+        turns = [event for event in events if event['type'] == 'turn.started']
+        self.assertEqual([event['currentTime'] for event in turns],
+                         [moment.isoformat(timespec='seconds') for moment in moments])
+        self.assertEqual(restore_model_messages(events, self.agent.state['messages'][0]), self.agent.state['messages'])
+        self.assertFalse(any(is_time_notice(message) for message in restore_display_messages(events)))
+        self.assertFalse(any('当前时间' in row.get('text', '') for row in events if row['type'] == 'message.delta'))
 
     def test_model_switch_and_messages_use_the_same_state(self):
         state = self.agent.state
@@ -137,8 +174,11 @@ class AgentStateTests(unittest.TestCase):
         execution = self.serializable()['execution']
         self.assertEqual((execution['status'], execution['phase']), ('cancelled', 'done'))
         history = restore_display_messages(self.session.session.events.read())
-        self.assertEqual(self.agent.state['messages'][1:],
+        visible = [message for message in self.agent.state['messages'][1:] if not is_time_notice(message)]
+        self.assertEqual(visible,
                          [{key: value for key, value in message.items() if key != 'name'} for message in history])
+        self.assertEqual(restore_model_messages(self.session.session.events.read(), self.agent.state['messages'][0]),
+                         self.agent.state['messages'])
 
     def test_error_and_round_limit_update_execution_status(self):
         for failure in (RuntimeError('model unavailable'), None):
@@ -169,15 +209,18 @@ class AgentStateTests(unittest.TestCase):
                 with patch('agent.core.agent_runtime.stream', side_effect=fail):
                     self.session.enqueue(prompt)
                     self.registry.wait()
-                expected = [*before, {'role': 'user', 'content': prompt}]
                 records = self.session.session.events.read()
+                turn = next(event for event in reversed(records) if event['type'] == 'turn.started')
+                expected = [*before, time_notice(turn['currentTime']), {'role': 'user', 'content': prompt}]
                 self.assertEqual(self.agent.state['messages'], expected)
                 self.assertEqual(self.agent.state['execution']['status'], 'failed')
                 self.assertEqual(restore_model_messages(records, expected[0]), expected)
                 self.assertEqual(build_state(self.registry.config, self.session.meta, records)['messages'], expected)
 
                 def reply(client, model, messages, schemas, **kwargs):
-                    self.assertEqual(messages, [*expected, {'role': 'user', 'content': 'B'}])
+                    self.assertEqual(messages[:-2], expected)
+                    self.assertTrue(is_time_notice(messages[-2]))
+                    self.assertEqual(messages[-1], {'role': 'user', 'content': 'B'})
                     yield ModelChunk(content='received A and B')
 
                 with patch('agent.core.agent_runtime.stream', side_effect=reply):
@@ -197,7 +240,9 @@ class AgentStateTests(unittest.TestCase):
             self.assertEqual(runtime.state['messages'], expected)
 
             def reply(client, model, messages, schemas, **kwargs):
-                self.assertEqual(messages, [*expected, {'role': 'user', 'content': 'B'}])
+                self.assertEqual(messages[:-2], expected)
+                self.assertTrue(is_time_notice(messages[-2]))
+                self.assertEqual(messages[-1], {'role': 'user', 'content': 'B'})
                 yield ModelChunk(content='received A and B')
 
             with patch('agent.core.agent_runtime.stream', side_effect=reply):

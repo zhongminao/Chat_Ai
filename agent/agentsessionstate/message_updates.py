@@ -9,8 +9,21 @@ from ..model.request_messages import build_user_message, build_tool_message
 from ..tools.schema import ToolCall
 
 
-def receive_user(state: AgentState, text: str, images: Sequence[str] = ()) -> StateUpdate:
-    return {'messages': [*state['messages'], build_user_message(text, images)]}
+_TIME_PREFIX = '[Runtime time] 当前时间：'
+
+
+def time_notice(current_time: str) -> dict:
+    return {'role': 'system', 'content': f'{_TIME_PREFIX}{current_time}（Asia/Shanghai）'}
+
+
+def is_time_notice(message: dict) -> bool:
+    return message.get('role') == 'system' and str(message.get('content', '')).startswith(_TIME_PREFIX)
+
+
+def receive_user(state: AgentState, text: str, images: Sequence[str] = (), *,
+                 current_time: str | None = None) -> StateUpdate:
+    notices = [time_notice(current_time)] if current_time is not None else []
+    return {'messages': [*state['messages'], *notices, build_user_message(text, images)]}
 
 
 def assistant_message(answer: str, calls: Sequence[ToolCall]) -> dict[str, Any]:

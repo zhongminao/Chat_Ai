@@ -16,6 +16,19 @@ function replay(events: AgentEvent[], snap = initialState(events.at(-1)?.seq ?? 
 }
 
 describe('existing event protocol -> conversation', () => {
+  it('keeps turn time metadata out of live and restored chat items', () => {
+    const timedStart: AgentEvent = { ...start, currentTime: '2026-11-04T23:59:59+08:00' };
+    const expected = replay([start, modelStart, text]);
+    const live = reduce(reduce(emptyConversation(), { type: 'initialize', session: initialState(3, true) }),
+      { type: 'events', events: [timedStart, modelStart, text] });
+    expect(live.items).toEqual(expected.items);
+    const restored = reduce(emptyConversation(), { type: 'history', page: {
+      events: [timedStart, modelStart, text], snapshot_seq: 3, min_seq: 1, has_more: false,
+    } });
+    expect(restored.items).toEqual(expected.items);
+    expect(JSON.stringify(restored.items)).not.toContain(timedStart.currentTime);
+  });
+
   it('does not render runtime mailbox notices in live or restored conversation', () => {
     const notice: AgentEvent = { seq: 4, type: 'mailbox.notified', messageIds: ['private-mail-id'] };
     const before = replay([start, modelStart, text], initialState(3, true));

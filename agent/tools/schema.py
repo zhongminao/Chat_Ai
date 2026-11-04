@@ -36,9 +36,9 @@ READ_MAIL_SCHEMA = {"type": "function", "function": {
 
 ENABLE_MCP_SCHEMA = {"type": "function", "function": {
     "name": "enable_mcp",
-    "description": "Connect a user-requested HTTP(S) MCP endpoint, discover its tools, and enable them for the next model request in this conversation. Only call when the user explicitly asks to connect this URL. Configured MCP servers already load automatically; no config entry is needed here.",
+    "description": "Connect a user-requested HTTP(S) MCP endpoint, discover its tools, and enable them for the next model request in this conversation. Call when the user explicitly requests this URL, or when a locally installed Skill invoked for the user task returns its own loopback MCP URL after starting its service. Discovering a Skill alone does not authorize arbitrary remote endpoints. Configured MCP servers already load automatically; no config entry is needed here.",
     "parameters": {"type": "object", "properties": {
-        "url": {"type": "string", "description": "Full HTTP(S) MCP endpoint supplied by the user."}},
+        "url": {"type": "string", "description": "Full HTTP(S) MCP endpoint supplied by the user or returned by the authorized local Skill startup script."}},
         "required": ["url"], "additionalProperties": False}}}
 
 
@@ -63,14 +63,11 @@ SUBMIT_SCHEMA = {"type": "function", "function": {
 
 SEARCH_SCHEMA = {"type": "function", "function": {
     "name": "search_resources",
-    "description": ("Search registered resources; default is skill. Currently only pdf_reader is registered; "
-                    "there is no project-architecture skill and the knowledge index is not configured. "
-                    "For chat_ai development, inspect source directly: agent/core handles sessions and model/tool loops, "
-                    "agent/tools handles routing, approvals and MCP, agent/model handles providers, "
-                    "agent/storage handles events and persistence, and agent/web handles the API/frontend. "
-                    "Skill results provide SKILL.md usage and fixed scripts; this tool does not execute them."),
+    "description": ("按当前任务搜索本地资源，默认搜索 Skill。用用户需求中的关键词描述要完成的事情，"
+                    "无需预先知道 Skill 名称。结果包含匹配 Skill 的使用说明、脚本绝对路径和参考资料；"
+                    "找到后按返回说明执行。本工具只检索，不运行脚本或连接服务。"),
     "parameters": {"type": "object", "properties": {
-        "query": {"type": "string", "description": "User intent, file type, path or capability to search for."},
+        "query": {"type": "string", "description": "用户需求、文件类型或所需能力的关键词；可以直接使用用户原话。"},
         "resource_type": {"type": "string", "enum": ["skill", "knowledge"], "default": "skill",
                           "description": "Resource scope. Omit it to search skills."},
         "top_k": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5}

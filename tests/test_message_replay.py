@@ -1,10 +1,30 @@
 import unittest
 
 from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
+from agent.agentsessionstate.message_updates import time_notice
 
 
 class MessageReplayTests(unittest.TestCase):
     system = {'role': 'system', 'content': 'system'}
+
+    def test_time_is_replayed_only_for_the_model_and_old_turns_remain_unchanged(self):
+        current = '2026-11-04T23:59:59+08:00'
+        next_time = '2026-11-05T00:00:01+08:00'
+        events = [
+            {'type': 'turn.started', 'prompt': 'legacy input'},
+            {'type': 'turn.failed'},
+            {'type': 'turn.started', 'prompt': 'today', 'currentTime': current},
+            {'type': 'turn.failed'},
+            {'type': 'turn.started', 'prompt': 'next turn', 'currentTime': next_time},
+        ]
+        users = [{'role': 'user', 'content': row['prompt']} for row in events if row['type'] == 'turn.started']
+        self.assertEqual(restore_model_messages(events, self.system),
+                         [self.system, users[0], time_notice(current), users[1], time_notice(next_time), users[2]])
+        self.assertEqual(restore_display_messages(events), users)
+        checkpoint = [self.system, {'role': 'assistant', 'content': 'summary'}, time_notice(current), users[1]]
+        compacted = events[:4] + [{'type': 'context.compacted', 'messages': checkpoint}, events[4]]
+        self.assertEqual(restore_model_messages(compacted, self.system),
+                         [*checkpoint, time_notice(next_time), users[2]])
 
     def test_failed_user_messages_preserve_original_text_and_images(self):
         first = ' A\n原始输入  '

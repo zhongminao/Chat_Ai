@@ -1,0 +1,10 @@
+name: akshare
+version: 0.4.0
+description: 查询股票和ETF行情、行业资金流、财务与公开持仓；按需启动本机MCP，也支持财经数据采集。
+delivery: search_result
+triggers:
+  intents: [ETF, 场内基金, 股票, A股, 个股, 股票行情, 股票资金流向, 资金流向, 板块资金流向, 行业资金流向, 国家队持仓, ETF份额]
+  aliases: [AKShare, aktools, 沪深京, 股市, 证券, 主力资金, 涨跌幅]
+  capabilities: [A股历史行情, 股票数据接口检索, 个股资金流, 行业板块资金流, 股东持仓, ETF份额]
+allowed_tools: [run_bash, enable_mcp]
+entrypoint: SKILL.md

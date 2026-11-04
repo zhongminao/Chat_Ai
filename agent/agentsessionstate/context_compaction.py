@@ -1,5 +1,6 @@
 """Pure context policy: select history and produce a messages StateUpdate."""
 from .state import AgentState, StateUpdate
+from .message_updates import is_time_notice
 
 
 def for_model(config: dict, model: dict) -> dict:
@@ -25,6 +26,11 @@ def plan(state: AgentState, tokens: int, config: dict) -> dict | None:
     while tail > 0 and messages[tail]["role"] == "tool":
         tail -= 1
     protected = {0, *range(first_user, latest_user + 1), *range(tail, tail_end + 1)}
+    # Preserve this turn's time snapshot even after guidance becomes the latest user input.
+    latest_time = next((i for i in range(len(messages) - 1, -1, -1)
+                        if is_time_notice(messages[i])), None)
+    if latest_time is not None:
+        protected.add(latest_time)
     history = [m for i, m in enumerate(messages) if i not in protected]
     if not history:
         raise ValueError("上下文超过整理阈值，但没有可整理的历史；请缩小当前输入或新建会话。")

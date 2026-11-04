@@ -18,6 +18,7 @@ from agent.model.tokens import count_request_tokens
 from agent.model.context_summary import summarize_context
 from agent.core.cancellation import CancellationToken, ExecutionContext
 from agent.agentsessionstate import context_compaction
+from agent.agentsessionstate.message_updates import time_notice
 from agent.agentsessionstate.config import load
 from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 
@@ -43,6 +44,20 @@ class CompactionPolicyTests(unittest.TestCase):
         self.assertEqual(update["messages"][0], original["messages"][0])
         self.assertEqual(update["messages"][2:], original["messages"][-3:])
         self.assertEqual(selected["history"], original["messages"][1:4])
+
+    def test_current_turn_time_survives_compaction_after_guidance(self):
+        old_time = time_notice('2026-11-03T23:59:59+08:00')
+        current_time = time_notice('2026-11-04T00:00:01+08:00')
+        messages = [self.state['messages'][0], old_time,
+                    {'role': 'user', 'content': 'old task'}, {'role': 'assistant', 'content': 'old reply'},
+                    current_time, {'role': 'user', 'content': 'current task'}, *tool_pair('earlier result'),
+                    {'role': 'user', 'content': 'additional guidance'}, *tool_pair('latest result')]
+        selected = context_compaction.plan({'messages': messages}, 100, self.config)
+        self.assertIn(current_time, selected['retained'])
+        self.assertNotIn(current_time, selected['history'])
+        self.assertIn(old_time, selected['history'])
+        update = context_compaction.build_update(selected, 'history summary')
+        self.assertEqual(update['messages'].count(current_time), 1)
 
     def test_can_compact_a_long_single_user_tool_loop(self):
         self.state["messages"].pop(4)
@@ -253,7 +268,10 @@ class CompactionRuntimeTests(unittest.TestCase):
                      patch.object(self.runtime.session.events, "append", side_effect=save):
                     self.runtime.enqueue(failure)
                     self.registry.wait()
-                self.assertEqual(self.agent.state["messages"], [*before, {"role": "user", "content": failure}])
+                started = next(event for event in reversed(self.runtime.session.events.read())
+                               if event['type'] == 'turn.started')
+                self.assertEqual(self.agent.state["messages"],
+                                 [*before, time_notice(started['currentTime']), {"role": "user", "content": failure}])
                 self.assertEqual(self.agent.state["execution"]["status"], "failed")
         kinds = [e["type"] for e in self.runtime.session.events.read()]
         self.assertNotIn("context.compacted", kinds)

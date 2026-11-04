@@ -1,5 +1,7 @@
 import json
 import tempfile
+import shlex
+import sys
 import unittest
 from pathlib import Path
 
@@ -40,6 +42,15 @@ class SearchResourcesTests(unittest.TestCase):
         self.assertIn("extension:.pdf", value["results"][0]["match_reasons"])
         self.assertIn("Use pdf_extract.sh", value["results"][0]["usage"])
         self.assertEqual(value["results"][0]["scripts"], [str((self.project / "skills/pdf_reader/scripts/pdf_extract.sh").resolve())])
+
+    def test_commands_resolve_current_interpreter_and_relocated_skill_path(self):
+        package = self.project / "skills/reader with spaces"
+        (self.project / "skills/pdf_reader").rename(package)
+        (package / "SKILL.md").write_text("{{python}} {{skill_dir}}/scripts/pdf_extract.sh", encoding="utf-8")
+        value = json.loads(search_resources(self.workspace, "读取 report.pdf"))
+        usage = value["results"][0]["usage"]
+        self.assertEqual(shlex.split(usage), [sys.executable, str(package / "scripts/pdf_extract.sh")])
+        self.assertNotIn("{{", usage)
 
     def test_alias_matches_and_excluded_intent_does_not(self):
         value = json.loads(search_resources(self.workspace, "读取扫描件中的文字"))
