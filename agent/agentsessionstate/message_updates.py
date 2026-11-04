@@ -1,5 +1,6 @@
 """Message state nodes. Inputs are data; updates leave the input state untouched."""
 import json
+from datetime import datetime
 from collections.abc import Sequence
 from typing import Any
 
@@ -13,7 +14,9 @@ _TIME_PREFIX = '[Runtime time] 当前时间：'
 
 
 def time_notice(current_time: str) -> dict:
-    return {'role': 'system', 'content': f'{_TIME_PREFIX}{current_time}（Asia/Shanghai）'}
+    moment = datetime.fromisoformat(current_time)
+    weekday = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')[moment.weekday()]
+    return {'role': 'system', 'content': f'{_TIME_PREFIX}{weekday} {moment:%Y-%m-%d  %H:%M:%S}'}
 
 
 def is_time_notice(message: dict) -> bool:

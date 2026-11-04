@@ -7,6 +7,16 @@ from agent.agentsessionstate.message_updates import time_notice
 class MessageReplayTests(unittest.TestCase):
     system = {'role': 'system', 'content': 'system'}
 
+    def test_time_notice_supplies_the_weekday_without_model_calendar_calculation(self):
+        weekdays = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+        for day, weekday in zip(range(2, 9), weekdays):
+            current = f'2026-11-{day:02d}T00:00:01+08:00'
+            with self.subTest(current=current):
+                self.assertEqual(time_notice(current), {
+                    'role': 'system',
+                    'content': f'[Runtime time] 当前时间：{weekday} 2026-11-{day:02d}  00:00:01',
+                })
+
     def test_time_is_replayed_only_for_the_model_and_old_turns_remain_unchanged(self):
         current = '2026-11-04T23:59:59+08:00'
         next_time = '2026-11-05T00:00:01+08:00'
