@@ -61,6 +61,14 @@ class SearchResourcesTests(unittest.TestCase):
         excluded = json.loads(search_resources(self.workspace, "PDF 编辑"))
         self.assertEqual(excluded["results"], [])
 
+    def test_search_json_is_multiline_and_parseable(self):
+        text = search_resources(self.workspace, "report.pdf")
+        self.assertGreater(len(text.splitlines()), 10)
+        value = json.loads(text)
+        self.assertEqual(value["results"][0]["skill_id"], "pdf_reader")
+        self.assertNotIn("environment", value)
+        self.assertNotIn("unavailable", value)
+
     def test_knowledge_scope_is_reserved_without_affecting_skill_search(self):
         value = json.loads(search_resources(self.workspace, "产品知识", "knowledge"))
         self.assertEqual(value["results"], [])

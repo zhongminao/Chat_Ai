@@ -1,5 +1,5 @@
 # API 供应商连接、默认策略与人工模型覆盖；动态发现结果不写回此文件。
-default_provider: deepseek
+default_provider: gpt
 
 providers:
   gpt:

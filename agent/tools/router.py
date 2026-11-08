@@ -7,12 +7,13 @@ from typing import Any
 from ..core.cancellation import ExecutionContext, RunCancelled
 from ..storage.images import ImageStore
 from .executor import execute
-from .images import read_image, show_image
+from .images import read_image
 from .result import ToolResult
 from .mcp.client import McpClient
 from .mcp.results import convert_result
 from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
 from .search import search_resources
+from .search_output import resource_search_output, web_search_output
 from . import mailbox
 
 
@@ -107,18 +108,16 @@ class ToolRouter:
                 else:
                     value = mailbox.read(self.registry, self.session_id, **arguments)
                 return json.dumps(value, ensure_ascii=False)
-            if name in {"show_image", "read_image"}:
+            if name == "read_image":
                 if self.images is None:
                     raise ValueError("session image store is unavailable")
-                if name == "read_image":
-                    if not self.vision:
-                        raise ValueError("当前模型未声明支持视觉，请切换到支持视觉的模型")
-                    return read_image(self.workspace, self.images, context=context, **arguments)
-                return show_image(self.workspace, self.images, context=context, **arguments)
+                if not self.vision:
+                    raise ValueError("当前模型未声明支持视觉，请切换到支持视觉的模型")
+                return read_image(self.workspace, self.images, context=context, **arguments)
             if name == "enable_mcp":
                 return self.enable_mcp(**arguments)
             if name == "search_resources":
-                return search_resources(self.workspace, **arguments)
+                return resource_search_output(search_resources(self.workspace, **arguments), arguments["query"])
             if name in {"delegate", "watch", "submit"}:
                 handler = getattr(self, name)
                 if handler is None:
@@ -128,7 +127,12 @@ class ToolRouter:
                 return handler(context=context, **arguments) if name == "submit" else handler(**arguments)
             if is_mcp:
                 result = self.mcp.call(name, arguments, context)
-                return convert_result(result, self.images, vision=self.vision)
+                output = convert_result(result, self.images, vision=self.vision)
+                # Adapt the configured web search only, not unrelated MCP JSON/images.
+                if (self.mcp.tools[name] == ("web", "search") and not result.is_error
+                        and isinstance(output, str)):
+                    return web_search_output(output, arguments.get("query", ""))
+                return output
             return execute(self.workspace, name, arguments, context, read_file_config=self.read_file_config,
                            allow_external_write=(name == "write_file" and decision == "full_access"))
         except RunCancelled:

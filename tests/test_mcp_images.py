@@ -20,7 +20,7 @@ from agent.storage.session import SessionStore
 from agent.tools.mcp.client import McpClient
 from agent.tools.mcp.results import convert_result
 from agent.tools.result import ToolResult
-from agent.tools.images import read_image, show_image
+from agent.tools.images import read_image
 from agent.tools.router import ToolRouter
 
 
@@ -56,24 +56,42 @@ class ImageTests(unittest.TestCase):
         self.assertEqual(again.model_images[0]["id"], identifier)
         self.assertEqual(len(self.images.list()), 1)
 
-    def test_local_read_and_publish_have_compact_receipts(self):
+    def test_local_read_returns_markdown_without_auto_display_and_reuses_image(self):
         source = self.root / 'plot.png'
         source.write_bytes(base64.b64decode(picture().data))
-        read = read_image(self.root, self.images, str(source))
+        router = ToolRouter(self.root, images=self.images)
+        router.vision = True
+        read = router.call('read_image', {'path': str(source)})
         self.assertFalse(read.images)
         image = read.model_images[0]
-        self.assertEqual(read.text, f"session_path: {self.images.path(image['id']).resolve()}")
+        path = self.images.path(image['id']).resolve()
+        self.assertEqual(read.text, f"session_path: {path}\nmarkdown: {self.images.markdown(image)}")
         messages = [{"role": "assistant", "content": "", "tool_calls": [
             {"id": "read", "type": "function", "function": {"name": "read_image", "arguments": "{}"}}]},
             build_tool_message('read', read.text, [image['id']])]
         outgoing = request_messages(messages, self.images)
-        self.assertEqual(str(outgoing).count(str(self.images.path(image['id']))), 1)
-        published = show_image(self.root, self.images, str(self.images.path(image['id'])))
-        self.assertEqual(published.images[0]['id'], image['id'])
-        self.assertEqual(published.text, self.images.markdown(image))
-        self.assertFalse(published.model_images)
-        self.assertIn(self.images.markdown(image), published.text)
+        self.assertEqual(str(outgoing).count(str(path)), 1)
+        self.assertTrue(any(part['type'] == 'image_url' for part in outgoing[-1]['content']))
+        again = router.call('read_image', {'path': str(path)})
+        self.assertEqual(again.model_images[0]['id'], image['id'])
         self.assertEqual(len(self.images.list()), 1)
+        # The returned Markdown points to an already accessible session image.
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from agent.web.images import image_router
+        api = FastAPI()
+        api.include_router(image_router(SessionStore(self.root)))
+        with TestClient(api) as client:
+            response = client.get(self.images.url(image))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, source.read_bytes())
+
+    def test_removed_display_tool_is_unavailable_and_read_keeps_vision_guard(self):
+        router = ToolRouter(self.root, images=self.images)
+        self.assertNotIn('show_image', [s['function']['name'] for s in router.schemas])
+        self.assertIn('当前工具不可用', router.call('show_image', {'path': 'missing.png'}))
+        self.assertIn('当前模型未声明支持视觉', router.call('read_image', {'path': 'missing.png'}))
+        self.assertEqual(self.images.list(), [])
 
     def test_separate_uploads_of_identical_bytes_keep_distinct_numbers_and_images(self):
         data = base64.b64decode(picture().data)

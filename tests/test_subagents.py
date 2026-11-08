@@ -74,7 +74,11 @@ class SubagentTests(unittest.TestCase):
                 self.assertNotIn('delegate', [s['function']['name'] for s in schemas])
                 while not release.wait(0.01):
                     kwargs['context'].cancellation.raise_if_cancelled()
-                yield calls(('show_image', {'path': str(image_path)}), ('submit', {'content': '# Result\n42'}))
+                if messages[-1]['role'] == 'tool':
+                    markdown = messages[-1]['content'].split('markdown: ', 1)[1]
+                    yield calls(('submit', {'content': '# Result\n42\n\n' + markdown}))
+                else:
+                    yield calls(('read_image', {'path': str(image_path)}))
                 return
             main_requests.append(list(messages))
             prompt = next(m['content'] for m in reversed(messages) if m['role'] == 'user')
@@ -97,7 +101,8 @@ class SubagentTests(unittest.TestCase):
             else:
                 yield ModelChunk(content='normal chat')
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.core.agent_runtime.stream', side_effect=stream), \
+             patch.object(self.registry.catalog, 'supports_vision', return_value=True):
             parent.enqueue('spawn')
             eventually(lambda: len(entered) == 2 and not parent.busy)
             children = [rt for rt in self.registry.items.values() if rt.parent_session_id]
@@ -275,19 +280,35 @@ class SubagentTests(unittest.TestCase):
         self.assertIn('[tool error]', result)
         self.assertEqual(len(self.registry.items), count)
 
-    def test_report_rewrites_local_image_paths_without_duplicating_images(self):
+    def test_report_read_images_are_only_included_when_referenced(self):
         session = self.registry.store.create()
         image_path = self.root / 'image.png'
         Image.new('RGB', (20, 20)).save(image_path)
         store = session.images
         image = store.add_file(image_path)
-        session.events.append('tool.requested', runId='run', callId='show', arguments={'path': str(image_path)})
-        session.events.append('tool.completed', runId='run', callId='show', images=[image])
+        session.events.append('tool.requested', runId='run', callId='read', arguments={'path': str(image_path)})
+        session.events.append('tool.completed', runId='run', callId='read', images=[], model_images=[image])
         from agent.storage.reports import save
-        path, content = save(session, 'run', f'![plot]({image_path})', self.root)
-        self.assertIn(f']({store.url(image)})', content)
-        self.assertEqual(content.count(']('), 1)
-        self.assertEqual(path.read_text().strip(), content)
+        for reference in (f'![plot]({image_path})', store.markdown(image)):
+            with self.subTest(reference=reference):
+                path, content = save(session, 'run', reference, self.root)
+                self.assertIn(f']({store.url(image)})', content)
+                self.assertEqual(content.count(']('), 1)
+                self.assertEqual(content.count('<!-- image_file:'), 1)
+                self.assertEqual(path.read_text().strip(), content)
+        _, content = save(session, 'run', 'Only inspected, no image requested.', self.root)
+        self.assertEqual(content, 'Only inspected, no image requested.')
+
+    def test_report_preserves_automatic_mcp_image_inclusion(self):
+        session = self.registry.store.create()
+        image_path = self.root / 'image.png'
+        Image.new('RGB', (20, 20)).save(image_path)
+        image = session.images.add_file(image_path)
+        session.events.append('tool.completed', runId='run', callId='mcp', images=[image], model_images=[image])
+        from agent.storage.reports import save
+        _, content = save(session, 'run', 'MCP result', self.root)
+        self.assertEqual(content.count(session.images.markdown(image)), 1)
+        self.assertEqual(content.count('<!-- image_file:'), 1)
 
 
 if __name__ == '__main__':

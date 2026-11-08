@@ -74,6 +74,8 @@ python -m agent.cli.main "描述图片" --image /path/to/image.png
 
 ## 配置
 
+本开发副本 `chat_ai_test` 当前将**新会话默认模型**配置为 `gpt/gpt-6.1-sol`，**默认权限**配置为 `full_access`（完全访问，跳过工具审批，仍受工具和系统权限约束）。已有会话保留自身保存的模型和权限；显式配置、环境变量及会话选择仍遵循原有优先级。模型未被 API 发现为可用时仍使用下述原有回退策略，不保证强制使用离线模型。
+
 配置优先级：显式配置路径 → `CHAT_AI_CONFIG` → 项目 `config.yaml`。
 相对路径以配置文件所在目录为基准；`workspace` 必须存在，文件工具与 Bash 使用该工作区。
 
@@ -85,7 +87,7 @@ python -m agent.cli.main "描述图片" --image /path/to/image.png
 | `system_prompt_file`、`child_system_prompt_file` | `prompts/main_agent.md`、`prompts/child_agent.md` |
 | `approval.mode` | 新主会话默认 `audit` 或 `full_access` |
 | `context` | 自动整理开关、触发阈值和 `prompts/context_compaction.md` |
-| `spill` | 长工具输出阈值与目录；`directory: .spill` 相对工作区，必须位于工作区内 |
+| `spill` | 长工具输出的行数/行长和总字符预算、目录；`max_inline_chars` 默认 20000，`max_preview_chars` 默认 16000；目录必须位于工作区内 |
 | `mcp` | MCP 服务别名到 URL 的映射 |
 
 提示词里的 `{workspace}` 替换为实际工作区路径。配置或提示词变更后重启 Web/CLI。
@@ -134,7 +136,7 @@ DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` �
 - **监控**：`watch(cursor, timeout)` 使用单个 Monitor 版本游标，覆盖该主会话的全部已登记资源。cursor 不是 Agent 编号；返回状态与报告路径，正文按需读取。子任务完成不会自动启动主模型。
 - **审批**：审计模式下，本地写文件、编辑文件、全部 Bash 和已注册 MCP 工具均需批准本次或拒绝本次；主子会话共用规则与模式。等待审批可停止；完全访问跳过审批，仍受工具及系统权限约束。
 - **引导**：Web 运行中回车先加入前端队列，可编辑或删除，点击“引导”才发送后端；CLI 回车直接提交。完整工具组回执补齐后再交付模型，已提交消息不可修改。
-- **图片**：支持 PNG/JPEG/WebP；`read_image` 供模型读图，`show_image` 发布给用户，两者独立。实际视觉能力和图片数量上限由所选模型决定。
+- **图片**：支持 PNG/JPEG/WebP；`read_image` 供模型读图并返回会话附件路径与 Markdown 引用；要展示给用户时，将返回的 Markdown 原样放入回复或报告，仅检查不自动展示。实际视觉能力和图片数量上限由所选模型决定。
 - **历史**：会话列表只读摘要，选中后通过 SSE 回放；刷新恢复当前会话，新标签页默认空会话。删除主会话会一并删除已结束的子会话与报告，有运行任务则提示先停止。
 - **时间**：每个新 turn 开始时按 Asia/Shanghai 读取一次系统时间，以隐式 system 消息提供给模型；同一 turn 的模型/工具循环及用户引导不重复注入。时间快照随 turn.started 内部事件保存，恢复时保留原值；Web/CLI 不将它渲染为聊天消息。
 - **MCP**：创建 Agent 时按配置发现工具，每个服务连接、初始化与发现合计超时 1 秒。失败只跳过对应服务；用户明确提供新的 HTTP(S) MCP 地址，或本地已安装 Skill 为当前任务启动服务并返回本机回环地址时，可用 `enable_mcp(url)` 主动接入（审计模式下仍需审批）；不要求将地址写入配置。AKShare Skill 随项目携带，共用 Agent 的项目 Python 环境，在本机按需启动原版 AKTools，保留完整接口，使用启动结果返回的实际地址，不依赖固定 Conda 名称、常驻服务或宿主机转发。连接成功后仅在整批工具调用结束后注册，供当前用户请求的下一次模型调用使用；成功接入的地址会随会话恢复，重复启用不会再次发现；历史工具当前未注册时返回“当前工具不可用”，不阻塞普通对话。
@@ -174,7 +176,23 @@ npm test
 npm run build
 ```
 
-技能渐进加载、独立检索模块及 LangGraph 接入仍为待评估方向，尚未实现。
+本开发副本默认修改 `chat_ai_test`；不自动发布至其他副本。
+
+### Skill 的 Git 管理
+
+Skill 仍统一放在项目 `skills/`，检索扫描目录和匹配逻辑不变，不依赖 Git 跟踪状态，不增加 profile 或额外本地目录。
+
+- 通用 Skill 随项目提交；本机路径、Conda、部署与维护等专属说明只在相应机器维护。
+- 当前本机专属的 `skills/linux_environment/` 已通过 `.gitignore` 精确忽略并退出 Git 跟踪，本地文件保留且仍可检索；其他 Skill 不受影响。
+- 新增机器专属 Skill 时，为其目录添加精确忽略规则；若已被跟踪，需用 `git rm -r --cached -- skills/<目录>` 退出跟踪，保留本地文件。
+- Git clone 不包含这些本机 Skill，需在目标机器自行维护；部署时不要整目录复制机器专属说明。`.gitignore` 不是权限隔离，也不会清除 Git 历史中的旧版本。
+- 本机 Skill 应单独备份，不能依赖 Git 恢复。
+
+网页搜索和本地 Skill 搜索使用统一 spill：搜索模块提供匹配词附近的原文摘录，超限时由 spill 保存原始结果、完整索引和按行读取的正文视图；未超限时摘要在前、完整段落在后。普通工具继续使用有界头尾预览，见 [搜索与 spill 说明](docs/spill_and_search_plan.md)。
+
+仅在认为有必要时使用 `search_resources`，例如用户指引或缺少资源；已有上下文足够则直接继续，不重复查询。搜索摘录不能代替选用 Skill 后的完整规则。
+
+更进一步的技能渐进加载、独立知识检索模块及 LangGraph 接入仍为待评估方向，尚未实现。
 LangGraph 优先评估模型/工具循环与状态更新的接入边界，复用现有停止、审批、引导、事件与历史恢复契约；不与外部推理服务优化混在一起。
 
 AKShare Skill 与 Agent 共用项目 Python 环境（64 位 Python 3.11+）；部署时统一安装 `requirements.txt`。Skill 启动阶段只检查依赖并启动 MCP，不创建 venv 或联网安装软件。本地 Skill 使用说明中的 `{{python}}`、`{{skill_dir}}` 会在 `search_resources` 返回时替换为当前 Python 和 Skill 目录的 shell 引用，脚本路径无需模型推断。

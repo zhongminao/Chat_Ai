@@ -78,6 +78,10 @@ def load(path: Path | None = None) -> Config:
         raise ValueError("config.yaml: context.prompt_file 不存在")
     workspace = _path(root, data.get("workspace", "."))
     spill = dict(data.get("spill") or {})
+    for key, default in (("max_inline_chars", 20000), ("max_preview_chars", 16000)):
+        value = spill.get(key, default)
+        if type(value) is not int or value < 512:
+            raise ValueError(f"config.yaml: spill.{key} 必须为不小于 512 的整数")
     if spill.get("enabled", True):
         resolve_spill_directory(workspace, spill.get("directory", ".spill"))
     read_file = dict(data.get("read_file") or {})

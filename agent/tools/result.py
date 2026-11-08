@@ -4,10 +4,19 @@ from typing import Any
 
 
 @dataclass(frozen=True)
+class TextSection:
+    header: str
+    summary: str
+    body: str
+
+
+@dataclass(frozen=True)
 class ToolResult:
     text: str
     images: list[dict[str, Any]] = field(default_factory=list)
     model_images: list[dict[str, Any]] = field(default_factory=list)
+    preview: str | None = None
+    sections: list[TextSection] = field(default_factory=list)
 
 
 def normalize_result(value: str | ToolResult) -> ToolResult:

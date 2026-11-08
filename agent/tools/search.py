@@ -10,7 +10,6 @@ from typing import Any
 
 import yaml
 
-_MAX_USAGE_CHARS = 20000
 _MAX_TOP_K = 10
 
 
@@ -108,7 +107,6 @@ def _package(
     usage = entrypoint.read_text(encoding="utf-8")
     usage = usage.replace("{{python}}", shlex.quote(sys.executable))
     usage = usage.replace("{{skill_dir}}", shlex.quote(str(package)))
-    usage = usage[:_MAX_USAGE_CHARS]
     scripts_dir = package / "scripts"
     scripts = sorted(
         str(path.resolve())
@@ -155,7 +153,7 @@ def search_resources(
             "query": query,
             "results": [],
             "message": "knowledge index is not configured yet",
-        }, ensure_ascii=False)
+        }, ensure_ascii=False, indent=2)
 
     skills_root = (workspace.parent / "skills").resolve()
     if not skills_root.is_dir():
@@ -164,7 +162,7 @@ def search_resources(
             "query": query,
             "results": [],
             "message": f"skill directory not found: {skills_root}",
-        }, ensure_ascii=False)
+        }, ensure_ascii=False, indent=2)
 
     matches: list[tuple[int, Path, dict[str, Any], list[str]]] = []
     for manifest in sorted(skills_root.glob("*/manifest.yaml")):
@@ -181,4 +179,4 @@ def search_resources(
         "resource_type": "skill",
         "query": query,
         "results": results,
-    }, ensure_ascii=False)
+    }, ensure_ascii=False, indent=2)

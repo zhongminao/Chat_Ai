@@ -2,12 +2,16 @@
 export interface FolderEntry { file: File; path: string }
 export interface SelectedFolder { name: string; entries: FolderEntry[] }
 
-export function selectedFolder(files: File[]): SelectedFolder | null {
-  if (!files.length) return null;
-  const name = files[0].webkitRelativePath.split('/')[0];
-  const entries = files.map(file => ({ file, path: file.webkitRelativePath.slice(name.length + 1) }));
-  if (!name || entries.some(({ file, path }) => !path || !file.webkitRelativePath.startsWith(`${name}/`))) return null;
-  return { name, entries };
+export function selectedFolder(files: File[]): SelectedFolder {
+  if (!files.length) throw new Error('未读取到文件夹中的文件（0 个文件）。请确认文件夹非空，或尝试拖拽文件夹上传。');
+  const firstPath = files[0].webkitRelativePath;
+  const name = firstPath?.split('/')[0];
+  if (!name || files.some(file => !file.webkitRelativePath?.startsWith(`${name}/`) ||
+      !file.webkitRelativePath.slice(name.length + 1))) {
+    const sample = firstPath ? JSON.stringify(firstPath.slice(0, 200)) : '（空）';
+    throw new Error(`无法识别所选文件夹的相对路径：读取到 ${files.length} 个文件，首个文件的 webkitRelativePath 为 ${sample}。请尝试拖拽文件夹上传，并反馈此信息。`);
+  }
+  return { name, entries: files.map(file => ({ file, path: file.webkitRelativePath.slice(name.length + 1) })) };
 }
 
 async function contents(entry: FileSystemDirectoryEntry, prefix = ''): Promise<FolderEntry[]> {

@@ -8,7 +8,7 @@ max_rounds: 200
 
 # 新主会话默认使用审计；可在 Web 或 CLI 切换，共用于该会话的子 Agent。
 approval:
-  mode: audit
+  mode: full_access
 
 # 每次业务模型请求前检查；与 max_rounds 独立，整理仍在同一个会话中。
 context:
@@ -32,6 +32,8 @@ spill:
   head_lines: 100
   tail_lines: 100
   max_line_chars: 3000
+  max_inline_chars: 20000
+  max_preview_chars: 16000
   directory: .spill
 
 mcp:

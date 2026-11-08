@@ -136,9 +136,13 @@ export function Composer(props: Props) {
       }} />
       <input ref={element => { folderInput.current = element; element?.setAttribute('webkitdirectory', ''); }}
         type="file" multiple hidden disabled={!canEditFiles} onChange={event => {
-          const folder = selectedFolder(Array.from(event.target.files ?? []));
-          if (folder) void fileDraft.upload(folder);
-          event.target.value = '';
+          try {
+            void fileDraft.upload(selectedFolder(Array.from(event.target.files ?? [])));
+          } catch (reason) {
+            fileDraft.reportError(reason);
+          } finally {
+            event.target.value = '';
+          }
         }} />
       <div className="composer-actions"><div className="composer-left-actions">
         <details className="attachment-menu" ref={menu}>

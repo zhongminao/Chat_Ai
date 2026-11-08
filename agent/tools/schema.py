@@ -63,9 +63,9 @@ SUBMIT_SCHEMA = {"type": "function", "function": {
 
 SEARCH_SCHEMA = {"type": "function", "function": {
     "name": "search_resources",
-    "description": ("按当前任务搜索本地资源，默认搜索 Skill。用用户需求中的关键词描述要完成的事情，"
-                    "无需预先知道 Skill 名称。结果包含匹配 Skill 的使用说明、脚本绝对路径和参考资料；"
-                    "找到后按返回说明执行。本工具只检索，不运行脚本或连接服务。"),
+    "description": ("仅在认为有必要时搜索本地资源，例如用户指引查找，或缺少任务所需资源、脚本、说明。已有上下文足够时直接继续，不重复检索。当前仅有少量 Skill，尚无知识库。用任务关键词查询，"
+                    "无需预先知道 Skill 名称。返回匹配依据、相关原文摘录及完整说明定位；"
+                    "选用 Skill 后读取完整说明再执行，不能用摘录代替规则。本工具只检索，不运行脚本或连接服务。"),
     "parameters": {"type": "object", "properties": {
         "query": {"type": "string", "description": "用户需求、文件类型或所需能力的关键词；可以直接使用用户原话。"},
         "resource_type": {"type": "string", "enum": ["skill", "knowledge"], "default": "skill",
@@ -77,15 +77,9 @@ SEARCH_SCHEMA = {"type": "function", "function": {
 TOOL_SCHEMAS = [SEARCH_SCHEMA,
     {"type": "function", "function": {
         "name": "read_image",
-        "description": "Read an existing PNG/JPEG/WebP image with model vision. This tool does not publish the image. The path may be an original local file or a session attachment path. The result returns a session_path; if the user needs to see the image, call show_image with that path. The path must be a local filesystem path, not Markdown or an /api image URL.",
+        "description": "Read an existing local PNG/JPEG/WebP image with model vision and save it in the session. Returns session_path and a Markdown image reference. To show the image to the user, copy the returned Markdown into your reply or report; omit it when only inspecting. Do not use local file paths as image links or invent URLs. Input must be a local filesystem path, not Markdown or an /api image URL.",
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string", "description": "Exact local filesystem path to the image. Image labels, IDs, Markdown references, and API URLs are not paths."}},
-            "required": ["path"]}}},
-    {"type": "function", "function": {
-        "name": "show_image",
-        "description": "Publish an existing PNG/JPEG/WebP image to the user and return its Markdown reference. This tool does not read or analyze the image. Prefer the session_path returned by read_image. The path must be a local filesystem path; Markdown references and /api image URLs are not paths.",
-        "parameters": {"type": "object", "properties": {
-            "path": {"type": "string", "description": "Exact local filesystem path to publish, preferably the session_path returned by read_image. Markdown references and API URLs are not paths."}},
             "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "read_file",

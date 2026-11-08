@@ -11,6 +11,17 @@ describe('folder attachments', () => {
     ] });
   });
 
+  it('explains an empty folder selection instead of silently ignoring it', () => {
+    expect(() => selectedFolder([])).toThrow('0 个文件');
+  });
+
+  it('reports the browser relative path when a selected folder cannot be recognized', () => {
+    const file = new File(['a'], 'a.txt');
+    expect(() => selectedFolder([file])).toThrow(/读取到 1 个文件.*webkitRelativePath 为 （空）/);
+    Object.defineProperty(file, 'webkitRelativePath', { value: 'a.txt' });
+    expect(() => selectedFolder([file])).toThrow(/webkitRelativePath 为 "a.txt"/);
+  });
+
   it('reads all batches from a dropped directory, including nested files', async () => {
     const a = new File(['a'], 'a.txt');
     const b = new File(['b'], 'b.txt');

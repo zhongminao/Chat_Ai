@@ -7,6 +7,7 @@ export function useFileDraft(sessionId: string | null) {
   const [uploading, setUploading] = useState(false);
   const pending = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const reportError = (reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason));
 
   async function upload(items: File[] | { name: string; entries: { file: File; path: string }[] }) {
     if (!sessionId || pending.current || (Array.isArray(items) ? !items.length : !items.entries.length)) return;
@@ -22,7 +23,7 @@ export function useFileDraft(sessionId: string | null) {
         setFiles(current => [...current, file]);
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      reportError(reason);
     } finally {
       pending.current = false; setUploading(false);
     }
@@ -30,5 +31,5 @@ export function useFileDraft(sessionId: string | null) {
 
   const remove = (ids: string[]) => setFiles(current => current.filter(file => !ids.includes(file.id)));
   const restore = (items: FileAsset[]) => setFiles(current => [...current, ...items]);
-  return { files, uploading, error, upload, remove, restore };
+  return { files, uploading, error, reportError, upload, remove, restore };
 }

@@ -32,3 +32,6 @@ htmlcov/
 /tmp/
 
 /local/
+
+# Host-specific deployment Skill: keep local, do not publish.
+/skills/linux_environment/
