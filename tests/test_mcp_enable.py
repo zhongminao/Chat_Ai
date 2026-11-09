@@ -105,7 +105,7 @@ class McpEnableTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             config = replace(load(), approval_mode='full_access', workspace=root, storage_dir=root,
-                             mcp={'default': 'http://default/mcp'}, max_rounds=3)
+                             mcp={'default': {'url': 'http://default/mcp'}}, max_rounds=3)
             registry = SessionRegistry(config)
             session = registry.create()
             seen = []

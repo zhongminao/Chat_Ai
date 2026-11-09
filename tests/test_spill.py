@@ -4,7 +4,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent.tools.executor import execute, read_file
-from agent.tools.spill import spill_tool_output
+from agent.tools.spill import spill_tool_output, _search_preview
+from agent.tools.result import TextSection
 
 
 class SpillTests(unittest.TestCase):
@@ -111,3 +112,37 @@ class SpillTests(unittest.TestCase):
             read_file(self.workspace, 'sample.txt', offset=0)
         path.write_text('', encoding='utf-8')
         self.assertIn('0 lines', read_file(self.workspace, 'sample.txt'))
+
+    def test_search_preview_details_only_first_ten_in_source_order(self):
+        cards = [(f"[R{i}] title\nURL：https://example.com/{i}", f"excerpt-{i}", f"正文视图行：{i}–{i}")
+                 for i in range(1, 51)]
+        result = _search_preview("search", cards, 24000)
+        self.assertIn("excerpt-10", result)
+        self.assertNotIn("excerpt-11", result)
+        self.assertIn(cards[-1][0], result)
+        self.assertLess(result.index("[R10]"), result.index("[R11]"))
+        self.assertLessEqual(len(result), 24000)
+
+    def test_search_preview_falls_back_to_complete_compact_card(self):
+        header = "[R1] " + "title" * 60 + "\nURL：https://example.com/" + "path" * 70
+        cards = [(header, "excerpt" * 400, "正文视图行：1–10"),
+                 ("[R2] " + "long" * 200, "excerpt-2", "正文视图行：11–20")]
+        result = _search_preview("search", cards, 900)
+        self.assertIn(header, result)
+        self.assertIn("正文视图行：1–10", result)
+        self.assertNotIn("excerpt", result)
+        self.assertNotIn("[R2]", result)
+        self.assertIn("完整索引", result)
+        self.assertLessEqual(len(result), 900)
+
+    def test_search_spill_retains_all_excerpts_in_index(self):
+        sections = [TextSection(f"[R{i}] title\nURL：https://example.com/{i}",
+                                f"excerpt-{i}", "body" * 100) for i in range(1, 13)]
+        result = spill_tool_output(
+            "raw" * 10000, enabled=True, max_inline_lines=2, head_lines=1,
+            tail_lines=1, max_line_chars=3000, workspace=self.workspace,
+            session_id="session", preview="search", sections=sections)
+        self.assertNotIn("excerpt-11", result)
+        path, = (self.workspace / ".spill/session").glob("*.index.txt")
+        self.assertIn("excerpt-12", path.read_text())
+        self.assertLessEqual(len(result), 24000)

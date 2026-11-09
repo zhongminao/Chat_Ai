@@ -37,12 +37,13 @@ def build_agent(runtime) -> AgentRuntime:
     main = runtime.state["role"] == "main"
     # Configured services load by default; previously enabled ad-hoc URLs are
     # recovered from durable events when this session is reconstructed.
-    servers = dict(config.mcp)
+    servers = {alias: server["url"] for alias, server in config.mcp.items()}
     for event in runtime.session.events.read():
         if event["type"] == "mcp.enabled" and event.get("url") and event["alias"] not in config.mcp:
             servers[event["alias"]] = event["url"]
     tools = ToolRouter(config.workspace, McpClient(servers),
                        read_file_config=config.read_file,
+                       web_search_config=config.mcp.get("web", {}).get("search", {}),
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
                        watch=registry.monitor(runtime.session.id).watch,
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,

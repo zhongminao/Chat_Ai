@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
 import type { SessionSummary } from '../../api/types';
 import { Icon } from '../../ui/Icon';
+import { sessionIndicator } from './useSessionReadState';
 import { SessionMenu } from './SessionMenu';
 import './sessions.css';
 
 interface Props {
   session: SessionSummary;
   selected: boolean;
+  readThrough?: number;
+  running?: boolean;
   busy: boolean;
   deleting: string | null;
   updating: string | null;
@@ -21,6 +24,8 @@ export function SessionRow({ session, ...props }: Props) {
   const [failed, setFailed] = useState(false);
   const saving = useRef(false);
   const disabled = Boolean(props.deleting || props.updating);
+  const indicator = sessionIndicator({ ...session, busy: props.running ?? session.busy }, props.readThrough);
+  const statusLabel = indicator === 'running' ? '正在执行' : indicator === 'failed' ? '执行失败，尚未查看' : '有未读消息';
 
   async function save() {
     if (disabled || saving.current) return;
@@ -59,6 +64,9 @@ export function SessionRow({ session, ...props }: Props) {
       <button className="session-select" aria-current={props.selected ? 'page' : undefined}
         onClick={() => props.onSelect(session.id)} title={session.title}>
         <span className="session-title">{session.title}</span>
+        {indicator && <span className={`session-indicator ${indicator}`} role="img" aria-label={statusLabel} title={statusLabel}>
+          {indicator === 'failed' ? '!' : null}
+        </span>}
       </button>
       <SessionMenu title={session.title} pinned={Boolean(session.pinned)} archived={Boolean(session.archived)}
         disabled={disabled} deleteDisabled={props.selected && props.busy}

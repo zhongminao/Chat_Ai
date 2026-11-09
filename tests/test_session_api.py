@@ -56,7 +56,7 @@ class SessionApiTests(unittest.TestCase):
                 items = {item['id']: item for item in web.sessions()['sessions']}
             self.assertEqual(items[parent.id]['status'], 'idle')
             for status, identifier in children.items():
-                self.assertEqual(items[identifier]['status'], 'failed' if status == 'idle' else status)
+                self.assertEqual(items[identifier]['status'], status)
                 self.assertFalse(items[identifier]['busy'])
             self.assertEqual(items[active.id]['status'], 'running')
             self.assertTrue(items[active.id]['busy'])
@@ -94,7 +94,7 @@ class SessionApiTests(unittest.TestCase):
 
     def test_model_switch_changes_state_without_initializing_mcp_or_model_clients(self):
         with tempfile.TemporaryDirectory() as directory:
-            config = replace(load(), approval_mode="full_access", storage_dir=Path(directory), mcp={'offline': 'http://127.0.0.1:1/mcp'})
+            config = replace(load(), approval_mode="full_access", storage_dir=Path(directory), mcp={'offline': {'url': 'http://127.0.0.1:1/mcp'}})
             registry = SessionRegistry(config)
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:
                 identifier = client.post('/api/sessions').json()['id']

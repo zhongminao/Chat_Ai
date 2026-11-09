@@ -16,6 +16,7 @@ from ..agentsessionstate.commands import SwitchModel
 from ..agentsessionstate.input import UserInput
 from .images import image_router
 from .files import file_router
+from .workspace_files import workspace_file_router
 from ..storage.files import FileStore
 from .events import session_events
 from .history import history_page
@@ -99,6 +100,7 @@ def runtime(session_id: str) -> SessionRuntime:
 
 app.include_router(image_router(session_store))
 app.include_router(file_router(session_store))
+app.include_router(workspace_file_router(registry.config.workspace))
 
 
 @app.get("/")
@@ -134,8 +136,6 @@ def sessions():
         item["busy"] = bool(rt and rt.busy)
         if item["busy"]:
             item["status"] = "running"
-        elif item.get("parent_session_id") and item["status"] == "idle":
-            item["status"] = "failed"
     return {"sessions": result}
 
 

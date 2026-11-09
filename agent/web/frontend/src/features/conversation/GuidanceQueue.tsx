@@ -19,7 +19,7 @@ export function GuidanceQueue({ items, disabled, canEdit, onGuide, onEdit, onRem
         <button type="button" className="icon-button guidance-draft-remove" aria-label="删除" title="删除"
           disabled={disabled} onClick={() => onRemove(item.id)}><Icon name="trash" size={15} /></button>
         <button type="button" className="icon-button" aria-label="编辑" disabled={disabled || !canEdit}
-          title={canEdit ? '撤回输入框，重新发送后排到队尾' : '请先处理输入框中的内容'} onClick={() => onEdit(item)}><Icon name="edit" size={15} /></button>
+          title={canEdit ? '撤回输入框编辑；运行中重新排队，结束后直接发送' : '请先处理输入框中的内容'} onClick={() => onEdit(item)}><Icon name="edit" size={15} /></button>
       </div>
     </li>)}</ol>
   </div>;

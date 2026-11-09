@@ -108,11 +108,13 @@ class EventLog:
 
     @staticmethod
     def _projection(connection, session_id: str, records) -> None:
-        row = connection.execute('SELECT event_seq FROM sessions WHERE id=?', (session_id,)).fetchone()
+        row = connection.execute('SELECT event_seq, activity_seq, status FROM sessions WHERE id=?',
+                                 (session_id,)).fetchone()
         if row is None:
             raise FileNotFoundError(session_id)
         seq = row['event_seq']
-        title = status = timestamp = None
+        activity_seq, status = row['activity_seq'], row['status']
+        title = timestamp = None
         for record in records:
             if record['seq'] <= seq:
                 continue
@@ -121,15 +123,25 @@ class EventLog:
             event_type = record['type']
             if event_type == 'turn.started' and title is None:
                 title = ' '.join(record.get('prompt', '').split())[:40] or ('图片对话' if record.get('images') else '新会话')
-            status = {'report.submitted': 'submitted', 'turn.failed': 'failed',
-                      'turn.cancelled': 'cancelled'}.get(event_type, status)
+            if event_type == 'turn.completed':
+                # Report submission is followed by completion in the same turn.
+                status = 'submitted' if status == 'submitted' else 'idle'
+            else:
+                status = {'turn.started': 'running', 'report.submitted': 'submitted',
+                          'turn.failed': 'failed', 'turn.cancelled': 'cancelled'}.get(event_type, status)
+            # A journal cursor, not an event count: user edits, model changes,
+            # uploads and internal/tool events must not trigger unread badges.
+            if event_type in {'message.delta', 'report.submitted', 'turn.completed',
+                              'turn.failed', 'turn.cancelled'}:
+                activity_seq = record['seq']
             timestamp = record['time'] / 1e9
             seq += 1
         if timestamp is not None:
             connection.execute('''UPDATE sessions SET event_seq=?, updated_at=?,
                 auto_title=CASE WHEN empty=1 THEN COALESCE(?, auto_title) ELSE auto_title END,
                 empty=CASE WHEN ? IS NOT NULL THEN 0 ELSE empty END,
-                status=COALESCE(?, status) WHERE id=?''', (seq, timestamp, title, title, status, session_id))
+                status=?, activity_seq=? WHERE id=?''',
+                               (seq, timestamp, title, title, status, activity_seq, session_id))
 
     def repair_summary(self) -> None:
         try:

@@ -93,3 +93,19 @@ describe('tool expansion', () => {
     expect(html.match(/class="tool-card"/g)).toHaveLength(2);
   });
 });
+
+
+describe('execution feedback', () => {
+  it('shows execution or approval text only while running', () => {
+    for (const busy of [false, true]) {
+      for (const waitingCallIds of [[], ['call-1']]) {
+        const html = renderToStaticMarkup(<MessageList
+          items={[{ id: 'user', kind: 'text', role: 'user', content: 'start' }]}
+          busy={busy} loading={false} assistantId={null} sessionId="test" images={[]}
+          waitingCallIds={waitingCallIds} />);
+        expect(html.includes('run-indicator')).toBe(busy);
+        if (busy) expect(html).toContain(waitingCallIds.length ? '等待审批…' : '正在执行…');
+      }
+    }
+  });
+});

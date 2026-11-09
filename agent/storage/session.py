@@ -96,9 +96,14 @@ class SessionStore:
         return result
 
     def list_summaries(self) -> list[dict]:
+        """List the repairable projection; activitySeq is the last visible-output/outcome seq.
+
+        Streaming deltas are batch-projected at durable event boundaries or recovery,
+        like event_seq. Neither listing nor metadata/image edits read the journal.
+        """
         with self.database.connect() as connection:
             rows = connection.execute('''SELECT id, parent_session_id, COALESCE(NULLIF(title, ''), auto_title) AS title,
-                empty, status, created_at AS createdAt, updated_at AS updatedAt,
+                empty, status, activity_seq AS activitySeq, created_at AS createdAt, updated_at AS updatedAt,
                 json_type(metadata, '$.pinned') = 'true' AS pinned,
                 json_type(metadata, '$.archived') = 'true' AS archived
                 FROM sessions ORDER BY updated_at DESC''').fetchall()

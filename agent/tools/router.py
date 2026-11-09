@@ -13,14 +13,15 @@ from .mcp.client import McpClient
 from .mcp.results import convert_result
 from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
 from .search import search_resources
-from .search_output import resource_search_output, web_search_output
+from .search_output import DEFAULT_CONTEXT_CHARS, resource_search_output, web_search_output
 from . import mailbox
 
 
 class ToolRouter:
-    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None, read_file_config=None):
+    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None, read_file_config=None, web_search_config=None):
         self.workspace = workspace
         self.read_file_config = read_file_config or {}
+        self.web_search_config = web_search_config or {}
         self.registry = registry
         self.session_id = session_id
         self.approval = approval
@@ -131,7 +132,10 @@ class ToolRouter:
                 # Adapt the configured web search only, not unrelated MCP JSON/images.
                 if (self.mcp.tools[name] == ("web", "search") and not result.is_error
                         and isinstance(output, str)):
-                    return web_search_output(output, arguments.get("query", ""))
+                    return web_search_output(
+                        output, arguments.get("query", ""),
+                        context_chars=self.web_search_config.get("context_chars", DEFAULT_CONTEXT_CHARS),
+                    )
                 return output
             return execute(self.workspace, name, arguments, context, read_file_config=self.read_file_config,
                            allow_external_write=(name == "write_file" and decision == "full_access"))

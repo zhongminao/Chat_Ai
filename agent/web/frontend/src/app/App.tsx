@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useChatLayout } from './useChatLayout';
 import { useTabTitle } from './useTabTitle';
+import { useSessionReadState } from '../features/sessions/useSessionReadState';
 import { useSessions } from '../features/sessions/useSessions';
 import { SessionSidebar } from '../features/sessions/SessionSidebar';
 import { useConversation } from '../features/conversation/useConversation';
@@ -19,6 +20,7 @@ export function App() {
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = sessions.sessions.find(item => item.id === sessions.selected);
+  const readThrough = useSessionReadState(sessions.selected, conversation.ready, conversation.seq);
   const mainId = current?.parent_session_id ?? sessions.selected;
   const hasChildAgents = Boolean(mainId && sessions.sessions.some(item => item.parent_session_id === mainId));
   const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);
@@ -37,7 +39,8 @@ export function App() {
   return <div className="app-layout">
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
       creating={sessions.creating} deleting={sessions.deleting} busy={conversation.busy} open={sidebarOpen}
-      updating={sessions.updating} onUpdate={sessions.update}
+      updating={sessions.updating} onUpdate={sessions.update} readThrough={readThrough}
+      activeBusy={conversation.ready ? conversation.busy : undefined}
       onClose={() => setSidebarOpen(false)} onSelect={id => { sessions.select(id); setSidebarOpen(false); }}
       onCreate={() => { void sessions.create(); setSidebarOpen(false); }} onDelete={id => { void sessions.remove(id); }} />
     <main ref={layout.workspace} className={`workspace${hasChildAgents ? "" : " no-agent-header"}`}>

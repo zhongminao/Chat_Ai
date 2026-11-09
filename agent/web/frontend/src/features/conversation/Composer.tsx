@@ -33,7 +33,6 @@ interface Props {
 export function Composer(props: Props) {
   const [text, setText] = useState(() => readTextDraft(props.sessionId));
   function updateText(value: string) { writeTextDraft(props.sessionId, value); setText(value); }
-  const [editingGuidance, setEditingGuidance] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -56,7 +55,6 @@ export function Composer(props: Props) {
   const draft = useImageDraft(props.sessionId, props.onUploaded);
   const fileDraft = useFileDraft(props.sessionId);
   const guidance = useGuidanceQueue(props.sessionId, props.acceptedGuidance);
-  const queueInput = props.busy || editingGuidance || guidance.items.length > 0;
   const textRef = useRef(text); textRef.current = text;
   useLayoutEffect(() => {
     const element = textarea.current;
@@ -74,9 +72,9 @@ export function Composer(props: Props) {
     const content = text;
     const images = [...draft.ids];
     const files = [...fileDraft.files];
-    if (queueInput) {
+    if (props.busy) {
       guidance.add(content, images, files);
-      updateText(''); setEditingGuidance(false); draft.remove(images); fileDraft.remove(files.map(file => file.id));
+      updateText(''); draft.remove(images); fileDraft.remove(files.map(file => file.id));
     } else if (await props.onSend(content, images, files.map(file => file.id))) {
       if (clearTextDraftIfUnchanged(props.sessionId, content) && textRef.current === content) setText('');
       draft.remove(images); fileDraft.remove(files.map(file => file.id));
@@ -88,7 +86,7 @@ export function Composer(props: Props) {
     {props.approvals}
     <GuidanceQueue items={guidance.items} disabled={props.readOnly || !props.ready || !props.connected || Boolean(props.pending)}
       canEdit={!text.trim() && !draft.ids.length && !fileDraft.files.length && !draft.uploading && !fileDraft.uploading} onRemove={guidance.remove}
-      onEdit={item => { guidance.remove(item.id); updateText(item.text); setEditingGuidance(true); draft.restore(item.images); fileDraft.restore(item.files); textarea.current?.focus(); }}
+      onEdit={item => { guidance.remove(item.id); updateText(item.text); draft.restore(item.images); fileDraft.restore(item.files); textarea.current?.focus(); }}
       onGuide={item => { void props.onGuide(item.id, item.text, item.images, item.files.map(file => file.id)).then(sent => { if (sent) guidance.remove(item.id); }); }} />
     <form className="composer" onSubmit={event => { event.preventDefault(); void submit(); }}
       onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault(); }}
@@ -165,8 +163,8 @@ export function Composer(props: Props) {
         refreshing={props.modelsRefreshing} error={props.modelsError} onRefresh={props.onRefreshModels}
         disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
         <button type="submit" className={`send-button ${stopAction ? 'stop-button' : ''}`} disabled={disabled}
-          aria-label={stopAction ? '停止执行' : queueInput ? '加入引导队列' : '发送消息'}
-          title={stopAction ? '停止执行' : queueInput ? '加入前端队列，点击引导后才发送' : '发送消息'}>
+          aria-label={stopAction ? '停止执行' : props.busy ? '加入引导队列' : '发送消息'}
+          title={stopAction ? '停止执行' : props.busy ? '加入前端队列，点击引导后才发送' : '发送消息'}>
           {stopAction ? <span className="stop-square" /> : <Icon name="arrow" size={20} />}
         </button>
         </div>

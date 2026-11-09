@@ -6,6 +6,7 @@ from pathlib import Path
 from ..model.catalog import ModelCatalog
 from ..tools.approval import MODES
 from ..tools.spill import resolve_spill_directory
+from ..tools.search_output import DEFAULT_CONTEXT_CHARS
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -19,7 +20,7 @@ class Config:
     storage_dir: Path
     providers_file: Path
     spill: dict[str, int | bool | str]
-    mcp: dict[str, str]
+    mcp: dict[str, dict]
     max_rounds: int
     system_prompt: str
     child_system_prompt: str
@@ -78,7 +79,7 @@ def load(path: Path | None = None) -> Config:
         raise ValueError("config.yaml: context.prompt_file 不存在")
     workspace = _path(root, data.get("workspace", "."))
     spill = dict(data.get("spill") or {})
-    for key, default in (("max_inline_chars", 20000), ("max_preview_chars", 16000)):
+    for key, default in (("max_inline_chars", 20000), ("max_preview_chars", 24000)):
         value = spill.get(key, default)
         if type(value) is not int or value < 512:
             raise ValueError(f"config.yaml: spill.{key} 必须为不小于 512 的整数")
@@ -89,6 +90,19 @@ def load(path: Path | None = None) -> Config:
         value = read_file.get(key, 50 if key == "limit" else 3000)
         if type(value) is not int or value < minimum:
             raise ValueError(f"config.yaml: read_file.{key} 必须为不小于 {minimum} 的整数")
+    mcp = data.get("mcp") or {}
+    if not isinstance(mcp, dict):
+        raise ValueError("config.yaml: mcp 必须为服务别名到配置的映射")
+    for alias, server in mcp.items():
+        if (not isinstance(alias, str) or not alias or not isinstance(server, dict)
+                or not isinstance(server.get("url"), str) or not server["url"].strip()):
+            raise ValueError(f"config.yaml: mcp.{alias} 必须包含非空 url，不再使用 URL 字符串简写")
+    web_search = mcp.get("web", {}).get("search", {})
+    if not isinstance(web_search, dict):
+        raise ValueError("config.yaml: mcp.web.search 必须为配置映射")
+    context_chars = web_search.get("context_chars", DEFAULT_CONTEXT_CHARS)
+    if type(context_chars) is not int or context_chars < 1:
+        raise ValueError("config.yaml: mcp.web.search.context_chars 必须为正整数")
     storage_dir = _path(root, data.get("storage_dir", "storage"))
     approval_mode = (data.get("approval") or {}).get("mode", "audit")
     if approval_mode not in MODES:
@@ -101,7 +115,7 @@ def load(path: Path | None = None) -> Config:
         providers_file=providers_file,
         spill=spill,
         read_file=read_file,
-        mcp=data.get("mcp", {}),
+        mcp=mcp,
         max_rounds=max_rounds,
         context=context,
         approval_mode=approval_mode,

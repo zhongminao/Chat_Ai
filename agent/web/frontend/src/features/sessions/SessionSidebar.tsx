@@ -6,6 +6,8 @@ import { SessionRow } from './SessionRow';
 interface Props {
   sessions: SessionSummary[];
   selected: string | null;
+  readThrough?: Record<string, number>;
+  activeBusy?: boolean;
   loading: boolean;
   creating: boolean;
   deleting: string | null;
@@ -28,6 +30,8 @@ export function SessionSidebar(props: Props) {
   const archived = roots.filter(session => session.archived).sort((a, b) => b.updatedAt - a.updatedAt);
   const selectedRoot = props.sessions.find(session => session.id === props.selected)?.parent_session_id ?? props.selected;
   const row = (session: SessionSummary) => <SessionRow key={session.id} session={session}
+    running={session.id === props.selected ? props.activeBusy : undefined}
+    readThrough={props.readThrough?.[session.id]}
     selected={session.id === selectedRoot} busy={props.busy} deleting={props.deleting}
     updating={props.updating} onUpdate={props.onUpdate}
     onSelect={props.onSelect} onDelete={props.onDelete} />;

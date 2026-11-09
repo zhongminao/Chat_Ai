@@ -33,12 +33,16 @@ spill:
   tail_lines: 100
   max_line_chars: 3000
   max_inline_chars: 20000
-  max_preview_chars: 16000
+  max_preview_chars: 24000
   directory: .spill
 
 mcp:
-  remote_windows: http://127.0.0.1:8767/mcp
-  web: http://127.0.0.1:8766/mcp
+  remote_windows:
+    url: http://127.0.0.1:8767/mcp
+  web:
+    url: http://127.0.0.1:8766/mcp
+    search:
+      context_chars: 200  # 每个命中前后的原文字符数，仅控制本地展示，不传给 MCP。
   # AKShare 由 skills/akshare 按需启动；MCP 地址使用启动脚本返回值，不在此配置。
 
 

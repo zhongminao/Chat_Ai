@@ -3,6 +3,7 @@ export interface SessionSummary {
   title: string;
   createdAt: string | null;
   updatedAt: number;
+  activitySeq?: number;
   empty?: boolean;
   pinned?: boolean;
   archived?: boolean;

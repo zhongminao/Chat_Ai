@@ -98,7 +98,7 @@ class McpResilienceTests(unittest.TestCase):
             root = Path(directory)
             (root / 'sample.txt').write_text('local result')
             config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root,
-                             mcp={'offline': 'http://offline'}, max_rounds=2)
+                             mcp={'offline': {'url': 'http://offline'}}, max_rounds=2)
             registry = SessionRegistry(config)
             session = registry.create()
 
@@ -144,7 +144,7 @@ class McpResilienceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             config = replace(load(), approval_mode="full_access", workspace=root, storage_dir=root,
-                             mcp={"offline": "http://offline"})
+                             mcp={"offline": {"url": "http://offline"}})
             registry = SessionRegistry(config)
             session = registry.create()
             try:

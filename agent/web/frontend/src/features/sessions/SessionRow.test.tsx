@@ -79,3 +79,20 @@ describe('session row rename and actions', () => {
     expect(html).not.toContain('删除会话：');
   });
 });
+
+
+describe('session status indicators', () => {
+  it('shows exactly one indicator and none for an already read outcome', () => {
+    for (const [session, readThrough, label] of [
+      [{ ...props.session, busy: true, activitySeq: 10, status: 'failed' as const }, 10, '正在执行'],
+      [{ ...props.session, activitySeq: 10, status: 'failed' as const }, 9, '执行失败，尚未查看'],
+      [{ ...props.session, activitySeq: 10, status: 'idle' as const }, 9, '有未读消息'],
+      [{ ...props.session, activitySeq: 10, status: 'failed' as const }, 10, null],
+    ] as const) {
+      hooks.values = [false, '', false]; hooks.index = 0;
+      const html = renderToStaticMarkup(<SessionRow {...props} session={session} readThrough={readThrough} />);
+      expect(html.match(/class="session-indicator /g)?.length ?? 0).toBe(label ? 1 : 0);
+      if (label) expect(html).toContain(`aria-label="${label}"`);
+    }
+  });
+});

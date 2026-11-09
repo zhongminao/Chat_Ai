@@ -64,21 +64,24 @@ def _search_views(intro: str, sections: list[TextSection], width: int):
     return cards, index, body
 
 
-def _search_preview(intro: str, cards: list[tuple[str, str, str]], budget: int, width: int) -> str:
-    # Allocate a fair share per result instead of consuming the budget on result 1.
+def _search_preview(intro: str, cards: list[tuple[str, str, str]], budget: int) -> str:
+    # Keep complete cards in source order; never slice a title, URL or locator.
+    notice = "\n\n其余候选未在预览中展示；请读取下方完整索引文件。"
+    if budget < len(notice):
+        return ""
     intro = _bounded(intro, min(1600, budget // 4))
-    remaining = max(0, budget - len(intro) - 200)
-    per_card = min(1000, remaining // max(1, len(cards)) - 2)
-    if per_card < 160:
-        return intro + "\n候选较多，完整候选目录及命中摘录请读取下方索引文件。"
+    remaining = max(0, budget - len(intro) - len(notice))
     rendered = []
-    for header, summary, location in cards:
-        # Long URLs/titles cannot displace every excerpt or its full-text locator.
-        header_budget = min(300, per_card // 3)
-        summary_budget = max(0, per_card - header_budget - len(location) - 3)
-        rendered.append(_bounded(header, header_budget) + "\n"
-                        + _bounded(summary, summary_budget) + "\n" + location)
-    return "\n".join(_view_lines(intro + "\n\n" + "\n\n".join(rendered), width))
+    for index, (header, summary, location) in enumerate(cards):
+        compact = header + "\n" + location
+        detail = header + "\n" + summary + "\n" + location
+        card = detail if index < 10 and len(detail) + 2 <= remaining else compact
+        if len(card) + 2 > remaining:
+            break
+        rendered.append(card)
+        remaining -= len(card) + 2
+    result = intro + "".join("\n\n" + card for card in rendered)
+    return result + notice if len(rendered) < len(cards) else result
 
 
 def spill_tool_output(
@@ -93,7 +96,7 @@ def spill_tool_output(
     session_id: str,
     directory: str = ".spill",
     max_inline_chars: int = 20000,
-    max_preview_chars: int = 16000,
+    max_preview_chars: int = 24000,
     preview: str | None = None,
     sections: list[TextSection] | None = None,
 ) -> str:
@@ -120,9 +123,7 @@ def spill_tool_output(
 
     saved = _redact(text)
     total = len(saved.splitlines())
-    if search:
-        excerpt = _search_preview(_redact(preview), cards, max_preview_chars - 200, width)
-    else:
+    if not search:
         lines = saved.splitlines()
         head = min(head_lines, total)
         tail = min(tail_lines, total - head)
@@ -155,9 +156,13 @@ def spill_tool_output(
                        f"完整原始结果（脱敏）：{relative}（{total} 行，{len(saved)} 字符）\n"
                        "使用 read_file(path=索引或正文视图路径, offset=行号, limit=10) 按需读取。")
             excerpt = _search_preview(_redact(preview), cards,
-                                      max(0, max_preview_chars - len(receipt)), width)
-        else:
-            receipt = f"\n[spill] Full output: {relative} ({total} lines). Use read_file with offset/limit."
+                                      max(0, max_preview_chars - len(receipt)))
+            return excerpt + receipt
+        receipt = f"\n[spill] Full output: {relative} ({total} lines). Use read_file with offset/limit."
         return _bounded(excerpt, max(0, max_preview_chars - len(receipt))) + receipt
     except (OSError, ValueError):
-        return _bounded(excerpt, max_preview_chars - 80) + "\n[spill] 保存失败，以上为截断内容；完整内容定位不可用。"
+        receipt = "\n[spill] 保存失败，以上为截断内容；完整内容定位不可用。"
+        budget = max(0, max_preview_chars - len(receipt))
+        if search:
+            return _search_preview(_redact(preview), cards, budget) + receipt
+        return _bounded(excerpt, budget) + receipt

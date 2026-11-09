@@ -45,7 +45,7 @@ class JSONLStorageTests(unittest.TestCase):
         with self.store.database.connect() as db:
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='events'").fetchone())
         completed = log.append('model.completed')
-        self.assertEqual(self.projected(), (completed['seq'], 'hello', 0, 'idle'))
+        self.assertEqual(self.projected(), (completed['seq'], 'hello', 0, 'running'))
         self.assertEqual([r['seq'] for r in log.read(first['seq'])], list(range(2, 10)))
         self.assertEqual(self.store.list_summaries()[0]['title'], 'hello')
         self.assertEqual(len(log.path.read_bytes().splitlines()), 9)
@@ -56,7 +56,7 @@ class JSONLStorageTests(unittest.TestCase):
         log.append('message.delta', durable=False, text='unprojected')
         self.assertEqual(self.projected()[0], 1)
         restored = self.new_store()
-        self.assertEqual(self.projected(), (2, 'first line', 0, 'idle'))
+        self.assertEqual(self.projected(), (2, 'first line', 0, 'running'))
         self.assertEqual(restored.open(self.session.id).events.append('turn.cancelled', answer='partial')['seq'], 3)
         self.assertEqual(self.projected(), (3, 'first line', 0, 'cancelled'))
 
@@ -179,7 +179,7 @@ class JSONLStorageTests(unittest.TestCase):
         with self.store.database.connect(write=True) as db:
             db.execute('DROP TRIGGER reject_title')
         restored = self.new_store()
-        self.assertEqual(self.projected(), (1, 'recover', 0, 'idle'))
+        self.assertEqual(self.projected(), (1, 'recover', 0, 'running'))
         self.assertEqual(restored.open(self.session.id).events.append('turn.completed')['seq'], 2)
 
     def test_late_reads_share_sparse_checkpoints_between_session_handles(self):
@@ -227,7 +227,7 @@ class JSONLStorageTests(unittest.TestCase):
         finally:
             with self.store.database.connect() as db:
                 db.set_trace_callback(None)
-        self.assertEqual(self.projected(), (303, 'first', 0, 'cancelled'))
+        self.assertEqual(self.projected(), (303, 'first', 0, 'running'))
         self.assertEqual(sum(sql.startswith('UPDATE sessions') for sql in statements), 1)
 
 

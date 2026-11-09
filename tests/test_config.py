@@ -137,3 +137,23 @@ class PromptConfigTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "spill.directory"):
                     self.config()
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_structured_mcp_and_web_search_window(self):
+        self.data["mcp"] = {"web": {"url": "http://web/mcp", "search": {"context_chars": 220}},
+                            "other": {"url": "http://other/mcp"}}
+        self.assertEqual(self.config().mcp, self.data["mcp"])
+        self.data["mcp"] = {}
+        self.assertEqual(self.config().mcp, {})
+
+    def test_invalid_mcp_configuration_is_rejected(self):
+        for servers in [{"web": "http://web/mcp"}, {"web": {}}, {"web": {"url": " "}},
+                        {"web": {"url": "http://web/mcp", "search": None}}]:
+            with self.subTest(servers=servers):
+                self.data["mcp"] = servers
+                with self.assertRaisesRegex(ValueError, "mcp"):
+                    self.config()
+        for value in [0, -1, True, "200", 1.5]:
+            with self.subTest(value=value):
+                self.data["mcp"] = {"web": {"url": "http://web/mcp", "search": {"context_chars": value}}}
+                with self.assertRaisesRegex(ValueError, "mcp.web.search.context_chars"):
+                    self.config()

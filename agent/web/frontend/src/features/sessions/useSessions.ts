@@ -82,6 +82,18 @@ export function useSessions() {
     } catch (error) { if (version === listVersion.current) setError(errorMessage(error)); }
   }, []);
 
+  // Refresh summaries for every session, not just the currently subscribed conversation.
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      await refresh();
+      if (active) timer = setTimeout(() => { void poll(); }, 5000);
+    };
+    timer = setTimeout(() => { void poll(); }, 5000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [refresh]);
+
   useEffect(() => {
     const abort = new AbortController();
     let active = true;

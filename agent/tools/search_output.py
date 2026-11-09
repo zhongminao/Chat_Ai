@@ -7,6 +7,10 @@ import re
 from .result import TextSection, ToolResult
 
 
+DEFAULT_CONTEXT_CHARS = 200
+_SENTENCE_END = re.compile(r"[.!?。！？；;\n]")
+
+
 _STOP_WORDS = {"a", "an", "and", "are", "for", "in", "is", "of", "on", "the", "to", "with",
                "什么", "怎么", "如何", "哪些", "帮我", "请问", "一下", "关于", "以及", "进行"}
 
@@ -27,7 +31,9 @@ def query_terms(query: str) -> list[str]:
     return terms[:64]
 
 
-def extract_context(text: str, terms: list[str]) -> tuple[list[str], str]:
+def extract_context(
+    text: str, terms: list[str], context_chars: int = DEFAULT_CONTEXT_CHARS,
+) -> tuple[list[str], str]:
     """Quote at most three windows, preferring coverage of distinct query terms."""
     matches = []
     for term in terms:
@@ -36,7 +42,14 @@ def extract_context(text: str, terms: list[str]) -> tuple[list[str], str]:
             matches.append((term, match.start()))
     windows = []
     for term, at in sorted(matches, key=lambda item: (-len(item[0]), item[1])):
-        start, end = max(0, at - 90), min(len(text), at + len(term) + 90)
+        start, end = max(0, at - context_chars), min(len(text), at + len(term) + context_chars)
+        # Extend outward by at most 60 characters to avoid cutting nearby sentences.
+        before = list(_SENTENCE_END.finditer(text, max(0, start - 60), start))
+        if before:
+            start = before[-1].end()
+        after = _SENTENCE_END.search(text, end, min(len(text), end + 60))
+        if after:
+            end = after.end()
         if any(start < right and end > left for left, right in windows):
             continue
         windows.append((start, end))
@@ -53,7 +66,9 @@ def _string(value) -> str:
     return value if isinstance(value, str) else ""
 
 
-def web_search_output(text: str, query: str) -> str | ToolResult:
+def web_search_output(
+    text: str, query: str, *, context_chars: int = DEFAULT_CONTEXT_CHARS,
+) -> str | ToolResult:
     """Adapt only recognized web-search JSON; unknown MCP outputs stay untouched."""
     try:
         data = json.loads(text)
@@ -73,7 +88,7 @@ def web_search_output(text: str, query: str) -> str | ToolResult:
         upstream_summary = _string(row.get("summary"))
         # Search source text, not a generated upstream summary, for original quotes.
         source = content or snippet
-        matched, excerpt = extract_context(source, terms)
+        matched, excerpt = extract_context(source, terms, context_chars)
         if not excerpt:
             excerpt = "无正文/片段字面命中；以下仅为来源开头：\n" + source[:240]
         header = f"[R{index}] {title}\nURL：{row['url']}"

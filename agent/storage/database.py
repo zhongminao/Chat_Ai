@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     empty INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'idle',
     event_seq INTEGER NOT NULL DEFAULT 0,
+    activity_seq INTEGER NOT NULL DEFAULT 0,
     image_seq INTEGER NOT NULL DEFAULT 0,
     metadata TEXT NOT NULL
 );
@@ -75,6 +76,13 @@ class Database:
             connection.execute('PRAGMA journal_mode=WAL')
             connection.execute('PRAGMA synchronous=NORMAL')
             connection.executescript(SCHEMA)
+            with self.connect(write=True) as db:
+                columns = {row['name'] for row in db.execute('PRAGMA table_info(sessions)')}
+                if 'activity_seq' not in columns:
+                    db.execute('ALTER TABLE sessions ADD COLUMN activity_seq INTEGER NOT NULL DEFAULT 0')
+                    # Invalidate the old event projection, including stale status.
+                    # SessionStore replays JSONL at startup, never on list requests.
+                    db.execute("UPDATE sessions SET event_seq=0, status='idle'")
         except BaseException:
             connection.close()
             raise
