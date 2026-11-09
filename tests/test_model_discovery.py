@@ -51,10 +51,16 @@ class ModelDiscoveryTests(unittest.TestCase):
             with patch("agent.model.discovery.get_json", side_effect=self.response):
                 self.assertEqual(len(web.models()["models"]), 2)
             with patch("agent.model.discovery.get_json", side_effect=OSError("offline")):
-                self.assertEqual(web.models(), {"models": []})
+                result = web.models()
+                self.assertEqual(result["models"], [])
+                self.assertEqual(result["defaultModel"]["provider"], "gpt")
+                self.assertEqual(result["defaultModel"]["name"], "sol")
             self.assertEqual(self.catalog.resolve("gpt").name, "sol")
             with patch("agent.model.discovery.get_json", return_value={"data": []}):
-                self.assertEqual(web.models(), {"models": []})
+                result = web.models()
+                self.assertEqual(result["models"], [])
+                self.assertEqual(result["defaultModel"]["provider"], "gpt")
+                self.assertEqual(result["defaultModel"]["name"], "sol")
             with patch("agent.model.discovery.get_json", side_effect=self.response):
                 self.assertEqual(len(web.models()["models"]), 2)
         self.assertEqual(self.path.read_bytes(), before)

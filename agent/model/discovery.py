@@ -3,14 +3,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 from typing import Any
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 from .providers import deepseek, gpt
 
 
 def get_json(url: str, api_key: str, timeout: float = 8) -> dict[str, Any]:
     request = Request(url, headers={"Authorization": f"Bearer {api_key}"})
-    with urlopen(request, timeout=timeout) as response:
+    with build_opener(ProxyHandler({})).open(request, timeout=timeout) as response:
         return json.loads(response.read())
 
 

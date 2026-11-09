@@ -3,14 +3,14 @@ import asyncio
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, DefaultAsyncHttpxClient
 
 from ..core.cancellation import ExecutionContext
 
 
 class ModelHttpClient:
     def __init__(self, **options):
-        self.client = AsyncOpenAI(**options)
+        self.client = AsyncOpenAI(http_client=DefaultAsyncHttpxClient(trust_env=False), **options)
         self.loop = asyncio.new_event_loop()
 
     def _wait(self, operation, context: ExecutionContext | None):

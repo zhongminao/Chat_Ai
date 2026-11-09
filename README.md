@@ -140,6 +140,21 @@ DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` �
 
 `CHAT_AI_DEFAULT_PROVIDER` 优先于 YAML 的 `default_provider`。新会话按最近一次 `/models` 发现结果选模：默认模型可用时使用默认模型；否则优先从可用本地模型（provider 名称以 `local-` 开头）中选择，没有本地模型则随机选择一个可用云模型。选择结果保存到新会话，不修改默认配置；已有会话及子任务继承模型不变。所有模型都不可用时 UI 显示“无可用模型”，保留刷新入口。Web 启动会等待首次模型发现完成后再接受会话创建；创建会话和发送消息不额外查询模型接口，也不进行推理探活。
 
+### 模型与网页网络边界
+
+模型 HTTP 客户端（聊天、上下文整理、模板和 token 计数）及 `/models` 发现统一忽略环境代理，直连配置的模型网关；不按 URL 猜测是否内网，也不在直连失败时自动回退代理。SDK 原有超时、重试和连接复用策略保留。
+
+```text
+chat_ai → 云模型网关 → 固定云模型上游（直连）
+        → 本地模型网关 → 本地模型（直连）
+        → Web MCP / SearXNG → 17897 受限出口 → 公网目标
+```
+
+部署时应用、模型网关和模型服务应清除大小写 HTTP/HTTPS/ALL/FTP/RSYNC_PROXY，并设置 `NO_PROXY=*`、`no_proxy=*`，避免子进程继承代理。网关还需在自身 HTTP 客户端设置 `trust_env=False` 并使用固定上游；只修改 chat_ai 不能改变网关到上游的路径。
+网页服务独立维护显式代理及容器出口白名单，17897 代理拒绝内网和保留地址；不能仅靠 `NO_PROXY` 限制网页访问内网。安装依赖和拉取代码可在部署进程中使用代理，不传给应用运行进程。其他本地工具和动态 MCP 不由模型 HTTP 策略统一接管。
+
+回归检查：`python -m unittest tests.test_model_direct_network -v`。直连公网的链路故障仍会导致模型请求失败，此边界不会自动修复外网不稳定。
+
 ### 工作区文件链接
 
 Web 提供只读文件路由：配置 `workspace` 的真实绝对路径就是 URL 前缀。例如工作区为 `/home/user/chat_ai/workspace` 时：
