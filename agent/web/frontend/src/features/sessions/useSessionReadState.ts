@@ -1,26 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { SessionSummary } from '../../api/types';
 
-const storageKey = 'chat-ai:session-read:v1';
 type ReadState = Record<string, number>;
 
-export function readSessionCursors(): ReadState {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? '{}');
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-    return Object.fromEntries(Object.entries(value).filter(([, seq]) => typeof seq === 'number' && Number.isSafeInteger(seq) && seq >= 0));
-  } catch { return {}; }
-}
-
-export function sessionIndicator(session: SessionSummary, readThrough = 0): 'running' | 'failed' | 'unread' | null {
+export function sessionIndicator(session: SessionSummary, readThrough = session.activitySeq ?? 0): 'running' | 'failed' | 'unread' | null {
   if (session.busy) return 'running';
   if ((session.activitySeq ?? 0) <= readThrough) return null;
   if (session.status === 'failed') return 'failed';
   return 'unread';
 }
 
-export function useSessionReadState(selected: string | null, ready: boolean, seq: number) {
-  const [readThrough, setReadThrough] = useState(readSessionCursors);
+export function useSessionReadState(sessions: SessionSummary[], selected: string | null, ready: boolean, seq: number) {
+  const [readThrough, setReadThrough] = useState<ReadState>({});
   const [focused, setFocused] = useState(() => document.visibilityState === 'visible' && document.hasFocus());
   useEffect(() => {
     const update = () => setFocused(document.visibilityState === 'visible' && document.hasFocus());
@@ -34,10 +25,18 @@ export function useSessionReadState(selected: string | null, ready: boolean, seq
     };
   }, []);
   useEffect(() => {
-    if (!selected || !ready || !focused || seq <= (readThrough[selected] ?? 0)) return;
-    const next = { ...readThrough, [selected]: seq };
-    setReadThrough(next);
-    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Keep in-memory read state. */ }
-  }, [selected, ready, seq, focused, readThrough]);
+    setReadThrough(current => {
+      const next: ReadState = {};
+      for (const session of sessions) {
+        // Existing content is the baseline when this page first sees a session.
+        const baseline = current[session.id] ?? session.activitySeq ?? 0;
+        next[session.id] = session.id === selected && ready && focused
+          ? Math.max(baseline, seq) : baseline;
+      }
+      const unchanged = Object.keys(current).length === sessions.length &&
+        sessions.every(session => next[session.id] === current[session.id]);
+      return unchanged ? current : next;
+    });
+  }, [sessions, selected, ready, seq, focused]);
   return readThrough;
 }

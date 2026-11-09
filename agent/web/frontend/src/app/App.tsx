@@ -20,7 +20,7 @@ export function App() {
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = sessions.sessions.find(item => item.id === sessions.selected);
-  const readThrough = useSessionReadState(sessions.selected, conversation.ready, conversation.seq);
+  const readThrough = useSessionReadState(sessions.sessions, sessions.selected, conversation.ready, conversation.seq);
   const mainId = current?.parent_session_id ?? sessions.selected;
   const hasChildAgents = Boolean(mainId && sessions.sessions.some(item => item.parent_session_id === mainId));
   const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionSummary } from '../../api/types';
-import { readSessionCursors, sessionIndicator, useSessionReadState } from './useSessionReadState';
+import { sessionIndicator, useSessionReadState } from './useSessionReadState';
 
 const hooks = vi.hoisted(() => ({
   values: [] as unknown[], index: 0,
@@ -24,20 +24,20 @@ vi.mock('react', () => ({
 }));
 
 const session: SessionSummary = { id: 'one', title: 'One', createdAt: null, updatedAt: 0, activitySeq: 10, status: 'idle' };
+let sessions: SessionSummary[];
 let page: { visibilityState: string; hasFocus: () => boolean };
 let focused: boolean;
 let handlers: Map<string, () => void>;
-let store: Map<string, string>;
-function render(selected = 'one', ready = true, seq = 10) {
+function render(selected: string | null = 'one', ready = true, seq = 10) {
   hooks.index = 0;
-  const value = useSessionReadState(selected, ready, seq);
+  const value = useSessionReadState(sessions, selected, ready, seq);
   hooks.pending.splice(0).forEach(run => run());
   return value;
 }
 
 beforeEach(() => {
   hooks.values = []; hooks.effects = []; hooks.pending = [];
-  focused = true; handlers = new Map(); store = new Map();
+  sessions = [session]; focused = true; handlers = new Map();
   const events = {
     addEventListener: (type: string, handler: () => void) => handlers.set(type, handler),
     removeEventListener: (type: string) => handlers.delete(type),
@@ -45,48 +45,63 @@ beforeEach(() => {
   page = { visibilityState: 'visible', hasFocus: () => focused };
   vi.stubGlobal('document', Object.assign(page, events));
   vi.stubGlobal('window', events);
-  vi.stubGlobal('localStorage', {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => { store.set(key, value); },
-  });
 });
 afterEach(() => { hooks.effects.forEach(effect => effect?.cleanup?.()); vi.unstubAllGlobals(); });
 
 describe('history session indicators', () => {
-  it('prioritizes running, unread failure and ordinary unread, hiding read outcomes', () => {
+  it('defaults existing content to read and prioritizes running over unread outcomes', () => {
+    expect(sessionIndicator(session)).toBeNull();
+    expect(sessionIndicator({ ...session, status: 'failed' })).toBeNull();
     expect(sessionIndicator({ ...session, busy: true, status: 'failed' }, 10)).toBe('running');
     expect(sessionIndicator({ ...session, status: 'failed' }, 9)).toBe('failed');
     expect(sessionIndicator(session, 9)).toBe('unread');
     expect(sessionIndicator({ ...session, status: 'failed' }, 10)).toBeNull();
     expect(sessionIndicator({ ...session, status: 'cancelled' }, 10)).toBeNull();
     expect(sessionIndicator({ ...session, updatedAt: 999 }, 10)).toBeNull();
-    expect(sessionIndicator({ ...session, activitySeq: 0 })).toBeNull();
   });
 
-  it('marks only a ready, visible and focused conversation as read', () => {
+  it('baselines asynchronously loaded history, then tracks only new activity while open', () => {
+    sessions = [];
+    render(null, false, 0);
+    sessions = [session, { ...session, id: 'two', activitySeq: 20, status: 'failed' }];
+    render(null, false, 0);
+    expect(render(null, false, 0)).toEqual({ one: 10, two: 20 });
+    sessions = sessions.map(item => item.id === 'two' ? { ...item, activitySeq: 21 } : item);
+    render(null, false, 0);
+    const cursors = render(null, false, 0);
+    expect(cursors.two).toBe(20);
+    expect(sessionIndicator(sessions[1], cursors.two)).toBe('failed');
+    sessions = [...sessions, { ...session, id: 'new', activitySeq: 0 }];
+    render(null, false, 0);
+    expect(render(null, false, 0).new).toBe(0);
+    sessions = sessions.map(item => item.id === 'new' ? { ...item, activitySeq: 1 } : item);
+    expect(sessionIndicator(sessions[2], render(null, false, 0).new)).toBe('unread');
+  });
+
+  it('marks new content read only when loaded, visible and focused', () => {
     render('one', false);
-    expect(render('one', false)).toEqual({});
     focused = false; handlers.get('blur')?.();
-    render();
-    expect(render()).toEqual({});
+    render('one', true, 11);
+    expect(render('one', true, 11)).toEqual({ one: 10 });
     focused = true; page.visibilityState = 'hidden'; handlers.get('visibilitychange')?.();
-    render();
-    expect(render()).toEqual({});
+    render('one', true, 11);
+    expect(render('one', true, 11)).toEqual({ one: 10 });
     page.visibilityState = 'visible'; handlers.get('visibilitychange')?.();
-    render();
-    expect(render()).toEqual({ one: 10 });
-    expect(readSessionCursors()).toEqual({ one: 10 });
-    render('two', true, 20);
-    expect(render('two', true, 20)).toEqual({ one: 10, two: 20 });
-  });
-
-  it('preserves read cursors across reloads and tolerates unavailable storage', () => {
-    render();
-    hooks.values = []; hooks.effects = []; hooks.pending = [];
-    expect(render()).toEqual({ one: 10 });
-    vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } });
-    expect(readSessionCursors()).toEqual({});
+    render('one', false, 11);
+    expect(render('one', false, 11)).toEqual({ one: 10 });
     render('one', true, 11);
     expect(render('one', true, 11)).toEqual({ one: 11 });
+  });
+
+  it('rebuilds the read baseline on reload rather than restoring stale unread state', () => {
+    render(null, false, 0);
+    sessions = [{ ...session, activitySeq: 15 }];
+    expect(sessionIndicator(sessions[0], render(null, false, 0).one)).toBe('unread');
+    hooks.effects.forEach(effect => effect?.cleanup?.());
+    hooks.values = []; hooks.effects = []; hooks.pending = [];
+    render(null, false, 0);
+    const cursors = render(null, false, 0);
+    expect(cursors).toEqual({ one: 15 });
+    expect(sessionIndicator(sessions[0], cursors.one)).toBeNull();
   });
 });
