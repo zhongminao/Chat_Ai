@@ -147,11 +147,13 @@ DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` �
 ```text
 chat_ai → 云模型网关 → 固定云模型上游（直连）
         → 本地模型网关 → 本地模型（直连）
-        → Web MCP / SearXNG → 17897 受限出口 → 公网目标
+        → Web MCP → SearXNG → Linux 网络规则 → 公网 HTTP/HTTPS
 ```
 
 部署时应用、模型网关和模型服务应清除大小写 HTTP/HTTPS/ALL/FTP/RSYNC_PROXY，并设置 `NO_PROXY=*`、`no_proxy=*`，避免子进程继承代理。网关还需在自身 HTTP 客户端设置 `trust_env=False` 并使用固定上游；只修改 chat_ai 不能改变网关到上游的路径。
-网页服务独立维护显式代理及容器出口白名单，17897 代理拒绝内网和保留地址；不能仅靠 `NO_PROXY` 限制网页访问内网。安装依赖和拉取代码可在部署进程中使用代理，不传给应用运行进程。其他本地工具和动态 MCP 不由模型 HTTP 策略统一接管。
+SearXNG 普通搜索不使用 HTTP 代理：Linux 内核在其独立网络空间拒绝私有、回环、链路本地和保留目标及 IPv6，仅放行公网 80/443、Docker DNS 和固定 Valkey 依赖。规则就绪后才启动搜索进程，恢复正常 TLS 校验。该限制不作用于 chat_ai 或模型服务。
+
+Web MCP 的增强搜索直接连接固定 DeepSeek API，默认抓取直接访问指定网页，增强抓取由 DeepSeek 服务端执行；这些路径均忽略环境代理，不使用专用代理，也不套用 SearXNG 的公网限制。安装依赖和拉取代码可在部署进程中使用代理，不传给应用运行进程。其他本地工具和动态 MCP 不由模型 HTTP 策略统一接管。
 
 回归检查：`python -m unittest tests.test_model_direct_network -v`。直连公网的链路故障仍会导致模型请求失败，此边界不会自动修复外网不稳定。
 
