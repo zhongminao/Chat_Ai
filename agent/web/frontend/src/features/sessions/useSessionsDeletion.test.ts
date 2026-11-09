@@ -79,13 +79,13 @@ describe('deleting a conversation with child sessions', () => {
     expect(render().selected).toBe(child.id);
   });
 
-  it('sends one deletion and leaves a deleted child view for an empty session', async () => {
+  it('sends one deletion and returns to the local draft without creating a session', async () => {
     await render().remove(parent.id);
     expect(api.deleteSession).toHaveBeenCalledExactlyOnceWith(parent.id);
     expect(render().sessions).toEqual([other]);
-    expect(render().selected).toBe(other.id);
+    expect(render().selected).toBeNull();
     expect(sessionStorage.removeItem).toHaveBeenCalledWith('chat-ai:selected-session');
-    expect(sessionStorage.setItem).toHaveBeenLastCalledWith('chat-ai:selected-session', other.id);
+    expect(sessionStorage.setItem).not.toHaveBeenCalled();
     expect(api.createSession).not.toHaveBeenCalled();
   });
 

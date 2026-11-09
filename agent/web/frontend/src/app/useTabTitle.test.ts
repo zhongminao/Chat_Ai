@@ -38,7 +38,7 @@ describe('browser tab title', () => {
   });
   it('handles initial loading and no selection', () => {
     expect(getTabTitle({ ...base, loading: true })).toContain('正在加载');
-    expect(getTabTitle({ ...base, selected: null })).toBe('○ 未选择会话');
+    expect(getTabTitle({ ...base, selected: null })).toBe('○ 新会话');
   });
   it('updates document.title', () => {
     vi.stubGlobal('document', { title: 'old' });

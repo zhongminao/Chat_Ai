@@ -39,6 +39,21 @@ describe('existing event protocol -> conversation', () => {
     expect(JSON.stringify(restored.items)).not.toContain('private-mail-id');
   });
 
+  it('keeps runtime notices out of both live and HTTP-restored chat bubbles', () => {
+    const events: AgentEvent[] = [
+      { ...start, currentTime: '2026-11-09T23:00:00+08:00' }, modelStart, text,
+      { seq: 4, type: 'mailbox.notified', messageIds: ['internal-mail-marker'] },
+      { seq: 5, type: 'completion.reminded', content: 'internal-submit-marker' },
+    ];
+    const expected = replay([start, modelStart, text]).items;
+    const live = replay(events, { ...initialState(5, true), model: { provider: 'local-qwen3p5-9b', name: 'local-qwen3p5-9b' } });
+    const restored = reduce(emptyConversation(), { type: 'history', page: {
+      events, snapshot_seq: 5, min_seq: 1, has_more: false,
+    } });
+    expect(live.items).toEqual(expected);
+    expect(restored.items).toEqual(expected);
+  });
+
   it('waits for explicit replay completion, including empty history', () => {
     const empty = reduce(emptyConversation(), { type: 'initialize', session: initialState(0) });
     expect(empty.ready).toBe(false);

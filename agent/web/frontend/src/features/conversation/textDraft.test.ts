@@ -18,7 +18,10 @@ describe('per-session composer draft', () => {
     writeTextDraft('other', '另一个草稿');
     expect(readTextDraft('other')).toBe('另一个草稿');
     expect(readTextDraft('new')).toBe('尚未发送');
-    expect(readTextDraft(null)).toBe('');
+    writeTextDraft(null, '新会话草稿');
+    expect(readTextDraft(null)).toBe('新会话草稿');
+    expect(readTextDraft('new')).toBe('尚未发送');
+    writeTextDraft(null, '');
   });
 
   it('clears only successful sends of unchanged text', () => {
@@ -29,6 +32,16 @@ describe('per-session composer draft', () => {
     expect(clearTextDraftIfUnchanged('new', '发送期间新输入')).toBe(true);
     expect(readTextDraft('new')).toBe('');
     expect(store.has('chat-ai:composer-draft:new')).toBe(false);
+  });
+
+  it('restores the new-conversation draft from tab storage and clears only unchanged sends', () => {
+    store.set('chat-ai:new-conversation-text', '刷新前输入');
+    expect(readTextDraft(null)).toBe('刷新前输入');
+    writeTextDraft(null, '发送期间新输入');
+    expect(clearTextDraftIfUnchanged(null, '刷新前输入')).toBe(false);
+    expect(readTextDraft(null)).toBe('发送期间新输入');
+    expect(clearTextDraftIfUnchanged(null, '发送期间新输入')).toBe(true);
+    expect(store.has('chat-ai:new-conversation-text')).toBe(false);
   });
 
   it('keeps a draft in memory when browser storage is unavailable', () => {

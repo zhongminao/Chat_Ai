@@ -8,12 +8,24 @@ const session = (id: string, updatedAt = 0) => ({ id, title: `会话-${id}`, cre
 const props = {
   sessions: [session('normal', 100), { ...session('pinned', 1), pinned: true },
     { ...session('archived', 2), archived: true }, { ...session('child'), parent_session_id: 'normal' }],
-  selected: null, loading: false, creating: false, deleting: null, updating: null,
+  selected: null, loading: false, deleting: null, updating: null,
   open: true, busy: false, onUpdate: vi.fn(), onSelect: vi.fn(),
   onCreate: vi.fn(), onDelete: vi.fn(), onClose: vi.fn(),
 };
 beforeEach(() => { state.open = false; state.index = 0; });
 describe('history and archive directory', () => {
+  it('hides old empty sessions in history, pinned and archived sections without changing the source list', () => {
+    state.open = true;
+    const sessions = [...props.sessions, ...[
+      { ...session('empty-history'), empty: true },
+      { ...session('empty-pinned'), empty: true, pinned: true },
+      { ...session('empty-archived'), empty: true, archived: true },
+    ]];
+    const html = renderToStaticMarkup(<SessionSidebar {...props} sessions={sessions} />);
+    for (const id of ['empty-history', 'empty-pinned', 'empty-archived']) expect(html).not.toContain(`会话-${id}`);
+    expect(html).toContain('会话-normal');
+    expect(sessions).toHaveLength(props.sessions.length + 3);
+  });
   it('separates pinned and history sections without row badges, and hides archived/child rows', () => {
     const html = renderToStaticMarkup(<SessionSidebar {...props} />);
     expect(html.indexOf('会话-pinned')).toBeLessThan(html.indexOf('会话-normal'));

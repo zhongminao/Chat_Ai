@@ -174,7 +174,7 @@ def access_mode(session_id: str, request: AccessModeRequest):
 def models():
     catalog = registry.catalog
     refresh_catalog(catalog, timeout=2)
-    return {"models": [
+    return {"defaultModel": catalog.new_session_default().as_dict(), "models": [
         {"provider": provider, "displayName": data.get("display_name", provider),
          "models": [{"id": item["id"], "name": item.get("name", item["id"]),
                     "enabled": item.get("enabled", True),

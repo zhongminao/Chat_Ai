@@ -18,21 +18,23 @@ beforeEach(() => { states.length = 0; vi.clearAllMocks(); });
 describe('manual model refresh', () => {
   it('preserves old choices until data arrives and coalesces repeated clicks', async () => {
     const groups = [{ provider: 'local', displayName: 'Local', models: [{ id: 'qwen', name: 'Qwen', enabled: true }] }];
-    let finish!: (value: { models: typeof groups }) => void;
+    const defaultModel = { provider: 'gpt', name: 'gpt-6.1-sol' };
+    let finish!: (value: { models: typeof groups; defaultModel: typeof defaultModel }) => void;
     vi.mocked(api.models).mockReturnValue(new Promise(resolve => { finish = resolve; }));
     const hook = useSessions();
     const pending = hook.refreshModels();
     await hook.refreshModels();
     expect(api.models).toHaveBeenCalledOnce();
     expect(states.flatMap(state => state.mock.calls.map(call => call[0]))).not.toContain(groups);
-    finish({ models: groups });
+    finish({ models: groups, defaultModel });
     await pending;
+    expect(states.some(state => state.mock.calls.some(call => call[0] === defaultModel))).toBe(true);
     expect(states.some(state => state.mock.calls.some(call => call[0] === groups))).toBe(true);
     expect(api.sessions).not.toHaveBeenCalled();
   });
 
   it('reports failure without clearing choices and allows retry', async () => {
-    vi.mocked(api.models).mockRejectedValueOnce(new Error('network error')).mockResolvedValue({ models: [] });
+    vi.mocked(api.models).mockRejectedValueOnce(new Error('network error')).mockResolvedValue({ models: [], defaultModel: { provider: 'gpt', name: 'gpt-6.1-sol' } });
     const hook = useSessions();
     await hook.refreshModels();
     expect(states.some(state => state.mock.calls.some(call => call[0] === 'network error'))).toBe(true);

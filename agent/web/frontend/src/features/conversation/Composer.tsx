@@ -54,6 +54,7 @@ export function Composer(props: Props) {
   }, []);
   const draft = useImageDraft(props.sessionId, props.onUploaded);
   const fileDraft = useFileDraft(props.sessionId);
+  const draftImages = props.sessionId === null ? draft.localImages : props.images;
   const guidance = useGuidanceQueue(props.sessionId, props.acceptedGuidance);
   const textRef = useRef(text); textRef.current = text;
   useLayoutEffect(() => {
@@ -104,9 +105,10 @@ export function Composer(props: Props) {
           });
         }
       }}>
-      {props.sessionId && <ImageAttachments sessionId={props.sessionId}
-        images={draft.ids.map(id => props.images.find(image => image.id === id)).filter((image): image is ImageAsset => Boolean(image))}
-        disabled={!canEditImages} onRemove={id => draft.remove([id])} />}
+      <ImageAttachments sessionId={props.sessionId}
+        images={draft.ids.map(id => draftImages.find(image => image.id === id)).filter((image): image is ImageAsset => Boolean(image))}
+        previewUrls={props.sessionId === null ? new Map(draft.localImages.map(image => [image.id, image.previewUrl])) : undefined}
+        disabled={!canEditImages} onRemove={id => draft.remove([id])} />
       {fileDraft.files.length > 0 && <div className="file-attachments">{fileDraft.files.map(file =>
         <span className="file-chip" key={file.id} title={file.path}><Icon name="attachment" size={16} />
           <span className="file-chip-name">{file.name}</span>

@@ -32,7 +32,7 @@ export const api = {
   sessions: (signal?: AbortSignal) => request<{ sessions: SessionSummary[] }>('/api/sessions', { signal }),
   watch: (id: string, cursor?: number, timeout = 0, signal?: AbortSignal) => request<WatchResult>(
     `${sessionPath(id)}/watch?timeout=${timeout}${cursor === undefined ? '' : `&cursor=${cursor}`}`, { signal }),
-  models: (signal?: AbortSignal) => request<{ models: ModelGroup[] }>('/api/models', { signal }),
+  models: (signal?: AbortSignal) => request<{ models: ModelGroup[]; defaultModel: Model }>('/api/models', { signal }),
   createSession: () => request<{ id: string }>('/api/sessions', post()),
   deleteSession: (id: string) => request<{ deleted: boolean }>(sessionPath(id), { method: 'DELETE' }),
   updateSession: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => request<{ id: string; title?: string; pinned?: boolean; archived?: boolean }>(

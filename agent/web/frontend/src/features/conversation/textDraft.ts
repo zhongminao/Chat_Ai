@@ -3,8 +3,7 @@ const prefix = 'chat-ai:composer-draft:';
 const fallback = new Map<string, string>();
 
 export function readTextDraft(sessionId: string | null): string {
-  if (!sessionId) return '';
-  const key = prefix + sessionId;
+  const key = sessionId === null ? 'chat-ai:new-conversation-text' : prefix + sessionId;
   try {
     const stored = sessionStorage.getItem(key);
     if (stored !== null) return stored;
@@ -13,8 +12,7 @@ export function readTextDraft(sessionId: string | null): string {
 }
 
 export function writeTextDraft(sessionId: string | null, text: string): void {
-  if (!sessionId) return;
-  const key = prefix + sessionId;
+  const key = sessionId === null ? 'chat-ai:new-conversation-text' : prefix + sessionId;
   if (text) fallback.set(key, text);
   else fallback.delete(key);
   try {

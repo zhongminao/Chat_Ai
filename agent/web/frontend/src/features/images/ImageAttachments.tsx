@@ -5,16 +5,21 @@ import { imageLabel } from './imageLabel';
 import './images.css';
 
 export interface ImageAttachmentProps {
-  sessionId: string;
+  sessionId: string | null;
   images: ImageAsset[];
+  previewUrls?: ReadonlyMap<string, string>;
   disabled?: boolean;
   onRemove?: (id: string) => void;
 }
 
 function ImageCard({ image, ...props }: Omit<ImageAttachmentProps, 'images'> & { image: ImageAsset }) {
+  const localUrl = props.previewUrls?.get(image.id);
+  const url = localUrl ?? (props.sessionId === null ? null : api.imageUrl(props.sessionId, image.id));
+  const preview = localUrl ?? (props.sessionId === null ? null : api.imageUrl(props.sessionId, image.id, true));
+  if (!url || !preview) return null;
   return <div className="image-card">
-    <a href={api.imageUrl(props.sessionId, image.id)} target="_blank" rel="noopener noreferrer"
-      aria-label={`查看图片：${imageLabel(image)}`}><img src={api.imageUrl(props.sessionId, image.id, true)}
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      aria-label={`查看图片：${imageLabel(image)}`}><img src={preview}
         alt={imageLabel(image)} loading="lazy" width={160} height={110} /></a>
     {props.onRemove && <button type="button" className="image-remove icon-button" aria-label={`移除图片：${image.name}`}
       disabled={props.disabled} onClick={() => props.onRemove?.(image.id)}><Icon name="close" size={14} /></button>}

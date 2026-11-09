@@ -9,7 +9,6 @@ interface Props {
   readThrough?: Record<string, number>;
   activeBusy?: boolean;
   loading: boolean;
-  creating: boolean;
   deleting: string | null;
   updating: string | null;
   onUpdate: (id: string, changes: { title?: string; pinned?: boolean; archived?: boolean }) => Promise<boolean>;
@@ -23,7 +22,7 @@ interface Props {
 
 export function SessionSidebar(props: Props) {
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const roots = props.sessions.filter(session => !session.parent_session_id);
+  const roots = props.sessions.filter(session => !session.parent_session_id && !session.empty);
   const active = roots.filter(session => !session.archived).sort((a, b) => b.updatedAt - a.updatedAt);
   const pinned = active.filter(session => session.pinned);
   const history = active.filter(session => !session.pinned);
@@ -42,8 +41,8 @@ export function SessionSidebar(props: Props) {
       <div className="sidebar-heading"><span className="brand">chat_ai</span>
         <button className="icon-button mobile-only" aria-label="关闭会话列表" onClick={props.onClose}><Icon name="close" /></button>
       </div>
-      <button className="new-session" onClick={props.onCreate} disabled={props.loading || props.creating}>
-        <Icon name="plus" />{props.creating ? '正在创建…' : '新会话'}
+      <button className="new-session" onClick={props.onCreate} disabled={props.loading}>
+        <Icon name="plus" />新会话
       </button>
       <div className="session-list session-groups">
         {props.loading && <p className="muted sidebar-empty">加载中…</p>}

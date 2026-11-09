@@ -18,7 +18,7 @@ export interface TabTitleState {
 export function getTabTitle(state: TabTitleState): string {
   let status: string;
   if (state.loading) status = '⏳ 正在加载';
-  else if (!state.selected) status = state.error ? '❌ 出错' : '○ 未选择会话';
+  else if (!state.selected) status = state.error ? '❌ 出错' : state.sending ? '⏳ 正在发送' : '○ 新会话';
   else if (!state.connected) status = state.error ? '❌ 出错' : '⚠ 连接中 / 已断开';
   else if (!state.ready) status = state.error ? '❌ 出错' : '⏳ 正在恢复';
   else if (state.waitingApproval) status = '🔔 等待审批';

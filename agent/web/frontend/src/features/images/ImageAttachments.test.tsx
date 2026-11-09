@@ -14,6 +14,14 @@ describe('read-only image labels', () => {
     expect(html).not.toContain('<input');
     expect(html).not.toContain('<button');
   });
+  it('uses object URLs only for local null-session previews, without API URLs', () => {
+    const html = renderToStaticMarkup(<ImageAttachments sessionId={null} images={[image]}
+      previewUrls={new Map([[image.id, 'blob:local-preview']])} onRemove={vi.fn()} />);
+    expect(html).toContain('href="blob:local-preview"');
+    expect(html).toContain('src="blob:local-preview"');
+    expect(html).toContain('移除图片');
+    expect(html).not.toContain('/api/');
+  });
   it('retains the remove action for uploaded drafts', () => {
     const html = renderToStaticMarkup(<ImageAttachments sessionId="session" images={[image]} onRemove={vi.fn()} />);
     expect(html).toContain('移除图片');

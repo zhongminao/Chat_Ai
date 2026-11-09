@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client';
 import type { ImageAsset } from '../../api/types';
-
-const MAX_IMAGES = 8;
-const MAX_BYTES = 10 * 1024 * 1024;
+import { addNewConversationImage, getNewConversationImages, removeNewConversationImages,
+  MAX_DRAFT_IMAGES, MAX_DRAFT_IMAGE_BYTES } from '../conversation/newConversationAttachments';
 
 export function useImageDraft(sessionId: string | null, onUploaded: (image: ImageAsset) => void) {
-  const [ids, setIds] = useState<string[]>([]);
+  const [ids, setIds] = useState<string[]>(() => sessionId === null ? getNewConversationImages().map(image => image.id) : []);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const current = useRef(ids); current.current = ids;
@@ -19,16 +18,16 @@ export function useImageDraft(sessionId: string | null, onUploaded: (image: Imag
   }, []);
 
   async function upload(files: File[]) {
-    if (!sessionId || !files.length || pending.current) return;
+    if (!files.length || pending.current) return;
     pending.current = true; setUploading(true); setError(null);
     try {
       for (const file of files) {
         if (!alive.current) return;
-        if (current.current.length >= MAX_IMAGES) throw new Error('每条消息最多包含 8 张图片');
-        if (file.size > MAX_BYTES) throw new Error('单张图片不能超过 10 MB');
-        const { image } = await api.uploadImage(sessionId, file);
+        if (current.current.length >= MAX_DRAFT_IMAGES) throw new Error('每条消息最多包含 8 张图片');
+        if (file.size > MAX_DRAFT_IMAGE_BYTES) throw new Error('单张图片不能超过 10 MB');
+        const image = sessionId === null ? addNewConversationImage(file) : (await api.uploadImage(sessionId, file)).image;
         if (!alive.current) return;
-        notify.current(image);
+        if (sessionId !== null) notify.current(image);
         current.current = [...current.current, image.id];
         setIds(current.current);
       }
@@ -41,6 +40,7 @@ export function useImageDraft(sessionId: string | null, onUploaded: (image: Imag
   }
 
   function remove(sent: string[]) {
+    if (sessionId === null) removeNewConversationImages(sent);
     current.current = current.current.filter(id => !sent.includes(id));
     setIds(current.current);
   }
@@ -50,5 +50,5 @@ export function useImageDraft(sessionId: string | null, onUploaded: (image: Imag
     setIds(current.current);
   }
 
-  return { ids, uploading, error, upload, remove, restore };
+  return { ids, localImages: sessionId === null ? getNewConversationImages() : [], uploading, error, upload, remove, restore };
 }
