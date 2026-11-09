@@ -2,8 +2,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionSidebar } from './SessionSidebar';
 
-const state = vi.hoisted(() => ({ open: false, index: 0 }));
-vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: (initial: unknown) => [state.index++ === 0 ? state.open : initial, vi.fn()] }));
+const state = vi.hoisted(() => ({ open: false, index: 0, dates: {} as Record<string, boolean> }));
+vi.mock('react', async original => ({
+  ...await original<typeof import('react')>(),
+  useState: (initial: unknown) => {
+    const index = state.index++;
+    return [index === 0 ? state.open : index === 1 ? state.dates : initial, vi.fn()];
+  },
+}));
 const session = (id: string, updatedAt = 0) => ({ id, title: `会话-${id}`, createdAt: null, updatedAt });
 const props = {
   sessions: [session('normal', 100), { ...session('pinned', 1), pinned: true },
@@ -12,7 +18,7 @@ const props = {
   open: true, busy: false, onUpdate: vi.fn(), onSelect: vi.fn(),
   onCreate: vi.fn(), onDelete: vi.fn(), onClose: vi.fn(),
 };
-beforeEach(() => { state.open = false; state.index = 0; });
+beforeEach(() => { state.open = false; state.index = 0; state.dates = {}; });
 describe('history and archive directory', () => {
   it('hides old empty sessions in history, pinned and archived sections without changing the source list', () => {
     state.open = true;
@@ -50,5 +56,25 @@ describe('history and archive directory', () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html.indexOf('会话-archived')).toBeGreaterThan(html.indexOf('id="archived-sessions"'));
     expect(html.match(/title="会话-archived"/g)).toHaveLength(1);
+  });
+  it('defaults to the latest archive date and allows date groups to expand independently', () => {
+    state.open = true;
+    const sessions = [
+      { ...session('latest'), archived: true, archivedAt: Date.parse('2026-11-09T16:00:00Z') / 1000 },
+      { ...session('earlier', 9999999999), archived: true, archivedAt: Date.parse('2026-11-08T16:00:00Z') / 1000 },
+      { ...session('legacy'), archived: true },
+    ];
+    let html = renderToStaticMarkup(<SessionSidebar {...props} sessions={sessions} />);
+    expect(html).toContain('会话-latest');
+    expect(html).not.toContain('会话-earlier');
+    expect(html).not.toContain('会话-legacy');
+    expect(html.indexOf('2026-11-10')).toBeLessThan(html.indexOf('2026-11-09'));
+    expect(html).toContain('归档时间未知');
+    state.index = 0;
+    state.dates = { '2026-11-10': false, '2026-11-09': true, '归档时间未知': true };
+    html = renderToStaticMarkup(<SessionSidebar {...props} sessions={sessions} />);
+    expect(html).not.toContain('会话-latest');
+    expect(html).toContain('会话-earlier');
+    expect(html).toContain('会话-legacy');
   });
 });

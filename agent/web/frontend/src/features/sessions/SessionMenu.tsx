@@ -67,7 +67,7 @@ export function SessionMenu(props: Props) {
         }
       }}>
       <button role="menuitem" disabled={props.disabled} onClick={() => { close(); props.onRename(); }}><Icon name="edit" size={15} />重命名</button>
-      <button role="menuitem" disabled={props.disabled} onClick={() => { close(true); props.onPin(); }}><Icon name="pin" size={15} />{props.pinned ? '取消置顶' : '置顶'}</button>
+      {!props.archived && <button role="menuitem" disabled={props.disabled} onClick={() => { close(true); props.onPin(); }}><Icon name="pin" size={15} />{props.pinned ? '取消置顶' : '置顶'}</button>}
       <button role="menuitem" disabled={props.disabled} onClick={() => { close(true); props.onArchive(); }}><Icon name="archive" size={15} />{props.archived ? '取消归档' : '归档'}</button>
       <button role="menuitem" className="session-menu-delete" disabled={props.disabled || props.deleteDisabled}
         title={props.deleteDisabled ? '请先停止运行中的会话' : undefined}

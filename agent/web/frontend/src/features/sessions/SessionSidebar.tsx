@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SessionSummary } from '../../api/types';
 import { Icon } from '../../ui/Icon';
 import { SessionRow } from './SessionRow';
+import { groupArchivedSessions } from './archiveGroups';
 
 interface Props {
   sessions: SessionSummary[];
@@ -22,11 +23,13 @@ interface Props {
 
 export function SessionSidebar(props: Props) {
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveDates, setArchiveDates] = useState<Record<string, boolean>>({});
   const roots = props.sessions.filter(session => !session.parent_session_id && !session.empty);
   const active = roots.filter(session => !session.archived).sort((a, b) => b.updatedAt - a.updatedAt);
   const pinned = active.filter(session => session.pinned);
   const history = active.filter(session => !session.pinned);
-  const archived = roots.filter(session => session.archived).sort((a, b) => b.updatedAt - a.updatedAt);
+  const archived = roots.filter(session => session.archived);
+  const archiveGroups = groupArchivedSessions(archived);
   const selectedRoot = props.sessions.find(session => session.id === props.selected)?.parent_session_id ?? props.selected;
   const row = (session: SessionSummary) => <SessionRow key={session.id} session={session}
     running={session.id === props.selected ? props.activeBusy : undefined}
@@ -66,7 +69,17 @@ export function SessionSidebar(props: Props) {
         </button>
         {archiveOpen && <nav id="archived-sessions" className="session-list archive-list" aria-label="归档会话列表">
           {!archived.length && <p className="muted sidebar-empty">暂无归档会话</p>}
-          {archived.map(row)}
+          {archiveGroups.map((group, index) => {
+            const expanded = archiveDates[group.date] ?? index === 0;
+            const listId = `archive-date-${group.date}`;
+            return <section className="archive-date" key={group.date} aria-label={group.date}>
+              <button className="archive-date-toggle" aria-expanded={expanded} aria-controls={listId}
+                onClick={() => setArchiveDates(value => ({ ...value, [group.date]: !expanded }))}>
+                <Icon name="down" size={12} /><span>{group.date}</span><span className="archive-count">{group.sessions.length}</span>
+              </button>
+              {expanded && <div id={listId}>{group.sessions.map(row)}</div>}
+            </section>;
+          })}
         </nav>}
       </section>
     </aside>

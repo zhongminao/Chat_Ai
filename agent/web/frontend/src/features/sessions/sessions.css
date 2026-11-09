@@ -21,6 +21,9 @@
 .archive-count { margin-left: auto; font-size: 11px; color: var(--muted); }
 .session-archive.is-open .archive-toggle > svg:last-child { transform: rotate(180deg); }
 .archive-list { flex: 1 1 auto; }
+.archive-date-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: #626974; font: inherit; font-size: 12px; text-align: left; }
+.archive-date-toggle:hover { background: #eceef2; }
+.archive-date-toggle[aria-expanded="false"] > svg { transform: rotate(-90deg); }
 .session-groups { margin-top: 18px; }
 .session-group .sidebar-label { margin: 10px 10px; }
 .session-group + .session-group { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); }

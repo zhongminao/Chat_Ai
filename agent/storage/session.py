@@ -104,8 +104,12 @@ class SessionStore:
         with self.database.connect() as connection:
             rows = connection.execute('''SELECT id, parent_session_id, COALESCE(NULLIF(title, ''), auto_title) AS title,
                 empty, status, activity_seq AS activitySeq, created_at AS createdAt, updated_at AS updatedAt,
-                json_type(metadata, '$.pinned') = 'true' AS pinned,
-                json_type(metadata, '$.archived') = 'true' AS archived
+                CASE WHEN json_type(metadata, '$.archived') = 'true' THEN 0
+                    ELSE json_type(metadata, '$.pinned') = 'true' END AS pinned,
+                json_type(metadata, '$.archived') = 'true' AS archived,
+                CASE WHEN json_type(metadata, '$.archived') = 'true'
+                    AND json_type(metadata, '$.archivedAt') IN ('integer', 'real')
+                    THEN json_extract(metadata, '$.archivedAt') END AS archivedAt
                 FROM sessions ORDER BY updated_at DESC''').fetchall()
         return [{**dict(row), 'empty': bool(row['empty']),
                  'pinned': bool(row['pinned']), 'archived': bool(row['archived'])} for row in rows]
@@ -148,7 +152,20 @@ class SessionStore:
             if row['parent_session_id'] is not None:
                 raise ValueError('只能修改主会话的名称、置顶或归档状态')
             metadata = json.loads(row['metadata'])
-            metadata.update({key: changes[key] for key in ('pinned', 'archived') if key in changes})
+            was_archived = metadata.get('archived') is True
+            if 'archived' in changes:
+                archived_at = metadata.get('archivedAt') if was_archived and changes['archived'] else None
+                if type(archived_at) not in (int, float):
+                    archived_at = None
+                if changes['archived'] and not was_archived:
+                    archived_at = datetime.now(timezone.utc).timestamp()
+                changes['archivedAt'] = archived_at
+            # Archived final state wins; unarchiving must not restore a stale legacy pin.
+            if was_archived:
+                changes.setdefault('pinned', False)
+            if changes.get('archived', was_archived):
+                changes['pinned'] = False
+            metadata.update({key: value for key, value in changes.items() if key != 'title'})
             connection.execute('UPDATE sessions SET metadata=? WHERE id=?',
                                (json.dumps(metadata, ensure_ascii=False), session_id))
             if 'title' in changes:

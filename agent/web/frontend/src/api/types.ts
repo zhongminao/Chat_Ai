@@ -7,6 +7,7 @@ export interface SessionSummary {
   empty?: boolean;
   pinned?: boolean;
   archived?: boolean;
+  archivedAt?: number | null;
   parent_session_id?: string | null;
   busy?: boolean;
   status?: 'idle' | 'running' | 'submitted' | 'failed' | 'cancelled';
