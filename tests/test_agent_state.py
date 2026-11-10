@@ -139,7 +139,7 @@ class AgentStateTests(unittest.TestCase):
         self.assertEqual(Path(report['report_path']).read_text().strip(), report['report'])
         self.assertEqual(report['answer'], report['report'])
 
-        with patch('agent.core.agent_runtime.stream', return_value=iter([ModelChunk(content='hello')])):
+        with patch('agent.core.agent_runtime.stream', return_value=(chunk for chunk in [ModelChunk(content='hello')])):
             self.session.enqueue('chat')
             self.registry.wait()
         current = self.serializable()['execution']

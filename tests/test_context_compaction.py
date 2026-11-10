@@ -196,7 +196,7 @@ class CompactionRuntimeTests(unittest.TestCase):
                  patch.object(self.agent.catalog, "token_counter", return_value=method), \
                  patch("agent.core.agent_runtime.count_request_tokens", return_value=42) as counter, \
                  patch("agent.core.agent_runtime.summarize_context") as summary, \
-                 patch("agent.core.agent_runtime.stream", return_value=iter([ModelChunk(content="ok")])):
+                 patch("agent.core.agent_runtime.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
                 self.runtime.enqueue("new")
                 self.registry.wait()
             counter.assert_called_once()
@@ -307,7 +307,7 @@ class CompactionRuntimeTests(unittest.TestCase):
         self.agent.context_config = {"enabled": False}
         with patch("agent.core.agent_runtime.count_request_tokens") as counter, \
              patch("agent.core.agent_runtime.summarize_context") as summary, \
-             patch("agent.core.agent_runtime.stream", return_value=iter([ModelChunk(content="ok")])):
+             patch("agent.core.agent_runtime.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
             self.runtime.enqueue("new")
             self.registry.wait()
         counter.assert_not_called()
@@ -323,7 +323,7 @@ class CompactionRuntimeTests(unittest.TestCase):
              patch('agent.cli.main.SessionRegistry', return_value=self.registry), \
              patch('agent.core.agent_runtime.count_request_tokens', side_effect=[150, 50]), \
              patch('agent.core.agent_runtime.summarize_context', return_value='summary'), \
-             patch('agent.core.agent_runtime.stream', return_value=iter([ModelChunk(content='ok')])), \
+             patch('agent.core.agent_runtime.stream', return_value=(chunk for chunk in [ModelChunk(content='ok')])), \
              redirect_stdout(output):
             main()
         self.assertIn('[正在自动压缩上下文…]', output.getvalue())

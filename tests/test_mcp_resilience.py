@@ -151,7 +151,7 @@ class McpResilienceTests(unittest.TestCase):
                 with patch.object(McpClient, "_list", side_effect=OSError("offline")), \
                      self.assertLogs("agent.tools.mcp.client", level="WARNING"), \
                      patch("agent.model.catalog.ModelCatalog.get_binding", return_value=(object(), object())), \
-                     patch("agent.core.agent_runtime.stream", return_value=iter([ModelChunk(content="hello")])):
+                     patch("agent.core.agent_runtime.stream", return_value=(chunk for chunk in [ModelChunk(content="hello")])):
                     session.enqueue("hello")
                     registry.wait()
                 self.assertEqual(session.state["execution"]["status"], "completed")

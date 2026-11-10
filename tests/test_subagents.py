@@ -253,7 +253,7 @@ class SubagentTests(unittest.TestCase):
         for budget, expected_calls, reminders in [(12, 2, 1), (1, 1, 0)]:
             self.registry.config = replace(self.config, max_rounds=budget)
             parent = self.registry.create()
-            with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: iter([ModelChunk(content='draft')])) as model:
+            with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: (chunk for chunk in [ModelChunk(content='draft')])) as model:
                 receipt = json.loads(self.registry.delegate(parent.session.id, 'work'))
                 self.registry.wait()
             child = self.registry.get(receipt['session_id'])
@@ -269,7 +269,7 @@ class SubagentTests(unittest.TestCase):
         schema = next(s['function'] for s in parent.agent.tools.schemas if s['function']['name'] == 'delegate')
         self.assertEqual(schema['parameters']['required'], ['user_prompt'])
         self.assertEqual(set(schema['parameters']['properties']), {'user_prompt'})
-        with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: iter([calls(('submit', {'content': 'done'}))])):
+        with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: (chunk for chunk in [calls(('submit', {'content': 'done'}))])):
             receipt = json.loads(self.registry.delegate(parent.session.id, 'complete task context'))
             self.registry.wait()
         child = self.registry.get(receipt['session_id'])

@@ -1,4 +1,5 @@
 import uuid
+from contextlib import closing
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from collections.abc import Callable
@@ -170,7 +171,7 @@ class AgentRuntime:
             usage = None
 
             self.log.append("model.started", runId=run_id, round=round_no)
-            for chunk in stream(
+            with closing(stream(
                 client,
                 model["name"],
                 self.state["messages"],
@@ -179,43 +180,44 @@ class AgentRuntime:
                 context=context,
                 images=self.images,
                 read_images=vision,
-            ):
-                context.cancellation.raise_if_cancelled()
+            )) as response:
+                for chunk in response:
+                    context.cancellation.raise_if_cancelled()
 
-                if chunk.content:
-                    self.apply(transitions.append_answer(self.state, chunk.content))
-                    self.output(chunk.content)
-                    if piece := text_buffer.add(chunk.content):
+                    if chunk.content:
+                        self.apply(transitions.append_answer(self.state, chunk.content))
+                        self.output(chunk.content)
+                        if piece := text_buffer.add(chunk.content):
+                            self.log.append(
+                                "message.delta",
+                                durable=False,
+                                runId=run_id,
+                                round=round_no,
+                                text=piece,
+                            )
+
+                    if chunk.reasoning:
                         self.log.append(
-                            "message.delta",
+                            "reasoning.delta",
                             durable=False,
                             runId=run_id,
                             round=round_no,
-                            text=piece,
+                            text=chunk.reasoning,
                         )
 
-                if chunk.reasoning:
-                    self.log.append(
-                        "reasoning.delta",
-                        durable=False,
-                        runId=run_id,
-                        round=round_no,
-                        text=chunk.reasoning,
-                    )
+                    for delta in chunk.tool_deltas:
+                        stream_guard.check(delta)
+                        assembler.add(delta.as_dict())
+                        self.log.append(
+                            "tool_call.delta",
+                            durable=False,
+                            runId=run_id,
+                            round=round_no,
+                            delta=delta.as_dict(),
+                        )
 
-                for delta in chunk.tool_deltas:
-                    stream_guard.check(delta)
-                    assembler.add(delta.as_dict())
-                    self.log.append(
-                        "tool_call.delta",
-                        durable=False,
-                        runId=run_id,
-                        round=round_no,
-                        delta=delta.as_dict(),
-                    )
-
-                finish_reason = chunk.finish_reason or finish_reason
-                usage = chunk.usage or usage
+                    finish_reason = chunk.finish_reason or finish_reason
+                    usage = chunk.usage or usage
 
             context.cancellation.raise_if_cancelled()
 
