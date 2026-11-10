@@ -1,0 +1,32 @@
+name: wshobson-agents__task-coordination-strategies
+version: 1.0.0
+description: Decompose tasks, design dependency graphs and balance workload across multi-agent teams with
+  clear acceptance criteria.
+delivery: search_result
+triggers:
+  intents:
+  - 复杂任务拆解与并行单元划分
+  - 任务依赖图 blockedBy blocks 设计
+  - 多 agent 工作负载均衡
+  - 任务描述与验收标准撰写
+  - 识别关键路径与进度监控
+  aliases:
+  - task-coordination-strategies
+  - 任务依赖图
+  - task decomposition
+  capabilities:
+  - task decomposition
+  - dependency graph design
+  - workload balancing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/dependency-graphs.md
+- references/task-decomposition.md
+excludes:
+- 多 agent 团队规模配置
+- 并行代码实现的文件所有权
+- 甘特图排期

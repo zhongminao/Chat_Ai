@@ -1,0 +1,32 @@
+name: anthropics-skills__frontend-design
+version: 1.0.0
+description: Create distinctive frontend web UI with intentional visual direction,
+  typography, layout, content and self-critique.
+delivery: search_result
+triggers:
+  intents:
+  - distinctive frontend design
+  - frontend UI design
+  - website visual direction
+  - distinctive landing page
+  - web page aesthetics
+  - 前端网页设计
+  - 网站页面设计
+  - 网页视觉方案
+  - UI 页面设计
+  - 页面美学设计
+  - 避免模板化页面
+  aliases:
+  - frontend-design
+  - anthropics-skills__frontend-design
+  capabilities:
+  - website visual direction
+  - distinctive landing page
+  - web page aesthetics
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_ADAPTATION.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

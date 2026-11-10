@@ -1,0 +1,36 @@
+name: jeffallan-claude-skills__dotnet-core-expert
+version: 1.1.0
+description: Build .NET 8 cloud-native microservices — clean architecture layers, CQRS command/query handlers with MediatR, Entity Framework Core, JWT bearer authentication, health checks and containerization.
+delivery: search_result
+triggers:
+  intents:
+  - structure a .NET 8 service with clean architecture
+  - implement CQRS command and query handlers with MediatR
+  - secure a .NET 8 microservice with JWT bearer tokens
+  - containerize a .NET microservice with health checks
+  - .NET 8 微服务架构分层设计
+  - MediatR 命令查询职责分离实现
+  - .NET 集成测试与 WebApplicationFactory
+  - .NET 微服务鉴权与授权策略配置
+  aliases:
+  - dotnet-core-expert
+  - .NET 8 微服务架构
+  - CQRS MediatR
+  capabilities:
+  - clean architecture and CQRS structure
+  - .NET authentication and EF Core guidance
+  - cloud-native containerization advice
+excludes:
+  - Blazor 前端组件开发
+  - Razor Pages 页面开发
+  - 单体 Web 应用接口开发
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/authentication.md
+- references/clean-architecture.md
+- references/cloud-native.md
+- references/entity-framework.md
+- references/minimal-apis.md
+- UPSTREAM_LICENSE

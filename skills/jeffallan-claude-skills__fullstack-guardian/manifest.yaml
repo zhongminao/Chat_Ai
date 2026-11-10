@@ -1,0 +1,41 @@
+name: jeffallan-claude-skills__fullstack-guardian
+version: 1.1.1
+description: Implement a web feature across the full stack with security enforced at every layer — technical design first, authenticated and parameterized backend endpoints, matched frontend components, input validation, output encoding and error-handling checklists.
+delivery: search_result
+triggers:
+  intents:
+  - implement a CRUD feature across frontend and backend
+  - add authenticated API routes connected to UI components
+  - build a full stack web feature with server side input validation
+  - write a technical design before coding a web feature
+  - 全栈功能端到端实现
+  - 前后端接口联调与数据流设计
+  - 表单提交与后端校验安全实现
+  - 单体仓库多端功能规划
+  aliases:
+  - fullstack-guardian
+  - 全栈开发
+  - 前后端联动功能
+  capabilities:
+  - three-perspective feature design
+  - secure backend and frontend implementation patterns
+  - delivery checklist and handoff notes
+excludes:
+  - 纯前端视觉设计
+  - 安全渗透测试
+  - 脚本异常处理规范
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/api-design-standards.md
+- references/architecture-decisions.md
+- references/backend-patterns.md
+- references/common-patterns.md
+- references/deliverables-checklist.md
+- references/design-template.md
+- references/error-handling.md
+- references/frontend-patterns.md
+- references/integration-patterns.md
+- references/security-checklist.md
+- UPSTREAM_LICENSE

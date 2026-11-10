@@ -1,0 +1,34 @@
+name: github-awesome-copilot__create-architectural-decision-record
+version: 1.0.0
+description: Write a single AI-readable Architecture Decision Record with YAML front matter (title, status, date, authors,
+  supersedes) plus Context, Decision, coded Consequences, rejected Alternatives and Implementation Notes.
+delivery: search_result
+triggers:
+  intents:
+  - 写一份带 YAML front matter 和 POS/NEG/ALT 编码条目的 ADR 文档
+  - 为这次技术选型生成 adr-NNNN-title-slug.md 架构决策记录
+  - 整理决策的 Context、Decision、正负后果和被否决的备选方案
+  - write a single architecture decision record with front matter and coded consequences
+  - ADR 要包含 front matter 的 status 和 supersedes 字段
+  - 给一个已接受的技术决策补写 Implementation Notes 和 References
+  aliases:
+  - create architectural decision record
+  - ADR 模板
+  - 架构决策记录
+  capabilities:
+  - ADR front matter and status lifecycle
+  - coded consequences and alternatives with rationale
+  - implementation notes and references sections
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- architecture blueprint
+- 项目架构蓝图文档
+- design a system architecture
+- 系统架构方案设计
+- changelog
+- 更新日志

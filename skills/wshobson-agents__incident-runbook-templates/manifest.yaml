@@ -1,0 +1,27 @@
+name: wshobson-agents__incident-runbook-templates
+version: 1.0.0
+description: Structured incident response runbooks with detection, triage, escalation paths and recovery
+  actions.
+delivery: search_result
+triggers:
+  intents:
+  - 故障应急 runbook 模板
+  - 值班 on-call 处理手册
+  - 升级路径 escalation matrix
+  - 故障复盘与恢复步骤
+  aliases:
+  - incident-runbook-templates
+  - runbook
+  - 事故响应手册
+  capabilities:
+  - incident runbook structure
+  - escalation matrices
+  - recovery procedures
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

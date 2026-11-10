@@ -1,0 +1,33 @@
+name: video-recap-skills__video-assemble
+version: 1.0.0
+description: 'Locally mix existing video and narration WAV segments into a recap video with subtitle tracks, optional burning and QC; requires FFmpeg and correctly prepared inputs.'
+triggers:
+  intents:
+  - assemble recap video from tts_meta.json and source video
+  - mix video recap narration and burn timed subtitles
+  - create final recap mp4 with audio ducking and SRT subtitles
+  - 合成解说成片并混合旁白和原声
+  - 将 tts_meta.json 旁白与源视频合成并烧录字幕
+  - 制作解说成片的原声压低和字幕轨
+  aliases:
+  - video-recap-skills__video-assemble
+  - video-assemble
+  capabilities:
+  - recap video assembly with narration and subtitles
+  - 解说成片音频混合与字幕烧录
+delivery: search_result
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- UPSTREAM_CATALOG.json
+- references/audio-modes.md
+- references/explicit-audio-mix.md
+- references/narration-adoption.md
+- references/packaging.md
+- references/source-score.md
+- references/subtitle-track.md
+- references/jianying/SOURCE.md
+- references/jianying/LICENSE.duo-video

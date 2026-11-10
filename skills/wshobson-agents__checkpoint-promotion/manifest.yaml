@@ -1,0 +1,33 @@
+name: wshobson-agents__checkpoint-promotion
+version: 1.0.0
+description: 微调 checkpoint 的晋级门禁：PROMOTE/REJECT 判定、相对基线配对对比、drift 预算、灾难性遗忘检测与 promotion-report 生成。
+delivery: search_result
+triggers:
+  intents:
+  - checkpoint 晋级 PROMOTE REJECT 判定
+  - 微调模型相对基线的配对对比
+  - drift 预算与回归套件执行
+  - 灾难性遗忘检测方法
+  - 模型晋级评审报告 promotion-report
+  - 上线前评测门槛设置
+  - 重新晋级 re-gating 触发条件
+  aliases:
+  - checkpoint-promotion
+  - checkpoint 晋级评审
+  - 模型上线门槛
+  capabilities:
+  - promotion gate stages
+  - paired comparison against baseline
+  - forgetting checks
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/gate-templates.md
+- LOCAL_NOTES.md
+excludes:
+- 训练框架与超参配置
+- 评测方法学理论
+- 导出部署格式选择

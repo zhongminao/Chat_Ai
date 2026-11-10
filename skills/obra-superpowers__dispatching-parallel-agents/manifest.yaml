@@ -1,0 +1,34 @@
+name: obra-superpowers__dispatching-parallel-agents
+version: 1.0.0
+description: Decide whether several failing areas are truly independent problem domains, then draft one
+  self-contained, scope-limited prompt per domain that can be handed to parallel agents and integrated
+  afterwards.
+delivery: search_result
+triggers:
+  intents:
+  - 这几个测试文件的失败彼此独立吗，要不要拆开并行修
+  - 帮我写 3 份可以并行执行的子任务提示词
+  - 多个子系统同时报错，怎么按问题域拆成互不干扰的任务
+  - split these independent failures into separate agent prompts
+  - 判断哪些失败可以并行处理、哪些必须先串行查
+  - 给每个独立问题域写一份自包含的任务说明，附约束和输出要求
+  aliases:
+  - dispatching-parallel-agents
+  - 并行任务拆分
+  - 独立问题域派发
+  capabilities:
+  - independent-domain triage for multiple failures
+  - self-contained scope-limited agent prompt drafting
+  - post-dispatch integration and conflict review checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 直接帮我修改代码
+- 把整套测试跑一遍
+- subagent 一对一协作开发流程与脚本
+- 多维度会话复盘取证

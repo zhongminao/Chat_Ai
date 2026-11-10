@@ -1,0 +1,49 @@
+name: obra-superpowers__subagent-driven-development
+version: 1.0.0
+description: Execute an existing implementation plan task by task by drafting a fresh implementer brief
+  for each task, running a spec-plus-quality review after every task, keeping a decision ledger, and closing
+  with a whole-branch review.
+delivery: search_result
+triggers:
+  intents:
+  - 按实现计划逐任务推进，每个任务给出执行 brief 和任务后审查点
+  - 任务级审查要同时核对规格符合性和代码质量，清单怎么列
+  - 计划与代码冲突时，per-task 裁决怎么记录到 decision ledger
+  - per-task implementer brief plus spec and quality gate per task
+  - 整支分支最后怎么做一次全局复审
+  - 为每个任务写自包含的 implementer brief 并定义审查包范围
+  aliases:
+  - subagent-driven-development
+  - 逐任务实施与审查
+  - 实施计划分任务执行
+  capabilities:
+  - per-task implementer brief and review gate
+  - decision ledger with rulings and cost-if-wrong
+  - final whole-branch review checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- implementer-prompt.md
+- re-review-prompt.md
+- references/batching.md
+- references/cannot-verify.md
+- references/final-review.md
+- references/fix-loop.md
+- references/handling-reports.md
+- references/preflight.md
+- references/resuming.md
+- scripts/review-package
+- scripts/sdd-repo
+- scripts/sdd-workspace
+- scripts/task-brief
+- task-reviewer-prompt.md
+- LOCAL_NOTES.md
+excludes:
+- 并行拆分独立问题域
+- 把几个失败任务并行派发
+- 编写实现计划文档本身
+- 计划执行的串行逐步模式
+- 替我把代码改完并运行测试

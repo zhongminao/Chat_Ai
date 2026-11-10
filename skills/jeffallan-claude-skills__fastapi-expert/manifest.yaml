@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__fastapi-expert
+version: 1.1.0
+description: Build async Python APIs with FastAPI and Pydantic V2 — REST endpoints with dependency injection, validation schemas, async SQLAlchemy data access, JWT authentication, WebSocket routes and OpenAPI docs.
+delivery: search_result
+triggers:
+  intents:
+  - build a FastAPI REST endpoint with dependency injection
+  - define Pydantic V2 validation models
+  - set up async SQLAlchemy sessions in FastAPI
+  - add JWT authentication to a FastAPI app
+  - FastAPI 项目接口开发
+  - Pydantic 模型校验设计
+  - FastAPI 异步数据库操作
+  - FastAPI WebSocket 接口实现
+  aliases:
+  - fastapi-expert
+  - FastAPI 开发
+  - Pydantic V2
+  capabilities:
+  - FastAPI endpoint and router design
+  - Pydantic schema and validation guidance
+  - async SQLAlchemy and auth patterns
+excludes:
+  - Django ORM 与视图
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async-sqlalchemy.md
+- references/authentication.md
+- references/endpoints-routing.md
+- references/migration-from-django.md
+- references/pydantic-v2.md
+- references/testing-async.md
+- UPSTREAM_LICENSE

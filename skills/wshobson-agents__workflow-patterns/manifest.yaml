@@ -1,0 +1,32 @@
+name: wshobson-agents__workflow-patterns
+version: 1.0.0
+description: Conductor-style TDD task workflow with phase checkpoints, per-task git commits and verification
+  protocol.
+delivery: search_result
+triggers:
+  intents:
+  - Conductor 阶段检查点工作流
+  - 任务阶段 checkpoint 校验
+  - 每个任务独立 git commit 规范
+  - plan.md 进度记录与验证协议
+  aliases:
+  - workflow-patterns
+  - conductor workflow
+  - 阶段检查点工作流
+  capabilities:
+  - phase checkpoint workflow
+  - task commit hygiene
+  - verification protocol
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- manifest.yaml
+- references/details.md
+excludes:
+- executing-plans
+- writing-plans
+- test-driven-development
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

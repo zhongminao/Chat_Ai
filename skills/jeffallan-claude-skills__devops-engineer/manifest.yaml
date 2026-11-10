@@ -1,0 +1,39 @@
+name: jeffallan-claude-skills__devops-engineer
+version: 1.2.0
+description: Write Dockerfiles, CI/CD pipelines (GitHub Actions, GitLab CI), Kubernetes manifests and Terraform IaC — covering deployment strategies, GitOps, release automation and production incident response runbooks.
+delivery: search_result
+triggers:
+  intents:
+  - write a Dockerfile for a multi-stage build
+  - set up a GitHub Actions or GitLab CI pipeline
+  - write Kubernetes deployment and service manifests
+  - design blue-green or canary deployment strategy
+  - 编写 CI/CD 流水线配置
+  - 容器化应用并编写 Dockerfile
+  - 编写 Kubernetes 部署清单
+  - 制定生产故障应急响应流程
+  aliases:
+  - devops-engineer
+  - DevOps 部署
+  - 持续集成部署
+  capabilities:
+  - pipeline and container config drafting
+  - Kubernetes and IaC manifest guidance
+  - deployment strategy and incident runbooks
+excludes:
+  - 云架构整体方案设计
+  - 站点可靠性目标设计
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/deployment-strategies.md
+- references/docker-patterns.md
+- references/github-actions.md
+- references/gitlab-ci.md
+- references/incident-response.md
+- references/kubernetes.md
+- references/platform-engineering.md
+- references/release-automation.md
+- references/terraform-iac.md
+- UPSTREAM_LICENSE

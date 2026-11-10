@@ -1,0 +1,34 @@
+name: github-awesome-copilot__playwright-explore-website
+version: 1.0.0
+description: Explore a website through Playwright MCP, walk 3-5 core user flows, document UI elements, locators and expected
+  outcomes, then propose concrete test cases derived from that exploration.
+delivery: search_result
+triggers:
+  intents:
+  - 走查网站并梳理 3-5 条核心用户流程，输出元素定位器
+  - 探索式走查网站功能并记录元素定位器和预期结果
+  - 根据网站探索结果提出页面测试用例
+  - explore a website and list core features with element locators
+  - 找出页面关键交互元素，写出可自动化的定位器
+  - 新网站没有任何测试，先帮我做探索式走查
+  aliases:
+  - playwright explore website
+  - 网站探索走查
+  - 探索式测试用例设计
+  capabilities:
+  - guided site exploration through core flows
+  - UI element and locator documentation
+  - test case proposals from exploration
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- run playwright tests
+- 执行 e2e 测试
+- capture screenshots
+- 截图对比
+- load test
+- 性能压测

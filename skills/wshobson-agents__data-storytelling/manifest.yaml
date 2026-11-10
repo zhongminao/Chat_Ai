@@ -1,0 +1,31 @@
+name: wshobson-agents__data-storytelling
+version: 1.0.0
+description: Turn analytics into persuasive narratives with story structure, visualization choices and
+  executive-ready recommendations.
+delivery: search_result
+triggers:
+  intents:
+  - 把数据分析讲成决策故事
+  - 季度业务回顾 QBR 叙事结构
+  - 高管汇报的数据故事线
+  - 数据洞察与建议表达
+  - 投资人演示中的数据呈现
+  aliases:
+  - data-storytelling
+  - 数据故事化
+  - data narrative
+  capabilities:
+  - narrative arc structure
+  - visualization selection
+  - executive recommendation framing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- KPI 仪表盘版式设计
+- 市场空间测算
+- Excel 报表制作

@@ -1,0 +1,29 @@
+name: anthropics-skills__algorithmic-art
+version: 1.0.0
+description: Guidance for creating original p5.js generative art - writing an algorithmic philosophy, then expressing it as seeded-random flow fields or particle systems in a self-contained interactive HTML/JS viewer built from bundled templates.
+delivery: search_result
+triggers:
+  intents:
+  - create p5.js generative art from an algorithmic philosophy
+  - 用 p5.js 写一个粒子系统生成艺术
+  - generate organic flow field artwork with seeded randomness
+  - build an interactive parameter-tweaking generative art viewer
+  - 生成算法艺术 .html 交互作品
+  aliases:
+  - algorithmic-art
+  - p5.js 生成艺术
+  capabilities:
+  - p5.js generative art code guidance
+  - algorithmic philosophy drafting
+excludes:
+  - 静态海报与 PDF 画布设计
+  - 视频剪辑
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- templates/generator_template.js
+- templates/viewer.html

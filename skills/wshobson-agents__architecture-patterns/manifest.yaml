@@ -1,0 +1,32 @@
+name: wshobson-agents__architecture-patterns
+version: 1.0.0
+description: Clean Architecture, Hexagonal and DDD patterns for structuring backend services and modules.
+delivery: search_result
+triggers:
+  intents:
+  - Clean Architecture 分层设计
+  - 六边形架构 ports and adapters
+  - 领域驱动设计 bounded context
+  - 依赖倒置与依赖环清理
+  - 单体拆模块的边界划分
+  aliases:
+  - architecture-patterns
+  - clean architecture
+  - hexagonal architecture
+  capabilities:
+  - Clean/Hexagonal layering
+  - DDD bounded contexts
+  - dependency rule enforcement
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-patterns.md
+- references/details.md
+excludes:
+- architecture-designer
+- 云架构方案
+- 架构评审意见
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

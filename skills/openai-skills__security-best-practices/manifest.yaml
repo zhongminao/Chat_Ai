@@ -1,0 +1,44 @@
+name: openai-skills__security-best-practices
+version: 1.0.0
+description: Review or write code with secure-by-default guidance for Python, JavaScript/TypeScript and Go web stacks — identify frameworks, load the matching reference, flag critical issues, and produce a prioritized security report with file/line references and staged fixes.
+delivery: search_result
+triggers:
+  intents:
+  - security review against best practices
+  - write secure by default code for a web app
+  - check Flask/Django/FastAPI security issues
+  - React Next.js Express security hardening
+  - 按安全最佳实践审查代码
+  - 写默认安全的 Web 后端代码
+  - 检查前端框架常见安全漏洞
+  aliases:
+  - security-best-practices
+  - secure coding review
+  - 安全编码规范
+  capabilities:
+  - framework specific secure coding references
+  - security finding prioritization
+  - remediation guidance with code locations
+excludes:
+  - 代码审查
+  - code review
+  - review a pull request
+  - 威胁建模
+  - threat model this codebase
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/python-flask-web-server-security.md
+- references/python-django-web-server-security.md
+- references/python-fastapi-web-server-security.md
+- references/golang-general-backend-security.md
+- references/javascript-general-web-frontend-security.md
+- references/javascript-jquery-web-frontend-security.md
+- references/javascript-express-web-server-security.md
+- references/javascript-typescript-react-web-frontend-security.md
+- references/javascript-typescript-nextjs-web-server-security.md
+- references/javascript-typescript-vue-web-frontend-security.md
+- agents/openai.yaml
+- LICENSE.txt
+- LOCAL_NOTES.md

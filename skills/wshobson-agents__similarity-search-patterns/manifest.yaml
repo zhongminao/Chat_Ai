@@ -1,0 +1,35 @@
+name: wshobson-agents__similarity-search-patterns
+version: 1.0.0
+description: 'Implement similarity search: distance metric choice, ANN index trade-offs, filtered queries
+  and latency-oriented retrieval patterns.'
+delivery: search_result
+triggers:
+  intents:
+  - 相似度检索实现
+  - 余弦 欧氏 内积 距离度量选择
+  - nearest neighbor 查询优化
+  - 向量检索加元数据过滤
+  - 语义搜索召回质量优化
+  - 推荐系统向量相似召回
+  aliases:
+  - similarity-search-patterns
+  - similarity search
+  - 相似度检索
+  capabilities:
+  - distance metric selection
+  - ANN index trade-offs
+  - filtered vector queries
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 搭建 RAG 端到端流程
+- HNSW 参数调优
+- 混合检索 bm25 融合
+- sql 查询优化
+- embedding 模型选型

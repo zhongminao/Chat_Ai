@@ -1,0 +1,43 @@
+name: openai-skills__jupyter-notebook
+version: 1.0.0
+description: Create, scaffold, refactor or validate Jupyter notebooks (.ipynb) for experiments or tutorials — choose kind from intent, start from the bundled template, keep small runnable cells with markdown context, and check against the quality checklist. Helper script bundled but not run.
+delivery: search_result
+triggers:
+  intents:
+  - create a Jupyter notebook for an experiment
+  - scaffold a tutorial ipynb file
+  - refactor an existing notebook to be reproducible
+  - structure notebook cells and markdown narration
+  - 创建 Jupyter Notebook 实验笔记
+  - 做一个教程用 ipynb 文件
+  - 整理重构已有 notebook 结构
+  aliases:
+  - jupyter-notebook
+  - ipynb
+  - Jupyter 笔记本
+  capabilities:
+  - experiment and tutorial notebook scaffolding
+  - cell structure and markdown narration patterns
+  - notebook quality checklist review
+excludes:
+  - 创建 Excel 工作簿
+  - 创建 Word 文档
+  - 制作 PowerPoint 演示文稿
+  - convert Word to Markdown
+  - Word 转 Markdown
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/experiment-patterns.md
+- references/tutorial-patterns.md
+- references/notebook-structure.md
+- references/quality-checklist.md
+- assets/experiment-template.ipynb
+- assets/tutorial-template.ipynb
+- assets/jupyter.png
+- assets/jupyter-small.svg
+- scripts/new_notebook.py
+- agents/openai.yaml
+- LICENSE.txt
+- LOCAL_NOTES.md

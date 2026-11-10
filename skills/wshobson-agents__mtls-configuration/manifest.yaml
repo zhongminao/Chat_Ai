@@ -1,0 +1,36 @@
+name: wshobson-agents__mtls-configuration
+version: 1.0.0
+description: 'Implement mutual TLS for zero-trust service-to-service communication: certificate issuance
+  and rotation, TLS handshake debugging and compliance needs.'
+delivery: search_result
+triggers:
+  intents:
+  - mtls 双向认证配置
+  - 服务间证书轮换方案
+  - tls 握手失败排查
+  - 零信任网络服务加密
+  - cert-manager 签发服务证书
+  - 服务间传输加密要求落地
+  aliases:
+  - mtls-configuration
+  - mTLS
+  - 双向 TLS
+  capabilities:
+  - mTLS certificate lifecycle
+  - handshake debugging
+  - zero-trust transport security
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 服务网格可观测性
+- k8s networkpolicy 与 rbac
+- secrets management 通用方案
+- 代码安全审查
+- nginx 配置
+- pci dss 合规要求

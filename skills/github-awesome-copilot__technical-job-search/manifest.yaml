@@ -1,0 +1,34 @@
+name: github-awesome-copilot__technical-job-search
+version: 1.0.0
+description: 'Help a software engineer with one concrete job-search task: parse a job description into must-haves and red
+  flags, tailor a CV, write a cover letter, evaluate an offer, or draft an interview follow-up email.'
+delivery: search_result
+triggers:
+  intents:
+  - 解析这份软件工程师 JD，列出硬性要求和红旗
+  - 针对这个岗位裁剪我的简历
+  - 根据 JD 写一封求职信 cover letter
+  - evaluate this job offer and list open questions to ask
+  - 面试之后写一封 follow-up 感谢邮件
+  - 这份 JD 的技能要求和我的经历怎么对齐
+  aliases:
+  - technical job search
+  - 技术岗位求职
+  - jd 解析与简历定制
+  capabilities:
+  - job description must-have and red flag extraction
+  - CV tailoring and cover letter drafting
+  - offer evaluation and follow-up email drafts
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- general career advice
+- 职业规划建议
+- draft work email
+- 写工作邮件
+- salary benchmark data
+- 薪资行业数据

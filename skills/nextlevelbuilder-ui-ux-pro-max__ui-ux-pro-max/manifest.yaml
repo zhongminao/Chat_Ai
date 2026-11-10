@@ -1,0 +1,39 @@
+name: nextlevelbuilder-ui-ux-pro-max__ui-ux-pro-max
+version: 1.0.0
+description: Searchable local UI/UX design intelligence - 51 style presets, 192 product palettes, 74 font pairings, 120 UX guidelines, icons, motion presets, chart types and 22 stack rules - for designing or reviewing interfaces; its query script uses a Claude-plugin hardcoded path and is not run here.
+delivery: search_result
+triggers:
+  intents:
+  - choose style palette and font pairing for a new dashboard UI
+  - 做新页面时查 UI/UX 设计规范和组件交互规则
+  - audit touch target sizes focus rings and contrast in a UI review
+  - 查某个技术栈（Next.js / Flutter / SwiftUI）的 UI 实现规则
+  - pick chart type and color treatment for analytics screens
+  - 按产品类型生成完整设计系统（配色字体动效）
+  aliases:
+  - ui-ux-pro-max
+  - UI/UX 设计智能库
+  capabilities:
+  - style palette font and stack rule lookup
+  - UX accessibility and interaction guideline lookup
+excludes:
+  - Word 文档编辑
+  - Excel 表格生成
+  - 视频剪辑与解说
+  - 代码审查与缺陷修复
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- references/quick-reference.md
+- references/pro-rules.md
+- data/catalog-summary.json
+- data/data-provenance.json
+- data/google-font-licenses.json
+- data/phosphor-icons-upstream.json
+- scripts/search.py
+- scripts/core.py
+- scripts/design_system.py
+- scripts/reasoning_contract.py

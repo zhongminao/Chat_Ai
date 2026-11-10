@@ -1,0 +1,36 @@
+name: github-awesome-copilot__bug-receipt
+version: 1.0.0
+description: Close out a defect or incident with a fixed BUG RECEIPT block (problem, baseline, root cause, change, proof,
+  gaps, source) and a VERIFIED / PARTIAL / BLOCKED status backed by real evidence.
+delivery: search_result
+triggers:
+  intents:
+  - 修复完成后按 BUG RECEIPT 格式给出结案结论
+  - 告诉我这个 bug 是 VERIFIED 还是 PARTIAL，并给出证据
+  - bug 修复了但没验证，帮我列出缺失的验证步骤
+  - close a defect with a verified bug receipt and evidence
+  - 事故修复后写结案回执，说明根因和证明
+  - bug receipt 里 proof 一栏怎么填才能算验证通过
+  aliases:
+  - bug receipt
+  - 缺陷结案回执
+  - verified partial blocked
+  capabilities:
+  - fixed receipt format for defect closeout
+  - evidence boundary and status assignment
+  - proof loop and gap identification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/receipt.template.json
+- references/receipt-contract.md
+- references/receipt.schema.json
+- scripts/validate-receipt.mjs
+excludes:
+- debug this error
+- 排查这个报错
+- write postmortem
+- 事故复盘文档

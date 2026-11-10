@@ -1,0 +1,38 @@
+name: openai-skills__pdf
+version: 1.0.0
+description: Create, review and visually verify PDFs whose layout matters — render pages to PNG with Poppler to inspect them, generate documents with reportlab, and extract text/tables with pdfplumber or pypdf.
+delivery: search_result
+triggers:
+  intents:
+  - create a PDF document with reportlab
+  - review a PDF layout and check rendering
+  - render PDF pages to images for visual check
+  - extract text and tables from a PDF with pdfplumber
+  - 用 reportlab 生成 PDF
+  - 检查 PDF 排版和渲染效果
+  - PDF 页面转图片目视核对
+  - PDF 转图片检查排版
+  - PDF 转图片
+  - PDF 排版检查
+  - render pdf pages to images
+  - pdf to image
+  aliases:
+  - openai pdf skill
+  - PDF 视觉校验
+  - pdfplumber 提取
+  capabilities:
+  - reportlab PDF generation
+  - Poppler page rendering review
+  - pdfplumber and pypdf extraction
+excludes:
+  - 合并拆分 PDF
+  - PDF 表单填写
+  - 扫描件 OCR
+  - pdf_reader
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- agents/openai.yaml

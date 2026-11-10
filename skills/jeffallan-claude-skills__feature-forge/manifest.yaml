@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__feature-forge
+version: 1.1.0
+description: Run a structured requirements workshop for a new feature — PM and engineering interview, EARS-format functional requirements, non-functional requirements, Given/When/Then acceptance criteria and an implementation checklist.
+delivery: search_result
+triggers:
+  intents:
+  - run a requirements workshop for a new feature
+  - write EARS format functional requirements
+  - write Given When Then acceptance criteria
+  - turn a feature idea into a spec with TODO checklist
+  - 新功能需求梳理与访谈
+  - 编写 EARS 格式功能需求
+  - 编写验收标准与验收用例
+  - 功能规格说明书整理
+  aliases:
+  - feature-forge
+  - 需求工作坊
+  - 功能规格说明
+  capabilities:
+  - structured requirements interview
+  - EARS requirements and acceptance criteria
+  - spec document with implementation checklist
+excludes:
+  - 从现有遗留代码反推规格
+  - 完整 PRD 商业方案撰写
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/acceptance-criteria.md
+- references/ears-syntax.md
+- references/interview-questions.md
+- references/pre-discovery-subagents.md
+- references/specification-template.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,35 @@
+name: github-awesome-copilot__review-and-refactor
+version: 1.0.0
+description: Produce a project-wide refactoring plan and batch refactoring suggestions against the repo's
+  own coding guidelines in `.github/copilot-instructions.md` and `.github/instructions/*.md`, keeping
+  existing files intact instead of splitting them.
+delivery: search_result
+triggers:
+  intents:
+  - 按照 .github/copilot-instructions.md 里的规范帮我生成重构方案
+  - 按仓库编码规范做一次批量重构建议
+  - 对照 instructions 目录里的规则梳理需要重构的地方
+  - generate a refactor plan that follows our copilot-instructions guidelines
+  - 不想拆分文件，只想在现有文件里改进命名和可维护性，给我批量重构建议
+  - 把项目里不符合团队编码约定的地方整理成可执行的重构清单
+  aliases:
+  - review-and-refactor
+  - 批量重构建议
+  - 规范驱动重构
+  capabilities:
+  - guideline-driven refactoring plan
+  - batch refactoring checklist without splitting files
+  - post-refactor regression sanity check guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- review a pull request
+- 审查这个 PR
+- pull request review report
+- 找出代码里的 bug 和安全漏洞
+- step-by-step phased refactoring roadmap document

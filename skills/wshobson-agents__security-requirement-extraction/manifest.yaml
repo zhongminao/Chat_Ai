@@ -1,0 +1,37 @@
+name: wshobson-agents__security-requirement-extraction
+version: 1.0.0
+description: Turn threat models and business context into actionable security requirements, security user
+  stories, acceptance criteria and security test cases.
+delivery: search_result
+triggers:
+  intents:
+  - 把威胁模型转成安全需求
+  - derive security requirements from threats
+  - 编写安全用户故事与验收标准
+  - security acceptance criteria
+  - 安全需求分类与追溯
+  - security test cases from requirements
+  - 合规要求映射到技术控制
+  - extract security requirements checklist
+  aliases:
+  - security-requirement-extraction
+  - security requirements
+  - 安全需求提取
+  capabilities:
+  - threat-to-requirement translation
+  - security user stories and acceptance criteria
+  - compliance mapping
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- threat model this codebase
+- STRIDE 威胁分析
+- attack tree
+- PRD 需求文档
+- create-specification
+- secrets management

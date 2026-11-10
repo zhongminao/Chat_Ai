@@ -1,0 +1,27 @@
+name: anthropics-skills__brand-guidelines
+version: 1.0.0
+description: Anthropic official brand style reference - exact hex colors, Poppins/Lora typography rules with fallbacks, and accent-shape usage - for applying Anthropic look-and-feel to slides, docs or HTML; it is a palette spec, not a document generator.
+delivery: search_result
+triggers:
+  intents:
+  - apply Anthropic brand colors and typography to a deck
+  - 用 Anthropic 官方品牌配色和 Poppins Lora 字体排版
+  - need official Anthropic brand hex code palette reference
+  - restyle a document with Anthropic corporate identity colors
+  - 给幻灯片统一品牌强调色（橙蓝绿）
+  aliases:
+  - brand-guidelines
+  - Anthropic 品牌规范
+  capabilities:
+  - Anthropic brand color palette reference
+  - brand typography and accent styling rules
+excludes:
+  - 自拟自定义主题配色
+  - 生成 PPT 文件本身
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

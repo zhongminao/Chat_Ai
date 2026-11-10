@@ -1,0 +1,31 @@
+name: wshobson-agents__review-agent-setup
+version: 1.0.0
+description: Gate AI agent PR reviews, merges and CI edits behind human approval with Cedar policies and
+  signed receipts.
+delivery: search_result
+triggers:
+  intents:
+  - agent 评审动作人工审批门禁配置
+  - agent 合并与发布审批 gate
+  - 受保护分支推送策略配置
+  - CI 配置修改审批留痕
+  - 人类审核后放行 pr review 回执
+  aliases:
+  - review-agent-setup
+  - review agent governance
+  - PR 审批门禁
+  capabilities:
+  - human-in-the-loop approval policy
+  - protected action gating
+  - approval receipt trail
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 通用工具调用策略门禁
+- 代码审查质量维度
+- CI 流水线编写

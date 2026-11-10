@@ -1,0 +1,33 @@
+name: wshobson-agents__before-you-build
+version: 1.0.0
+description: Run a compact pre-mortem on demand, positioning, monetization, retention, trust and distribution
+  risk before building an MVP or feature.
+delivery: search_result
+triggers:
+  intents:
+  - MVP 开工前风险评估
+  - 产品需求与付费意愿验证
+  - landing page 上线前预演风险
+  - 最小验证步骤与延后范围
+  - 留存与分发风险排查
+  - 功能立项前需求真实性核查
+  aliases:
+  - before-you-build
+  - 开工前风险预研
+  - pre-mortem 产品
+  capabilities:
+  - pre-mortem risk checklist
+  - smallest validation step
+  - scope deferral advice
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/risk-checklist.md
+- LOCAL_NOTES.md
+excludes:
+- 项目上下文文档维护
+- 软件架构方案设计
+- 代码审查

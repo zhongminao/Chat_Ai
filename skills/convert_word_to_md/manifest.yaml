@@ -1,0 +1,29 @@
+name: convert_word_to_md
+version: 0.1.0
+description: Convert Word DOCX to Markdown with embedded image extraction for reading and analysis; not DOCX authoring.
+delivery: search_result
+triggers:
+  intents:
+  - convert Word to Markdown
+  - DOCX to Markdown
+  - convert DOCX folder to Markdown
+  - Word 转 Markdown
+  - DOCX 转 Markdown
+  - 批量提取 Word 内容
+  aliases:
+  - convert-word-to-md
+  - Word 文档转 MD
+  capabilities:
+  - extract DOCX images to Markdown
+  - 提取 Word 内嵌图片
+excludes:
+- Markdown 转 Word
+allowed_tools:
+- run_bash
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- references/setup.md
+- scripts/requirements.txt
+- UPSTREAM_LICENSE

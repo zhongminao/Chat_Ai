@@ -1,0 +1,27 @@
+name: game-gamedev-skills__prototype-fast
+version: 1.0.0
+description: Timeboxed playable mechanic spike, vertical-slice validation, greybox testing and keep/kill decisions.
+delivery: search_result
+triggers:
+  intents:
+    - fast playable prototype
+    - prototype core mechanic quickly
+    - timeboxed mechanic spike
+    - validate gameplay vertical slice
+    - 快速可玩原型
+    - 玩法原型验证
+    - 一小时机制原型
+    - 垂直切片验证
+  aliases:
+    - prototype-fast
+    - 试玩原型决策
+  capabilities:
+    - timeboxed playable test
+    - prototype keep kill criteria
+allowed_tools:
+  - read_file
+entrypoint: SKILL.md
+references:
+  - LOCAL_NOTES.md
+  - UPSTREAM_LICENSE
+  - UPSTREAM_NOTICE

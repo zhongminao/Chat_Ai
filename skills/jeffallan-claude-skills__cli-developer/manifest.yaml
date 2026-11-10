@@ -1,0 +1,34 @@
+name: jeffallan-claude-skills__cli-developer
+version: 1.1.0
+description: Build cross-platform command-line tools — command hierarchy and flag design, argument parsing with commander/click/typer/cobra, interactive prompts, progress output, shell completions and TTY-safe CLI UX.
+delivery: search_result
+triggers:
+  intents:
+  - build a command line tool with subcommands and flags
+  - parse arguments with commander or click or typer
+  - generate bash zsh fish shell completion scripts
+  - add interactive prompts and progress bars to a CLI
+  - 编写命令行工具的参数解析
+  - 设计子命令与命令行参数
+  - 生成 Shell 自动补全脚本
+  - 命令行交互提示与进度条设计
+  aliases:
+  - cli-developer
+  - 命令行工具开发
+  - CLI 参数解析
+  capabilities:
+  - CLI command and flag design
+  - multi-language argument parsing examples
+  - shell completion and UX polish
+excludes:
+  - 软件安装与依赖配置
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/design-patterns.md
+- references/go-cli.md
+- references/node-cli.md
+- references/python-cli.md
+- references/ux-patterns.md
+- UPSTREAM_LICENSE

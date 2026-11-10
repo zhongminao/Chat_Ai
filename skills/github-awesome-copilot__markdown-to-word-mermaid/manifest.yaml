@@ -1,0 +1,44 @@
+name: github-awesome-copilot__markdown-to-word-mermaid
+version: 1.0.0
+description: Export Markdown that contains Mermaid code fences to Word .docx with locally rendered SVG diagrams plus 3x PNG
+  fallbacks and page-aware placement; it is not a general Markdown-to-DOCX converter.
+delivery: search_result
+triggers:
+  intents:
+  - 含 mermaid 代码块的 md 导出成 Word 并保持矢量清晰
+  - 带 mermaid 流程图的 md 转成 docx 时把图嵌成 svg
+  - mermaid 大图在 Word 里被拆到两页，怎么按页排布导出
+  - export md containing mermaid fences to docx with embedded svg
+  - mmdc 渲染 mermaid 再打包成 Word 文件
+  - mermaid 图导出 Word 时字体和标签显示不对
+  aliases:
+  - markdown-to-word-mermaid
+  - 含 mermaid 的 md 转 word
+  - mermaid 图导出 docx
+  capabilities:
+  - mermaid-to-svg rendering pipeline
+  - ooxml svg embedding with png fallback
+  - page-aware diagram placement
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/example.md
+- references/publication.md
+- scripts/markdown_to_word.py
+- scripts/requirements.txt
+- tests/test_markdown_to_word.py
+excludes:
+- 普通 markdown 转 docx
+- word to markdown
+- docx 转 markdown
+- create pptx
+- 生成幻灯片
+- 普通 md 转 docx
+- 把 markdown 转成 word
+- md 转 docx
+- markdown 转 docx
+- markdown to word without mermaid diagrams
+- markdown → docx without mermaid

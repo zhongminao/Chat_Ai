@@ -1,0 +1,36 @@
+name: jeffallan-claude-skills__architecture-designer
+version: 1.1.1
+description: Design or review a high-level system architecture — gather functional and non-functional requirements, choose patterns, draw diagrams, document trade-offs in ADRs and give technology recommendations.
+delivery: search_result
+triggers:
+  intents:
+  - design the architecture for a new system
+  - review an existing system architecture
+  - write an Architecture Decision Record
+  - choose monolith versus microservices
+  - 设计系统整体架构方案
+  - 评审现有架构并给出改进建议
+  - 编写架构决策记录 ADR
+  - 技术选型与非功能需求评估
+  aliases:
+  - architecture-designer
+  - 系统架构设计
+  - 架构决策记录
+  capabilities:
+  - architecture pattern selection with trade-offs
+  - ADR authoring
+  - NFR checklist and technology comparison
+excludes:
+  - code-level design patterns
+  - 代码级重构
+  - database schema tuning
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/adr-template.md
+- references/architecture-patterns.md
+- references/database-selection.md
+- references/nfr-checklist.md
+- references/system-design.md
+- UPSTREAM_LICENSE

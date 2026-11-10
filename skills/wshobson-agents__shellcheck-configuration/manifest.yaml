@@ -1,0 +1,35 @@
+name: wshobson-agents__shellcheck-configuration
+version: 1.0.0
+description: 'Lint shell scripts with ShellCheck: rule configuration, shell dialect selection, SC code
+  explanations, suppression and CI integration.'
+delivery: search_result
+triggers:
+  intents:
+  - shellcheck 配置与规则
+  - shell 脚本静态检查接入 CI
+  - SC2086 等告警说明
+  - 忽略误报 suppression 注释
+  - 为 bash 脚本设置 lint 质量门禁
+  - shell 脚本规范检查
+  aliases:
+  - shellcheck-configuration
+  - ShellCheck
+  - shell 静态检查
+  capabilities:
+  - ShellCheck rule configuration
+  - CI lint integration
+  - suppression guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- bats 脚本测试用例编写
+- python ruff black 代码风格
+- bash 防御性编程模式
+- SAST 安全扫描工具
+- 代码审查流程

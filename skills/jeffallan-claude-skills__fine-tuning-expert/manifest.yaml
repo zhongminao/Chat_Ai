@@ -1,0 +1,34 @@
+name: jeffallan-claude-skills__fine-tuning-expert
+version: 1.1.0
+description: Plan and run LLM fine-tuning — prepare and validate JSONL datasets, choose LoRA vs QLoRA vs full fine-tune, set hyperparameters, evaluate against a base model, then merge, quantize and deploy adapters with Hugging Face PEFT.
+delivery: search_result
+triggers:
+  intents:
+  - fine-tune an LLM with LoRA or QLoRA
+  - prepare and validate a JSONL instruction dataset
+  - choose fine-tuning hyperparameters and learning rate
+  - evaluate a fine-tuned model against its base model
+  - 大模型微调方案设计
+  - LoRA 与 QLoRA 训练配置
+  - 训练数据集清洗与格式转换
+  - 微调模型量化与部署评估
+  aliases:
+  - fine-tuning-expert
+  - 模型微调
+  - LLM fine-tuning
+  capabilities:
+  - PEFT method and hyperparameter selection
+  - dataset preparation guidance
+  - evaluation and deployment planning
+excludes:
+  - RAG 检索增强方案设计
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/dataset-preparation.md
+- references/deployment-optimization.md
+- references/evaluation-metrics.md
+- references/hyperparameter-tuning.md
+- references/lora-peft.md
+- UPSTREAM_LICENSE

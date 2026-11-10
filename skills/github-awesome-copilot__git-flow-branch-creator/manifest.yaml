@@ -1,0 +1,34 @@
+name: github-awesome-copilot__git-flow-branch-creator
+version: 1.0.0
+description: Analyze the current git changes and classify them into the nvie Git Flow model (feature / release / hotfix /
+  support) to propose a semantic branch name and the exact branch-creation commands.
+delivery: search_result
+triggers:
+  intents:
+  - 按 git flow 规范判断这次改动该开 feature 还是 hotfix 分支
+  - 帮我想一个符合 git flow 命名规范的分支名
+  - 分析 git diff 决定从 develop 还是 main 拉分支
+  - which git flow branch type fits these changes and what should I name it
+  - hotfix 分支命名规则和合并回哪些分支
+  - 生成 git flow 建分支命令（不执行）
+  aliases:
+  - git-flow-branch-creator
+  - git flow 分支命名
+  - feature hotfix 分支判断
+  capabilities:
+  - git flow branch type classification
+  - semantic branch naming conventions
+  - branch creation and merge-path guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- commit message
+- 生成提交信息
+- git rebase
+- 合并冲突解决
+- pr description
+- 写 pull request 描述

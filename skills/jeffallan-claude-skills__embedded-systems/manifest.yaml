@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__embedded-systems
+version: 1.1.0
+description: Develop microcontroller firmware and RTOS applications — STM32/ESP32 peripheral drivers, interrupt and DMA handling, FreeRTOS task patterns, I2C/SPI/UART/CAN communication, plus power and memory optimization.
+delivery: search_result
+triggers:
+  intents:
+  - write a FreeRTOS task with queues and mutexes
+  - implement an interrupt handler or DMA transfer for STM32
+  - configure I2C SPI UART CAN peripheral communication
+  - reduce firmware power consumption with sleep modes
+  - 单片机固件开发与寄存器配置
+  - ESP32 任务与中断编程
+  - 嵌入式内存与 Flash 占用优化
+  - 实时系统时序与 ISR 延迟排查
+  aliases:
+  - embedded-systems
+  - 嵌入式开发
+  - FreeRTOS
+  capabilities:
+  - peripheral and RTOS code patterns
+  - power and memory optimization guidance
+  - communication protocol implementation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/communication-protocols.md
+- references/memory-optimization.md
+- references/microcontroller-programming.md
+- references/power-optimization.md
+- references/rtos-patterns.md
+- UPSTREAM_LICENSE

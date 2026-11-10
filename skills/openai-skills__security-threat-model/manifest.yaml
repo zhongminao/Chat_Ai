@@ -1,0 +1,38 @@
+name: openai-skills__security-threat-model
+version: 1.0.0
+description: Build a repository-grounded AppSec threat model — map components and entry points from code evidence, enumerate trust boundaries and assets, list concrete abuse paths with attacker capabilities, rate likelihood and impact, propose location-specific mitigations and write a Markdown threat model file.
+delivery: search_result
+triggers:
+  intents:
+  - threat model this codebase
+  - enumerate trust boundaries and abuse paths
+  - appsec threat modeling for a repo path
+  - 对这个代码库做威胁建模
+  - 梳理信任边界和滥用路径
+  - 评估安全威胁与缓解措施
+  aliases:
+  - security-threat-model
+  - threat modeling
+  - 威胁建模
+  capabilities:
+  - trust boundary and asset mapping
+  - abuse path enumeration with attacker capabilities
+  - risk prioritization and mitigation mapping
+excludes:
+  - 代码审查
+  - code review
+  - 排查报错
+  - debug this error
+  - generic code review
+  - convert
+  - markdown
+  - 文档转换
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/prompt-template.md
+- references/security-controls-and-assets.md
+- agents/openai.yaml
+- LICENSE.txt
+- LOCAL_NOTES.md

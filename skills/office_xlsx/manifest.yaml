@@ -1,0 +1,35 @@
+name: office_xlsx
+version: 0.1.0
+description: Create/edit Excel workbooks with formulas and spreadsheet recalculation; not a general reporting
+  skill.
+delivery: search_result
+triggers:
+  intents:
+  - create Excel workbook
+  - edit Excel formulas
+  - spreadsheet recalculation
+  - 创建 Excel 工作簿
+  - 编辑 Excel 公式
+  - 工作簿重新计算
+  aliases:
+  - Excel 工作簿
+  - 电子表格公式
+  - XLSX 财务模型
+  capabilities:
+  - openpyxl workbook editing
+  - recalculate Excel formulas
+  - Excel 公式计算
+  extensions:
+  - .xlsx
+  - .xlsm
+  - .xltx
+excludes:
+- Google Sheets API
+allowed_tools:
+- run_bash
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

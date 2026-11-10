@@ -1,0 +1,35 @@
+name: wshobson-agents__pci-compliance
+version: 1.0.0
+description: 'Meet PCI DSS requirements when handling card data: scoping and segmentation, data protection,
+  logging, access control and compliance evidence.'
+delivery: search_result
+triggers:
+  intents:
+  - pci dss 合规要求
+  - 支付卡数据存储范围界定
+  - card data 处理与脱敏
+  - pci 合规审计证据准备
+  - 支付系统网络分段
+  - 处理银行卡数据的访问控制
+  aliases:
+  - pci-compliance
+  - PCI DSS
+  - 支付卡合规
+  capabilities:
+  - PCI DSS scoping
+  - card data protection controls
+  - compliance evidence and logging
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- gdpr 个人数据合规
+- stripe 支付集成代码
+- billing 订阅计费实现
+- 代码安全审查
+- 密钥与凭据管理
+notes: 合规建议仅供参考，不构成法律意见。

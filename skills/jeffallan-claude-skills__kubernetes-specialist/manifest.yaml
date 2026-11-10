@@ -1,0 +1,40 @@
+name: jeffallan-claude-skills__kubernetes-specialist
+version: 1.1.2
+description: Author and operate Kubernetes workloads - Deployment/StatefulSet manifests, Services and Ingress, NetworkPolicy, RBAC, Helm releases, GitOps sync and pod troubleshooting.
+delivery: search_result
+triggers:
+  intents:
+  - write Kubernetes Deployment and StatefulSet manifests
+  - configure RBAC roles NetworkPolicy and pod security
+  - 用 helm 打包部署应用并做发布回滚
+  - 用 ArgoCD 同步 Git 仓库声明式发布到多集群
+  - Kubernetes 部署清单编写
+  - K8s 网络策略与 RBAC 权限
+  - Helm 图表模板编写
+  - 调试 Pod 崩溃与 CrashLoopBackOff
+  - service mesh traffic management with Istio Linkerd
+  - right-size pod resource requests and limits
+  aliases:
+  - kubernetes-specialist
+  - Kubernetes 运维
+  - K8s 部署
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/configuration.md
+- references/cost-optimization.md
+- references/custom-operators.md
+- references/gitops.md
+- references/helm-charts.md
+- references/multi-cluster.md
+- references/networking.md
+- references/service-mesh.md
+- references/storage.md
+- references/troubleshooting.md
+- references/workloads.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Terraform 云资源代码编写
+- CI/CD 流水线搭建

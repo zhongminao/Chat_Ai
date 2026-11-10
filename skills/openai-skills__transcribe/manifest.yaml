@@ -1,0 +1,37 @@
+name: openai-skills__transcribe
+version: 1.0.0
+description: 音频/视频转写与说话人分离的方法：默认快速文本转写还是 diarized_json 分离模式的选择规则、支持的格式与 25MB/30 秒分块限制、已知说话人参考（最多 4 人）、输出格式与转写结果校验。
+delivery: search_result
+triggers:
+  intents:
+  - 把会议录音或访谈音频转写成文字
+  - 录音转写如何区分不同说话人 speaker diarization
+  - 音频文件超过 25MB 或 30 秒怎么分块转写
+  - 转写结果格式 text / json / diarized_json 怎么选
+  - transcribe meeting recordings with speaker labels
+  - 用已知说话人音频提升转写与分离准确度
+  aliases:
+  - transcribe
+  - 音频转写
+  - 说话人分离
+  - 会议录音转文字
+  capabilities:
+  - 转写模式选择与分块策略
+  - 支持格式、大小与参考说话人限制
+  - 转写输出校验要点
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/transcribe-small.svg
+- assets/transcribe.png
+- references/api.md
+- scripts/transcribe_diarize.py
+- LOCAL_NOTES.md
+excludes:
+- 文字转语音合成
+- 实时语音识别接入开发
+- 字幕排版与视频剪辑

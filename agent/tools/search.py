@@ -170,7 +170,9 @@ def search_resources(
         if not isinstance(raw, dict) or not isinstance(raw.get("name"), str):
             continue
         score, reasons = _match(query, raw)
-        if score:
+        # Token overlap is a weak relevance hint, not evidence of an actual
+        # skill trigger. Do not let coincidental words fill the top-k slots.
+        if score and any(not reason.startswith("term:") for reason in reasons):
             matches.append((score, manifest, raw, reasons))
     matches.sort(key=lambda item: (-item[0], str(item[1])))
     results = [_package(skills_root, manifest, raw, score, reasons)

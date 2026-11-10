@@ -1,0 +1,31 @@
+name: wshobson-agents__multi-reviewer-patterns
+version: 1.0.0
+description: Coordinate parallel multi-dimensional code reviews with finding deduplication, severity calibration
+  and consolidated reports.
+delivery: search_result
+triggers:
+  intents:
+  - 多维度并行代码评审组织
+  - 评审发现去重与严重度分级
+  - 合并多个 reviewer 的评审结论
+  - 分配安全性能可维护性评审维度
+  - 生成汇总评审报告
+  aliases:
+  - multi-reviewer-patterns
+  - 多评审维度
+  - multi-reviewer review
+  capabilities:
+  - review dimension allocation
+  - finding deduplication
+  - severity calibration
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/review-dimensions.md
+excludes:
+- 单个代码审查技能
+- 并行特性开发的文件所有权
+- 测试策略设计

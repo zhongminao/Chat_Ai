@@ -1,0 +1,41 @@
+name: obra-superpowers__writing-skills
+version: 1.0.0
+description: Author, edit and pressure-test agent skills with TDD — write a baseline scenario without the skill, draft SKILL.md with a searchable description and minimal guidance, re-run scenarios to prove compliance, then close loopholes with rationalization tables and red flags.
+delivery: search_result
+triggers:
+  intents:
+  - write a new agent skill with SKILL.md
+  - improve an existing skill description and triggers
+  - pressure test a skill with subagent scenarios
+  - 编写新的 agent 技能说明
+  - 优化技能描述和触发词
+  - 用压力场景测试技能是否有效
+  aliases:
+  - writing-skills
+  - skill authoring
+  - 技能编写
+  capabilities:
+  - skill description and discovery optimization
+  - pressure scenario testing for skills
+  - loophole and rationalization hardening
+excludes:
+  - 优化提示词
+  - refactor an existing prompt
+  - 提示词评测
+  - 代码审查
+  - code review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/discovery.md
+- references/bulletproofing.md
+- references/flowcharts.md
+- references/graphviz-conventions.dot
+- references/persuasion-principles.md
+- references/anthropic-best-practices.md
+- references/testing-skills-with-subagents.md
+- references/CLAUDE_MD_TESTING.md
+- render-graphs.js
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

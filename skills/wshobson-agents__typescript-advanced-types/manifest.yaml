@@ -1,0 +1,29 @@
+name: wshobson-agents__typescript-advanced-types
+version: 1.0.0
+description: 'Master TypeScript advanced type system: generics, conditional, mapped and template literal
+  types with type-level utilities.'
+delivery: search_result
+triggers:
+  intents:
+  - typescript advanced types
+  - TypeScript 泛型设计
+  - conditional types
+  - mapped types 映射类型
+  - template literal types 模板字面量类型
+  - type-safe API client typing
+  - infer 类型推导
+  aliases:
+  - typescript-advanced-types
+  - ts types
+  - TypeScript 类型体操
+  capabilities:
+  - generic type design
+  - conditional and mapped types
+  - template literal types
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

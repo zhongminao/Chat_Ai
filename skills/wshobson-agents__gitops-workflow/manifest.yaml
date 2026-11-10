@@ -1,0 +1,37 @@
+name: wshobson-agents__gitops-workflow
+version: 1.0.0
+description: 'Implement GitOps for Kubernetes with ArgoCD and Flux: repo layout, Application/App-of-Apps,
+  sync policies, progressive delivery and secrets handling.'
+delivery: search_result
+triggers:
+  intents:
+  - gitops 工作流设计
+  - argocd application 配置
+  - flux cd kustomization 同步
+  - app of apps 模式
+  - gitops 仓库目录结构规划
+  - 自动同步 prune selfHeal 策略
+  - gitops 环境下的密钥管理
+  aliases:
+  - gitops-workflow
+  - GitOps
+  - argocd flux
+  capabilities:
+  - ArgoCD/Flux setup guidance
+  - GitOps repo structure
+  - sync and progressive delivery policies
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/argocd-setup.md
+- references/sync-policies.md
+- LOCAL_NOTES.md
+excludes:
+- k8s 原生清单编写
+- helm chart 脚手架
+- dockerfile 与 CI 流水线
+- 部署流水线审批设计
+- terraform 模块

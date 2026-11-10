@@ -1,0 +1,51 @@
+name: openai-skills__render-deploy
+version: 1.0.0
+description: Render 部署方法论：判断 Git 仓库与 Docker 镜像两条路径，按单服务/多服务/含数据库与 Cron 的规则在 Blueprint(render.yaml) 与 Direct Creation 间选择，给出渲染规格、运行时、错误模式与部署后检查清单及各类框架
+  yaml 模板。
+delivery: search_result
+triggers:
+  intents:
+  - Render 部署选 Blueprint 还是直接创建服务
+  - 写一份 render.yaml 蓝本（web 服务/worker/cron/数据库）
+  - Render 部署前置检查：git remote、MCP 与 CLI 认证
+  - Render 部署失败或服务不可访问怎么排查
+  - deploy a Next.js / Django / Go app to Render with render.yaml
+  - Render 环境变量、健康检查与自动扩容配置
+  aliases:
+  - render-deploy
+  - Render 部署
+  - render.yaml 蓝本
+  capabilities:
+  - Blueprint 规格与框架 yaml 模板
+  - 部署方法选择决策规则
+  - 错误模式与部署后检查
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/docker.yaml
+- assets/go-api.yaml
+- assets/nextjs-postgres.yaml
+- assets/node-express.yaml
+- assets/python-django.yaml
+- assets/render-small.svg
+- assets/render.png
+- assets/static-site.yaml
+- references/blueprint-spec.md
+- references/codebase-analysis.md
+- references/configuration-guide.md
+- references/deployment-details.md
+- references/direct-creation.md
+- references/error-patterns.md
+- references/post-deploy-checks.md
+- references/runtimes.md
+- references/service-types.md
+- references/troubleshooting-basics.md
+- LOCAL_NOTES.md
+excludes:
+- Netlify / Vercel / Cloudflare 部署
+- 本地容器镜像构建
+- 云账号计费管理

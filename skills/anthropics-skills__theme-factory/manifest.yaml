@@ -1,0 +1,37 @@
+name: anthropics-skills__theme-factory
+version: 1.0.0
+description: Ten preset color/font theme specs (ocean, sunset, forest, minimalist, midnight galaxy and more) plus a showcase PDF, for consistently styling slide decks, reports and HTML artifacts, or inventing a new theme.
+delivery: search_result
+triggers:
+  intents:
+  - apply a preset color and font theme to a slide deck
+  - 给报告或落地页统一配色和字体主题
+  - choose one of the preset themes using the theme showcase preview
+  - generate a custom color palette and font pairing theme
+  - 给幻灯片换一套深色系主题配色方案
+  aliases:
+  - theme-factory
+  - 主题配色工厂
+  capabilities:
+  - preset theme palette and font pairing selection
+  - custom theme palette generation
+excludes:
+  - 生成 PPT 文件本身
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- theme-showcase.pdf
+- themes/ocean-depths.md
+- themes/sunset-boulevard.md
+- themes/forest-canopy.md
+- themes/modern-minimalist.md
+- themes/golden-hour.md
+- themes/arctic-frost.md
+- themes/desert-rose.md
+- themes/tech-innovation.md
+- themes/botanical-garden.md
+- themes/midnight-galaxy.md

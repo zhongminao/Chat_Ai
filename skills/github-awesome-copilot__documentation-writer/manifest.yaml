@@ -1,0 +1,29 @@
+name: github-awesome-copilot__documentation-writer
+version: 1.0.0
+description: Act as a Diátaxis technical writer that structures software documentation into tutorials, how-to guides, reference and explanation pages, proposing an outline before writing.
+delivery: search_result
+triggers:
+  intents:
+  - write a Diátaxis tutorial for new users
+  - plan how-to guide versus reference versus explanation docs
+  - 用 Diátaxis 框架组织技术文档
+  - 写一篇面向新手的操作教程
+  - 编写参考手册和使用说明的结构
+  aliases:
+  - documentation-writer
+  - Diátaxis
+  - 文档四象限
+  capabilities:
+  - Diátaxis quadrant classification
+  - documentation outline before drafting
+excludes:
+  - API 文档
+  - OpenAPI
+  - README
+  - 产品需求文档
+  - PRD
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE

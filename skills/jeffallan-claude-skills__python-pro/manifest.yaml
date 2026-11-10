@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__python-pro
+version: 1.1.0
+description: Write idiomatic Python 3.11+ code with type hints, async/await, dataclasses, dependency injection and structured error handling; configure mypy/ruff/black and pytest suites.
+delivery: search_result
+triggers:
+  intents:
+  - write Python 3.11 code with type hints
+  - async await patterns in Python
+  - configure mypy strict mode
+  - pytest fixtures and mocking
+  - Python 类型注解
+  - Python 异步编程
+  - Python 项目规范配置
+  - 写 Python 代码
+  - Python 实现
+  aliases:
+  - python-pro
+  - Python 开发
+  - py 类型安全
+  capabilities:
+  - typed Python implementation
+  - asyncio design
+  - mypy and ruff configuration
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async-patterns.md
+- references/packaging.md
+- references/standard-library.md
+- references/testing.md
+- references/type-system.md
+- UPSTREAM_LICENSE

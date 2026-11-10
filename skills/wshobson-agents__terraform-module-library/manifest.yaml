@@ -1,0 +1,36 @@
+name: wshobson-agents__terraform-module-library
+version: 1.0.0
+description: 'Design reusable Terraform modules for AWS, Azure, GCP and OCI: module layout, variables/outputs
+  conventions, testing and registry publishing.'
+delivery: search_result
+triggers:
+  intents:
+  - terraform 模块设计规范
+  - terraform module 目录结构 variables outputs
+  - 编写可复用 aws vpc 模块
+  - terraform 模块版本与发布
+  - terraform 多环境与环境隔离
+  - iac 模块测试 terratest
+  aliases:
+  - terraform-module-library
+  - Terraform 模块
+  - terraform
+  capabilities:
+  - module structure conventions
+  - variables/outputs design
+  - module testing and publishing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/aws-modules.md
+- references/oci-modules.md
+- LOCAL_NOTES.md
+excludes:
+- 云上架构设计与服务选型
+- k8s 清单与 helm
+- dockerfile 与 CI 流水线
+- 多云网络互联
+- 云成本优化策略

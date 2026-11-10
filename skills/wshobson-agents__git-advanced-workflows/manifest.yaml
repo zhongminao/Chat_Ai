@@ -1,0 +1,32 @@
+name: wshobson-agents__git-advanced-workflows
+version: 1.0.0
+description: 'Advanced Git: rebase, cherry-pick, bisect, worktrees and reflog for clean history and recovery.'
+delivery: search_result
+triggers:
+  intents:
+  - git rebase 整理提交历史
+  - git bisect 定位问题提交
+  - git worktree 多分支并行
+  - reflog 恢复误操作
+  - cherry-pick 补丁移植
+  aliases:
+  - git-advanced-workflows
+  - git 高级用法
+  - rebase 与 bisect
+  capabilities:
+  - history rewriting
+  - bisect debugging
+  - worktrees and recovery
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- conventional-commit
+- git-commit
+- gitmoji
+- 提交信息规范
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

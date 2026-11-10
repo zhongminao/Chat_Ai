@@ -1,0 +1,43 @@
+name: github-awesome-copilot__convert-excel-to-md
+version: 1.0.0
+description: 'Plan the conversion of .xlsx workbooks into Markdown tables (one ## Sheet section per sheet, with embedded pictures
+  extracted per sheet) using the bundled MarkItDown-based script, including batch folders.'
+delivery: search_result
+triggers:
+  intents:
+  - 把 xlsx 表格转换成 markdown 表格方便我阅读
+  - 帮我读一下这个 Excel 工作簿里的数据，转成 markdown
+  - 一个文件夹里多个 xlsx 批量转成 markdown
+  - convert an xlsx workbook into markdown tables per sheet
+  - excel 里的图片也要一起导出来放到 markdown 里
+  - 工作表数据怎么转成 markdown 之后再做分析
+  aliases:
+  - convert-excel-to-md
+  - xlsx 转 markdown
+  - excel 转 md
+  capabilities:
+  - xlsx to markdown table conversion plan
+  - per-sheet structure and embedded image extraction
+  - batch folder conversion workflow
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/setup.md
+- scripts/convert_excel_to_md.py
+- scripts/requirements.txt
+excludes:
+- create excel workbook
+- 新建 Excel 文件
+- 修改 xlsx 单元格
+- markdown to xlsx
+- markdown 转 excel
+- pdf to markdown
+- pdf 转 markdown
+- docx to markdown
+- word 转 markdown
+- word 文档转成 markdown
+- docx 转 markdown
+- 把 word 转成 markdown

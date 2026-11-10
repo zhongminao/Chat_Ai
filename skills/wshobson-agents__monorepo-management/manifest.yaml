@@ -1,0 +1,30 @@
+name: wshobson-agents__monorepo-management
+version: 1.0.0
+description: Monorepo management with Turborepo, Nx and pnpm workspaces for scalable multi-package builds.
+delivery: search_result
+triggers:
+  intents:
+  - monorepo 目录与包管理
+  - pnpm workspace 依赖共享
+  - Turborepo Nx 构建缓存
+  - 多包仓库任务编排
+  - workspace 依赖版本提升
+  aliases:
+  - monorepo-management
+  - monorepo
+  - 多包仓库管理
+  capabilities:
+  - workspace tooling
+  - build caching
+  - task pipelines
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- turborepo-caching
+- nx-workspace-patterns
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

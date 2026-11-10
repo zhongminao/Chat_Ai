@@ -1,0 +1,35 @@
+name: github-awesome-copilot__premium-frontend-ui
+version: 1.0.0
+description: 'Craft award-level frontend experiences with an intentional visual identity: preloader entry sequences, full-bleed
+  hero, directional sticky navigation, GSAP-style scroll narratives, micro-interactions, typography texture and performance
+  budgets.'
+delivery: search_result
+triggers:
+  intents:
+  - 做一个高端作品集网站的动效和入场序列
+  - 首页滚动驱动的动画、视差和 pin 住的分屏怎么做
+  - 给这个品牌站设计沉浸式 hero 和鼠标微交互
+  - build a premium animated landing page with scroll storytelling
+  - 选一种强烈的视觉风格（编辑式粗野主义/赛博/电影感）落地到 CSS
+  - 高端品牌站的性能预算和动效降级怎么兼顾
+  aliases:
+  - premium frontend ui
+  - 沉浸式前端动效
+  - award-level website motion
+  capabilities:
+  - visual identity and motion system design
+  - entry sequence, hero and navigation patterns
+  - performance budget and reduced-motion guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- design system tokens
+- 设计令牌与配色规范
+- react state management
+- 组件状态管理
+- landing page conversion audit
+- 落地页转化率审计

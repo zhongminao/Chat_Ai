@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__playwright-expert
+version: 1.1.0
+description: Write maintainable Playwright E2E browser tests - role-based locators, page object model, fixtures and config, API mocking, visual regression and flaky-test debugging.
+delivery: search_result
+triggers:
+  intents:
+  - automate browser flows with page object model and fixtures
+  - fix flaky browser tests with trace viewer
+  - configure playwright.config.ts projects and reporters
+  - mock backend API routes inside end-to-end specs
+  - 端到端测试用例编写与断言组织
+  - 端到端测试用例不稳定 flaky 排查
+  - Page Object Model 编写页面对象类
+  aliases:
+  - playwright-expert
+  - Playwright 浏览器测试
+  - 端到端测试用例
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/api-mocking.md
+- references/configuration.md
+- references/debugging-flaky.md
+- references/page-object-model.md
+- references/selectors-locators.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- UI 设计页面视觉方案
+- 测试策略与覆盖率规划
+- 浏览器自动化操作页面

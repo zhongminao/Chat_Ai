@@ -1,0 +1,42 @@
+name: wshobson-agents__temporal-python-testing
+version: 1.0.0
+description: 'Test Temporal Python workflows and activities with pytest: time-skipping WorkflowEnvironment,
+  mocked activities, replay determinism checks and local server setup.'
+delivery: search_result
+triggers:
+  intents:
+  - temporal 工作流测试
+  - temporal pytest 单元测试写法
+  - 测试 temporal activity 参数校验
+  - mock activity 测试 workflow
+  - temporal determinism replay test
+  - ActivityEnvironment 单元测试
+  - 本地启动 temporal server 跑测试
+  aliases:
+  - temporal-python-testing
+  - Temporal 工作流测试
+  - temporal 测试套件
+  capabilities:
+  - time-skipping workflow tests
+  - activity mocking
+  - replay determinism testing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- resources/integration-testing.md
+- resources/local-setup.md
+- resources/replay-testing.md
+- resources/unit-testing.md
+- LOCAL_NOTES.md
+excludes:
+- write unit tests
+- pytest fixture 通用写法
+- E2E 测试方案
+- 测试策略规划
+- 异步 python 编程模式
+- python 异步测试 asyncio pytest
+- pytest fixture 与参数化
+notes: 与 jeffallan-claude-skills__test-master 分工：本技能只覆盖 Temporal 工作流的 pytest 测试范式；通用 pytest 写法见 wshobson-agents__python-testing-patterns。

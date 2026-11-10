@@ -1,0 +1,34 @@
+name: github-awesome-copilot__landing-page-conversion-audit
+version: 1.0.0
+description: Audit a landing, sales, opt-in or checkout page for conversion leaks (message match, above-the-fold, offer clarity,
+  form friction, trust, post-click path, tracking) and return a fix list ranked by expected revenue impact.
+delivery: search_result
+triggers:
+  intents:
+  - 审查落地页的转化问题，给出按影响排序的修改清单
+  - 投放广告点击有了但下单率很低，帮我做 CRO 审计
+  - 这个 landing page 文案和广告承诺不匹配怎么改
+  - audit my landing page conversion rate and rank the fixes
+  - 结账页加购到付款流失很大，查一下摩擦点
+  - 落地页首屏和 CTA 有什么问题，按收益排序
+  aliases:
+  - landing page conversion audit
+  - CRO 落地页审计
+  - 转化率诊断
+  capabilities:
+  - message-match and above-the-fold checks
+  - form friction and trust element review
+  - impact-ranked fix list with effort and confidence
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- build the landing page
+- 写落地页代码
+- seo keyword research
+- SEO 关键词研究
+- write ad copy
+- 写广告文案

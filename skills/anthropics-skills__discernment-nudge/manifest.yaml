@@ -1,0 +1,27 @@
+name: anthropics-skills__discernment-nudge
+version: 1.0.0
+description: Guidance for appending 2-3 short, specific discernment follow-up questions to a substantive answer (estimates, advice, factual claims, plans) so users verify facts, probe reasoning and spot missing context, with explicit skip rules.
+delivery: search_result
+triggers:
+  intents:
+  - append discernment follow-up questions before finalizing advice
+  - 在给出重要建议后提醒用户核对关键事实与假设
+  - help the user scrutinize estimates and projections I just gave
+  - craft nudge questions for a plan or proposal draft
+  - 回答涉及投资或健康决定时提示缺失的上下文
+  aliases:
+  - discernment-nudge
+  - 辨识力追问
+  capabilities:
+  - discernment follow-up question design
+  - AI fluency fact-check and assumption prompts
+excludes:
+  - 内部沟通周报撰写
+  - 代码审查
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

@@ -1,0 +1,36 @@
+name: obra-superpowers__writing-plans
+version: 1.0.0
+description: Turn an approved spec or requirements into an implementation plan written for an engineer who has never seen the codebase — file structure first, then small TDD tasks with exact file paths, names, signatures, test steps and commit points, saved as a dated Markdown plan.
+delivery: search_result
+triggers:
+  intents:
+  - write an implementation plan from a spec
+  - break a feature into bite-sized coding tasks
+  - plan exact files and tests before coding
+  - 根据需求写实现计划
+  - 把功能拆成可执行的任务清单
+  - 编码前先做任务分解计划
+  aliases:
+  - writing-plans
+  - implementation plan
+  - 实现计划编写
+  capabilities:
+  - task decomposition with test cycles
+  - file structure and interface planning
+  - dated plan document drafting
+excludes:
+  - 产品需求文档
+  - PRD
+  - 技术规格文档
+  - technical specification
+  - 代码审查
+  - code review
+  - convert
+  - 文档转换
+  - markdown
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

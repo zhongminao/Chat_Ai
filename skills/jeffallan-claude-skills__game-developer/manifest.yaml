@@ -1,0 +1,34 @@
+name: jeffallan-claude-skills__game-developer
+version: 1.1.0
+description: Build game systems in Unity or Unreal Engine — ECS architecture, physics and colliders, object pooling and state machines, shaders and game AI, multiplayer networking with lag compensation, plus profiling to a 60+ FPS target.
+delivery: search_result
+triggers:
+  intents:
+  - implement ECS architecture for a game system
+  - write Unity MonoBehaviour or ScriptableObject code
+  - set up client-server multiplayer with lag compensation
+  - profile and optimize a game to 60 FPS
+  - Unity 游戏逻辑与预制体开发
+  - Unreal C++ 与蓝图实现
+  - 游戏对象池与状态机设计
+  - 游戏帧率与内存性能优化
+  aliases:
+  - game-developer
+  - Unity 开发
+  - Unreal Engine
+  capabilities:
+  - ECS and game pattern implementation
+  - multiplayer networking guidance
+  - performance profiling advice
+excludes:
+  - 游戏美术资源制作
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/ecs-patterns.md
+- references/multiplayer-networking.md
+- references/performance-optimization.md
+- references/unity-patterns.md
+- references/unreal-cpp.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,34 @@
+name: github-awesome-copilot__code-exemplars-blueprint-generator
+version: 1.0.0
+description: Scan a codebase and produce an exemplars.md catalog of high-quality, representative code examples grouped by
+  pattern type, architecture layer or file type, to anchor team coding standards.
+delivery: search_result
+triggers:
+  intents:
+  - 扫描代码库挑出高质量范例代码并整理成 exemplars.md
+  - 为团队整理最佳实践示例文件清单和代码片段
+  - 按架构层或模式类型列出可参考的优秀实现
+  - generate a code exemplars catalog to set coding standards
+  - 找出可以当模板学写的模块并给出说明
+  - 给新人一份“照这些文件写代码”的示例索引
+  aliases:
+  - code exemplars
+  - 代码范例清单
+  - exemplars.md
+  capabilities:
+  - exemplar discovery by pattern or layer
+  - exemplar documentation format
+  - coding standard anchor list
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- refactor this code
+- 重构这段代码
+- review code quality
+- 代码审查
+- teaching comments
+- 教学注释

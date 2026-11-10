@@ -1,0 +1,34 @@
+name: github-awesome-copilot__power-bi-report-design-consultation
+version: 1.0.0
+description: 'Consult on Power BI report visual design: gather business context, choose charts by data type and question,
+  specify layout, interaction and mobile/responsive behavior, and run an accessibility and design quality checklist.'
+delivery: search_result
+triggers:
+  intents:
+  - 帮我设计这个 Power BI 报表的页面布局和图表选型
+  - 这些 KPI 用柱状图还是折线图，怎么排布看板
+  - Power BI 报表怎么适配手机端并满足无障碍要求
+  - choose charts and layout for a power bi report dashboard
+  - 给管理层做的 Power BI 报表信息层级怎么组织
+  - 报表设计评审：交互、下钻和配色有什么问题
+  aliases:
+  - power bi report design consultation
+  - power bi 报表设计
+  - 报表可视化设计咨询
+  capabilities:
+  - chart selection by data type and question
+  - report layout, interaction and mobile design
+  - design quality and accessibility checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- dax measure optimization
+- DAX 公式优化
+- semantic model relationships
+- 数据模型关系设计
+- build html dashboard
+- 写前端看板代码

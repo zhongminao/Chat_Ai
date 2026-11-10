@@ -1,0 +1,31 @@
+name: wshobson-agents__file-conversion
+version: 1.0.0
+description: Convert local files between image, audio, video, document and data formats with installed
+  tools, preserving originals and verifying output.
+delivery: search_result
+triggers:
+  intents:
+  - 本地图片音频视频格式转换
+  - 文档转 pdf docx markdown
+  - 转换前检查编码与容器格式
+  - 离线批量文件格式转换
+  - 验证转换结果是否完整
+  aliases:
+  - file-conversion
+  - 本地文件格式转换
+  - offline convert
+  capabilities:
+  - tool selection by format
+  - stream and codec checks
+  - output verification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- pdf 解析为 markdown 文档
+- 视频剪辑与生成
+- 在线转换上传

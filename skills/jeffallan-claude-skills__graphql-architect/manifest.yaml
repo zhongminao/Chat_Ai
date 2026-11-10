@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__graphql-architect
+version: 1.1.0
+description: Design GraphQL schemas and Apollo Federation subgraphs - entity directives, DataLoader resolvers, schema-first design, subscriptions and query complexity limits.
+delivery: search_result
+triggers:
+  intents:
+  - design a GraphQL schema subgraph for Apollo Federation
+  - implement GraphQL resolvers with DataLoader batching
+  - compose Apollo Federation entities and @key directives
+  - GraphQL 查询复杂度限制与字段级鉴权
+  - migrate a REST endpoint to a GraphQL schema
+  - GraphQL 分片联合 schema 设计
+  aliases:
+  - graphql-architect
+  - GraphQL 架构
+  - Apollo Federation
+  - GraphQL 联合类型设计
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/federation.md
+- references/migration-from-rest.md
+- references/resolvers.md
+- references/schema-design.md
+- references/security.md
+- references/subscriptions.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- REST 接口资源设计
+- gRPC 服务定义

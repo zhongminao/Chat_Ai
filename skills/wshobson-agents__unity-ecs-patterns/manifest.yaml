@@ -1,0 +1,34 @@
+name: wshobson-agents__unity-ecs-patterns
+version: 1.0.0
+description: Unity DOTS/ECS 架构：实体组件数据布局与 archetype、IJobEntity/ISystem 系统、Job System 与 Burst 约束、NativeArray
+  并行与渲染批处理优化。
+delivery: search_result
+triggers:
+  intents:
+  - Unity DOTS ECS 架构入门落地
+  - IJobEntity ISystem 系统编写
+  - Unity Job System 与 Burst 编译约束
+  - ECS 组件数据布局与 archetype
+  - 并行 Job 与 NativeArray 使用
+  - DOTS 渲染与批处理优化
+  - Unity ECS 迁移与性能对比
+  aliases:
+  - unity-ecs-patterns
+  - Unity DOTS 写法
+  - ECS 实体组件系统
+  capabilities:
+  - DOTS entity data layout
+  - Job System and Burst
+  - ECS system implementation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- Unity 通用游戏开发与关卡设计
+- 游戏引擎选型
+- 游戏美术资源制作

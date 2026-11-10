@@ -1,0 +1,34 @@
+name: github-awesome-copilot__create-tldr-page
+version: 1.0.0
+description: Turn a command's authoritative documentation or help output into a concise tldr-pages entry following the tldr
+  template, style guide and examples, requiring both the command name and a source URL.
+delivery: search_result
+triggers:
+  intents:
+  - 给这个命令行工具写一个 tldr 页面
+  - 按 tldr-pages 模板把 --help 输出整理成示例清单
+  - 给 nmcli 这种命令生成 5 条常用示例的 tldr 条目
+  - create a tldr page from the official docs URL of a CLI command
+  - tldr 页面的标题、示例描述和占位符格式规范
+  - 帮我把 man page 精简成 tldr 格式
+  aliases:
+  - create-tldr-page
+  - tldr 页面生成
+  - tldr pages
+  capabilities:
+  - tldr template and style compliance
+  - example extraction from docs or help output
+  - missing command/URL error handling guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- write cli tool
+- 开发命令行工具
+- create readme
+- 写项目 README
+- cheat sheet for programming language
+- 编程语言速查表

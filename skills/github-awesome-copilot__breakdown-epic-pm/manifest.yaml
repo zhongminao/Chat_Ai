@@ -1,0 +1,35 @@
+name: github-awesome-copilot__breakdown-epic-pm
+version: 1.0.0
+description: 'Write an Epic-level PRD as a PM for a large SaaS platform: problem/solution/impact, personas, user journeys,
+  business requirements, success metrics and out-of-scope, to feed later architecture work.'
+delivery: search_result
+triggers:
+  intents:
+  - 写一份 Epic 级别的 PRD，包括目标、用户画像和业务需求
+  - 把高层产品想法整理成 Epic PRD
+  - 为一个大功能域写出Problem/Solution/Impact和成功指标
+  - write an epic prd that later feeds architecture design
+  - write an epic prd that later feeds architecture design
+  - Epic PRD 要包含用户旅程、功能与非功能需求和 Out of Scope
+  aliases:
+  - epic prd
+  - epic 产品需求文档
+  - breakdown-epic-pm
+  capabilities:
+  - epic-level PRD structure and personas
+  - business requirements and success metrics
+  - out-of-scope and business value framing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- feature prd from epic
+- 从 Epic 拆解功能 PRD
+- github project plan
+- GitHub 项目计划与 issue 拆分
+- test plan
+- 测试策略与测试计划
+- full product prd without parent epic

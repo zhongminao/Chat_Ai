@@ -1,0 +1,28 @@
+name: wshobson-agents__architecture-decision-records
+version: 1.0.0
+description: Write and maintain Architecture Decision Records (ADRs) with templates for decisions and
+  deprecation RFCs.
+delivery: search_result
+triggers:
+  intents:
+  - 编写 ADR 架构决策记录
+  - ADR 模板与编号管理
+  - 技术决策记录 supersede 关系
+  - deprecation RFC 撰写
+  aliases:
+  - architecture-decision-records
+  - ADR
+  - ADR 架构决策记录
+  capabilities:
+  - ADR templates
+  - decision log maintenance
+  - deprecation RFC
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/decision-templates.md
+- references/deprecation-rfc-templates.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

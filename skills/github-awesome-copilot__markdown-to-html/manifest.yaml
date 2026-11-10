@@ -1,0 +1,45 @@
+name: github-awesome-copilot__markdown-to-html
+version: 1.0.0
+description: Convert Markdown to HTML with marked.js, pandoc or gomarkdown semantics, including GFM tables, code blocks, collapsed sections and math; guidance for one-off conversion, batch scripts and Jekyll/Hugo templates.
+delivery: search_result
+triggers:
+  intents:
+  - convert markdown to html
+  - markdown to html conversion
+  - render md files as HTML
+  - batch convert .md to .html
+  - Markdown 转 HTML
+  - 把 md 渲染成网页
+  aliases:
+  - markdown-to-html
+  - md2html
+  - marked.js
+  capabilities:
+  - GFM markdown to HTML
+  - markdown static site templates
+excludes:
+  - Word 文档
+  - docx
+  - 产品需求文档
+allowed_tools:
+- read_file
+- run_bash
+entrypoint: SKILL.md
+references:
+- references/basic-markdown.md
+- references/basic-markdown-to-html.md
+- references/code-blocks.md
+- references/code-blocks-to-html.md
+- references/collapsed-sections.md
+- references/collapsed-sections-to-html.md
+- references/gomarkdown.md
+- references/hugo.md
+- references/jekyll.md
+- references/marked.md
+- references/pandoc.md
+- references/tables.md
+- references/tables-to-html.md
+- references/writing-mathematical-expressions.md
+- references/writing-mathematical-expressions-to-html.md
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,29 @@
+name: github-awesome-copilot__conventional-commit
+version: 1.0.0
+description: Compose a Conventional Commits message (type, scope, imperative description, body, footer with BREAKING CHANGE) from git status and diff output; only drafts the message, does not stage or commit.
+delivery: search_result
+triggers:
+  intents:
+  - write a conventional commit message
+  - generate commit message from my diff
+  - format commit message with type and scope
+  - 写提交信息
+  - 生成 commit message
+  - 规范 git 提交信息
+  aliases:
+  - conventional-commit
+  - Conventional Commits
+  - 提交信息规范
+  capabilities:
+  - commit message drafting
+  - BREAKING CHANGE footer
+excludes:
+  - 代码审查
+  - code review
+  - changelog
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

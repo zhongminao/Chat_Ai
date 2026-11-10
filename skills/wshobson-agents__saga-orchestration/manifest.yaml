@@ -1,0 +1,32 @@
+name: wshobson-agents__saga-orchestration
+version: 1.0.0
+description: 'Implement saga patterns for distributed transactions across microservices: compensating
+  actions, orchestrators and stuck-state recovery.'
+delivery: search_result
+triggers:
+  intents:
+  - 分布式事务 saga 模式落地
+  - 跨服务补偿事务设计
+  - 订单支付库存链路编排
+  - saga 协调器与超时重试
+  - 卡住的 saga 状态排查
+  aliases:
+  - saga-orchestration
+  - saga 模式
+  - distributed transaction
+  capabilities:
+  - compensating transactions
+  - orchestration vs choreography
+  - failure recovery
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-patterns.md
+- references/details.md
+excludes:
+- 事件存储设计
+- 读模型投影
+- 微服务服务网格流量

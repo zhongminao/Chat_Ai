@@ -1,0 +1,28 @@
+name: github-awesome-copilot__create-readme
+version: 1.0.0
+description: Draft a concise, informative project README.md in GitHub Flavored Markdown — overview, install, usage and structure — without LICENSE, CONTRIBUTING or CHANGELOG sections.
+delivery: search_result
+triggers:
+  intents:
+  - create a README for my project
+  - write a README.md
+  - improve the project README
+  - 写 README
+  - 生成项目说明文档 README
+  aliases:
+  - create-readme
+  - README 生成
+  capabilities:
+  - GitHub Flavored Markdown README
+  - project overview and usage sections
+excludes:
+  - API 文档
+  - OpenAPI
+  - 产品需求文档
+allowed_tools:
+- read_file
+- write_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

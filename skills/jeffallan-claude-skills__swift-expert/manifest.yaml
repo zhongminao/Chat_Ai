@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__swift-expert
+version: 1.1.0
+description: Build Apple platform apps in Swift - SwiftUI views and state, async/await and actor isolation, protocol-oriented APIs, ARC memory tuning and XCTest suites.
+delivery: search_result
+triggers:
+  intents:
+  - build SwiftUI views with state management
+  - implement async await and actors in Swift
+  - design protocol oriented Swift APIs
+  - write XCTest tests for Swift concurrency
+  - SwiftUI 界面与状态管理
+  - Swift 并发 async await 与 actor
+  - Swift 协议导向编程
+  - handle ARC memory leaks in Swift
+  aliases:
+  - swift-expert
+  - Swift 开发
+  - SwiftUI
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async-concurrency.md
+- references/memory-performance.md
+- references/protocol-oriented.md
+- references/swiftui-patterns.md
+- references/testing-patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Flutter Dart 移动应用开发
+- React Native 移动应用开发

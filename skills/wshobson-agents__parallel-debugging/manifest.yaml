@@ -1,0 +1,35 @@
+name: wshobson-agents__parallel-debugging
+version: 1.0.0
+description: 'Debug complex multi-cause bugs with Analysis of Competing Hypotheses: enumerate failure-mode
+  hypotheses, gather evidence and rank them without confirmation bias.'
+delivery: search_result
+triggers:
+  intents:
+  - 多假设并行排查 bug
+  - competing hypotheses 根因分析
+  - 跨模块 bug 竞争假设排查
+  - 排查复杂线上问题思路
+  - 避免确认偏误的调试流程
+  - 一次排多个可能原因假设
+  aliases:
+  - parallel-debugging
+  - 竞争假设调试
+  - 多假设调试
+  capabilities:
+  - hypothesis generation by failure mode
+  - evidence-based elimination
+  - systematic root cause analysis
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/hypothesis-testing.md
+excludes:
+- 系统化调试流程与二分法
+- 故障复盘文档
+- 编写复现用例
+- 根因分析报告写作
+- 性能剖析 profiling
+notes: 与 obra-superpowers__systematic-debugging 分工：本技能聚焦多假设竞争与证据评分方法。

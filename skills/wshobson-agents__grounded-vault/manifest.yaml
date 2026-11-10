@@ -1,0 +1,32 @@
+name: wshobson-agents__grounded-vault
+version: 1.0.0
+description: Maintain a grounded Markdown knowledge vault where every claim traces to an immutable source
+  and drift is checked with git fingerprints.
+delivery: search_result
+triggers:
+  intents:
+  - 可溯源 markdown 知识库维护
+  - 为每条结论标注来源链接
+  - wiki 页面陈旧度检测
+  - raw wiki archive 三层目录规范
+  - 编译笔记与来源一致性校验
+  aliases:
+  - grounded-vault
+  - 知识库溯源
+  - grounded wiki
+  capabilities:
+  - provenance links
+  - vault layout conventions
+  - git fingerprint drift checks
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- conductor 项目上下文文档
+- 代码库扫描生成 AGENTS.md
+- 文档站发布

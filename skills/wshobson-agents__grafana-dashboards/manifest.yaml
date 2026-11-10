@@ -1,0 +1,26 @@
+name: wshobson-agents__grafana-dashboards
+version: 1.0.0
+description: Create production Grafana dashboards for real-time visualization of system and application
+  metrics.
+delivery: search_result
+triggers:
+  intents:
+  - Grafana dashboard 面板设计
+  - Grafana 告警与面板变量
+  - 指标可视化布局与 RED/USE
+  - dashboard JSON 模板编写
+  aliases:
+  - grafana-dashboards
+  - grafana 面板
+  - 监控大盘
+  capabilities:
+  - dashboard layout
+  - panel/variable design
+  - dashboard JSON templates
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__rails-expert
+version: 1.1.0
+description: Build Rails 7+ applications - Active Record query optimization, Hotwire Turbo Frames/Streams, Action Cable, Sidekiq jobs and RSpec suites.
+delivery: search_result
+triggers:
+  intents:
+  - optimize Rails Active Record queries with includes
+  - implement Turbo Frames and Turbo Streams updates
+  - configure Action Cable WebSocket channels
+  - set up Sidekiq background workers
+  - Rails 模型关联与查询优化
+  - Turbo Streams 局部页面刷新
+  - Sidekiq 后台任务配置
+  - write RSpec specs for a Rails model
+  aliases:
+  - rails-expert
+  - Ruby on Rails 开发
+  - Hotwire
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/active-record.md
+- references/api-development.md
+- references/background-jobs.md
+- references/hotwire-turbo.md
+- references/rspec-testing.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 微服务架构设计
+- 通用后台任务队列选型

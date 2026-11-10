@@ -1,0 +1,29 @@
+name: github-awesome-copilot__refactor-plan
+version: 1.0.0
+description: Investigate a codebase and produce a staged multi-file refactoring plan — current vs target state, affected files, ordered phases with verification steps, rollback plan and risks — then stop and wait for confirmation.
+delivery: search_result
+triggers:
+  intents:
+  - plan a multi-file refactor before changing code
+  - 写一份多文件重构方案和回滚计划
+  - sequence a refactor across types, implementations and callers
+  - 重构前先梳理受影响文件和执行阶段
+  - create a refactoring plan with verification steps per phase
+  aliases:
+  - refactor-plan
+  - 重构方案
+  - 重构计划
+  capabilities:
+  - affected-file and dependency mapping
+  - phased refactor plan with rollback
+excludes:
+  - 产品需求文档
+  - PRD
+  - 代码审查
+  - 直接修改代码
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

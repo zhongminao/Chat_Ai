@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__react-native-expert
+version: 1.1.0
+description: Build cross-platform mobile apps with React Native and Expo - Expo Router navigation, FlatList performance, native modules, storage hooks and iOS/Android platform code.
+delivery: search_result
+triggers:
+  intents:
+  - build a React Native mobile app with Expo
+  - optimize FlatList rendering performance
+  - set up Expo Router tabs and stacks
+  - handle iOS and Android platform specific code
+  - React Native 原生移动应用开发
+  - Expo 路由与原生模块
+  - 移动端列表渲染优化
+  aliases:
+  - react-native-expert
+  - React Native 开发
+  - Expo 移动应用
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/expo-router.md
+- references/list-optimization.md
+- references/platform-handling.md
+- references/project-structure.md
+- references/storage-hooks.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- React 网页组件与 hooks
+- Flutter 跨平台移动开发
+- 浏览器端网页开发

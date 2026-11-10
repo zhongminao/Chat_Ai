@@ -1,0 +1,35 @@
+name: wshobson-agents__attack-tree-construction
+version: 1.0.0
+description: Build attack trees that enumerate attacker goals, sub-goals, prerequisites and defense gaps,
+  so risks can be compared and communicated to stakeholders.
+delivery: search_result
+triggers:
+  intents:
+  - 构建攻击树
+  - attack tree for a web application
+  - 攻击路径可视化与防御缺口
+  - how to build an attack tree with and/or nodes
+  - 给关键资产画攻击树评估风险
+  - attack tree defense gap analysis
+  - 枚举攻击者目标与子目标的树状拆解
+  aliases:
+  - attack-tree-construction
+  - attack tree
+  - 攻击树分析
+  capabilities:
+  - attack goal decomposition
+  - attack path visualization
+  - defense gap analysis
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- threat model this codebase
+- STRIDE 威胁分析
+- security review against best practices
+- secrets management
+- penetration test report

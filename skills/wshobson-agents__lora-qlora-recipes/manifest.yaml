@@ -1,0 +1,36 @@
+name: wshobson-agents__lora-qlora-recipes
+version: 1.0.0
+description: LoRA 与 QLoRA SFT 超参 recipe：target_modules 全线性层、rank 与 alpha 取值、学习率、NF4 4bit 显存权衡、adapter
+  保存与合并权重。
+delivery: search_result
+triggers:
+  intents:
+  - LoRA 全线性层 target_modules 配置
+  - LoRA rank 与 alpha 取值经验
+  - QLoRA 4bit NF4 量化对显存的影响
+  - LoRA 学习率与 warmup 设置
+  - PEFT 适配器保存与合并权重
+  - QLoRA 与 LoRA 训练质量对比取舍
+  - LoRA dropout 与正则化设置
+  aliases:
+  - lora-qlora-recipes
+  - LoRA 超参 recipe
+  - QLoRA 配置模板
+  capabilities:
+  - adapter hyperparameter recipe
+  - target module selection
+  - merge and save adapters
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/hyperparameters.md
+- references/unsloth-trl-mapping.md
+- LOCAL_NOTES.md
+excludes:
+- 微调方法路线选择与 base model 选型
+- 偏好优化 DPO/ORPO 训练
+- 多模态视觉微调
+- 训练数据清洗与筛选

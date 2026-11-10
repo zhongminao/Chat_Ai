@@ -1,0 +1,33 @@
+name: wshobson-agents__quantized-export
+version: 1.0.0
+description: Checkpoint 导出格式选择：FP8、AWQ INT4、GGUF imatrix、merged safetensors 或 LoRA-only，并做导出前后 golden
+  用例 smoke test 回归。
+delivery: search_result
+triggers:
+  intents:
+  - FP8 与 AWQ INT4 导出格式选择
+  - GGUF imatrix 量化导出流程
+  - 导出后黄金用例 smoke test 对比
+  - 长上下文与代码负载的量化取舍
+  - LoRA-only 与全权重导出区别
+  - 量化后精度回归排查
+  aliases:
+  - quantized-export
+  - 量化导出格式
+  - model export FP8 GGUF
+  capabilities:
+  - export format map
+  - post-export smoke test
+  - quantization trade-offs
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/export-commands.md
+- LOCAL_NOTES.md
+excludes:
+- 模型量化原理与 calibration 调优
+- 模型晋级评审门槛
+- 推理服务部署与吞吐评估

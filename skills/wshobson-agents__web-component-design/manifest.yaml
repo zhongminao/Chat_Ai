@@ -1,0 +1,32 @@
+name: wshobson-agents__web-component-design
+version: 1.0.0
+description: React, Vue and Svelte component patterns with composition, CSS strategies and reusable component
+  APIs.
+delivery: search_result
+triggers:
+  intents:
+  - 组件 API props 设计
+  - React Vue Svelte 组件组合模式
+  - CSS-in-JS 与样式隔离方案
+  - 可复用 UI 组件库架构
+  aliases:
+  - web-component-design
+  - 组件设计模式
+  - component design
+  capabilities:
+  - component composition
+  - CSS styling strategies
+  - component API design
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/accessibility-patterns.md
+- references/component-patterns.md
+- references/css-styling-approaches.md
+excludes:
+- design-system-patterns
+- react 状态管理
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

@@ -1,0 +1,34 @@
+name: wshobson-agents__bazel-build-optimization
+version: 1.0.0
+description: Large-monorepo Bazel 构建优化：remote cache 远程缓存与远程执行、.bazelrc、Starlark 自定义规则、BUILD 目标切分与构建 profile
+  分析。
+delivery: search_result
+triggers:
+  intents:
+  - Bazel 远程缓存 remote cache 与远程执行配置
+  - .bazelrc 构建配置与 platform 定义
+  - Bazel 自定义规则 Starlark 编写
+  - BUILD.bazel 目标切分与 visibility
+  - Bazel 构建时间分析与 profile 解读
+  - monorepo 下 Bazel 依赖引用方式
+  - Bazel 增量构建与沙箱调试
+  aliases:
+  - bazel-build-optimization
+  - Bazel 构建性能优化
+  - Bazel 远程缓存配置
+  capabilities:
+  - remote cache and execution
+  - Starlark custom rules
+  - build profiling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- Turborepo 缓存与任务编排
+- Nx workspace 项目组织
+- monorepo 通用拆分策略

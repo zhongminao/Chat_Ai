@@ -1,0 +1,3 @@
+# Local adaptation: frontend-design
+
+This is a read-only copy of `anthropics-skills/packages/anthropics-skills__frontend-design` from the staged catalog. The upstream SKILL.md is preserved byte-for-byte. Its “client” means the current user: use the user’s supplied brief and prior context. When the brief omits a subject, proposing a concrete subject is useful, but do not claim the user confirmed it or demand confirmation for routine choices. Do not infer that the upstream guide provides fonts, image assets, screenshot tooling, a web runtime, or permission to install dependencies; use only locally available and authorized tools. Retain LICENSE.txt and UPSTREAM_THIRD_PARTY_NOTICES.md unchanged.

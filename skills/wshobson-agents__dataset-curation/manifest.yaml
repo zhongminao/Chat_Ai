@@ -1,0 +1,35 @@
+name: wshobson-agents__dataset-curation
+version: 1.0.0
+description: 'Curate fine-tuning datasets: format selection per method (SFT/DPO/KTO), templating and packing
+  pitfalls, synthetic data mixing and dataset cards.'
+delivery: search_result
+triggers:
+  intents:
+  - 微调数据集格式准备
+  - sft 数据 jsonl instruction response
+  - dpo 偏好对数据构造
+  - 数据集打包 packing 与截断问题
+  - 合成数据混入比例
+  - 数据集卡片 dataset card 编写
+  aliases:
+  - dataset-curation
+  - 微调数据准备
+  - 训练数据集制作
+  capabilities:
+  - finetuning data formats
+  - packing and templating pitfalls
+  - synthetic data mixing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/formats-and-templates.md
+- references/synthetic-data.md
+excludes:
+- 选择微调方法 lora 全参
+- llm 评测指标
+- 数据质量校验框架
+- rag 知识库构建
+- 模型训练分布式配置

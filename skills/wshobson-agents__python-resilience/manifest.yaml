@@ -1,0 +1,35 @@
+name: wshobson-agents__python-resilience
+version: 1.0.0
+description: 'Make Python service calls fault tolerant: retry with exponential backoff and jitter, timeouts,
+  circuit breakers, rate limiting and graceful degradation.'
+delivery: search_result
+triggers:
+  intents:
+  - python 重试退避策略
+  - tenacity retry 配置
+  - 超时与熔断器实现
+  - 指数退避加 jitter 防雪崩
+  - 限流与背压处理
+  - 外部依赖临时失败处理
+  aliases:
+  - python-resilience
+  - 重试与熔断
+  - python 容错
+  capabilities:
+  - retry and backoff patterns
+  - circuit breakers
+  - rate limiting and timeouts
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- python 异常类层次设计
+- python 上下文管理器资源清理
+- 异步并发编程模式
+- 混沌工程实验设计
+- kubernetes 部署

@@ -1,0 +1,32 @@
+name: wshobson-agents__team-composition-patterns
+version: 1.0.0
+description: 'Compose multi-agent teams: sizing heuristics, preset review/feature/debug teams and agent
+  type selection for coordinated work.'
+delivery: search_result
+triggers:
+  intents:
+  - 多 agent 团队规模与角色配置
+  - review team feature team 选型
+  - 子代理类型 subagent_type 选择
+  - agent 团队预设编排
+  - 按任务复杂度决定 spawn 几个 teammate
+  aliases:
+  - team-composition-patterns
+  - agent 团队编排
+  - multi-agent team
+  capabilities:
+  - team sizing heuristics
+  - preset team compositions
+  - agent type selection
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/agent-type-selection.md
+- references/preset-teams.md
+excludes:
+- 任务依赖图与工作负载均衡
+- 并行特性开发的代码所有权
+- 初创公司招聘与组织规划

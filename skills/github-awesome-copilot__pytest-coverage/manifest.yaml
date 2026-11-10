@@ -1,0 +1,34 @@
+name: github-awesome-copilot__pytest-coverage
+version: 1.0.0
+description: 'Guidance for lifting pytest line coverage to 100%: run pytest with --cov --cov-report=annotate, read the cov_annotate
+  files, and add tests for the lines marked with a leading exclamation mark.'
+delivery: search_result
+triggers:
+  intents:
+  - pytest 覆盖率报告里哪些行没被覆盖，怎么补到 100%
+  - 用 pytest-cov 生成 annotated 报告并按 ! 标记补测试
+  - 这个模块行覆盖率不足，列出缺失行并写补充测试用例
+  - raise pytest line coverage by reading cov_annotate output
+  - cov_annotate 里只关注某个模块的未覆盖行
+  - 想把覆盖率提到 100%，还差哪些行没测
+  aliases:
+  - pytest-coverage
+  - pytest 覆盖率补齐
+  - cov_annotate
+  capabilities:
+  - annotated coverage report interpretation
+  - missing line identification
+  - test additions targeting uncovered lines
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- install pytest
+- 安装测试依赖
+- overall test strategy
+- 整体测试策略规划
+- javascript coverage
+- 前端测试覆盖率

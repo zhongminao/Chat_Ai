@@ -1,0 +1,29 @@
+name: wshobson-agents__workflow-orchestration-patterns
+version: 1.0.0
+description: 'Durable workflow design with Temporal: workflow/activity split, sagas, determinism constraints.'
+delivery: search_result
+triggers:
+  intents:
+  - Temporal 工作流编排设计
+  - workflow 与 activity 拆分
+  - 持久化长流程状态管理
+  - 编排确定性 determinism 约束
+  aliases:
+  - workflow-orchestration-patterns
+  - temporal workflow
+  - 工作流编排
+  capabilities:
+  - Temporal workflow design
+  - workflow/activity separation
+  - determinism rules
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- saga-orchestration
+- 工作流流程定义
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

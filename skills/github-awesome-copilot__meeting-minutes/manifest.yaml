@@ -1,0 +1,27 @@
+name: github-awesome-copilot__meeting-minutes
+version: 1.0.0
+description: Turn a short internal meeting transcript or rough notes into concise minutes with metadata, attendance, decisions, owned action items and a parking lot, following a fixed schema.
+delivery: search_result
+triggers:
+  intents:
+  - turn my meeting notes into minutes
+  - 写会议纪要
+  - 整理会议记录并列出决议和行动项
+  - summarize a standup transcript with action items
+  - create meeting minutes with owners and due dates
+  aliases:
+  - meeting-minutes
+  - 会议纪要生成
+  - 会议行动项
+  capabilities:
+  - structured minutes schema
+  - decision and action item extraction
+excludes:
+  - 产品需求文档
+  - PRD
+  - 邮件
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE

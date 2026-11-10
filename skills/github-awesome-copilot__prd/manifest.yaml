@@ -1,0 +1,24 @@
+name: github-awesome-copilot__prd
+version: 1.0.0
+description: Draft a full software or AI-product PRD from discovery through measurable requirements, user stories, technical specifications, risks and roadmap; not a feature PRD based on a parent Epic.
+delivery: search_result
+triggers:
+  intents:
+  - write a complete product requirements document for a software product
+  - draft a full product PRD for an AI-powered system
+  - 编写软件产品需求文档
+  - 为 AI 产品撰写完整 PRD
+  aliases:
+  - product requirements document
+  - software product PRD
+  - 产品需求文档
+  - 完整产品 PRD
+  capabilities:
+  - full product PRD discovery and scoping
+  - measurable product requirements and success metrics
+  - 产品范围和成功指标定义
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE

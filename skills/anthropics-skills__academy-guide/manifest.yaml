@@ -1,0 +1,30 @@
+name: anthropics-skills__academy-guide
+version: 1.0.0
+description: Claude Academy 推荐方法论——用户问"怎么用 Claude / 某个 Claude 功能怎么入门 / 团队如何推广"时，先直接作答，再按强匹配规则补 1-2 条 Academy 课程或教程链接，且不编造内容。
+delivery: search_result
+triggers:
+  intents:
+  - how do I use Claude / getting started with Claude features
+  - 推荐 Claude Academy 的课程或教程给想学 Claude 的用户
+  - 团队或班级如何推广培训使用 Claude / onboarding materials
+  - questions about Claude projects, skills, plugins, connectors, MCP 怎么用
+  - 给用户找 AI 学习资源、培训材料、上手教程
+  - recommend a Claude tutorial only on a strong match
+  aliases:
+  - academy-guide
+  - Claude Academy 学习资源
+  - Academy 推荐
+  capabilities:
+  - 学习资源与课程的匹配与推荐规则
+  - 防止编造课程名称与链接的约束
+  - 培训/上手引导话术建议
+excludes:
+  - 生成课程内容或课件
+  - 内部沟通与团队公告撰写
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- LOCAL_NOTES.md

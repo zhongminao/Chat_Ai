@@ -1,0 +1,35 @@
+name: obra-superpowers__verification-before-completion
+version: 1.0.0
+description: Gate any completion claim behind fresh evidence — identify the command that proves the claim, run it in full, read the output and exit code, then state the result with that evidence instead of words like should, probably or done.
+delivery: search_result
+triggers:
+  intents:
+  - verify before claiming work is done
+  - evidence before asserting tests pass
+  - avoid overclaiming completion status
+  - 交付前先跑验证命令再下结论
+  - 不要没有证据就说已完成
+  - 完成任务前的自检清单
+  aliases:
+  - verification-before-completion
+  - evidence before claims
+  - 完成前验证
+  capabilities:
+  - claim to verification command mapping
+  - output and exit code checking
+  - rationalization red flag list
+excludes:
+  - 代码审查
+  - code review
+  - 编写单元测试
+  - integration test strategy
+  - convert
+  - docx
+  - markdown
+  - 文档转换
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

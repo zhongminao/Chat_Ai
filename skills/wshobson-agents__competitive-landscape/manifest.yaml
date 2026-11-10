@@ -1,0 +1,31 @@
+name: wshobson-agents__competitive-landscape
+version: 1.0.0
+description: Analyze competitors and positioning with Porter's Five Forces, Blue Ocean Strategy and positioning
+  maps for startup and investor narratives.
+delivery: search_result
+triggers:
+  intents:
+  - 竞争对手分析与定位图
+  - 波特五力竞争态势评估
+  - 蓝海战略差异化机会识别
+  - 融资路演中的竞争格局章节
+  - 市场定位与可持续优势论证
+  aliases:
+  - competitive-landscape
+  - 竞争格局分析
+  - porters five forces
+  capabilities:
+  - five forces analysis
+  - blue ocean strategy
+  - positioning maps
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/market-forces-and-blue-ocean.md
+excludes:
+- TAM/SAM/SOM 市场空间测算
+- 初创指标体系
+- 团队组织规划

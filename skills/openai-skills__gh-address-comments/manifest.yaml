@@ -1,0 +1,35 @@
+name: openai-skills__gh-address-comments
+version: 1.0.0
+description: 处理 GitHub Pull Request 评审意见的流程：先确认 gh 认证、拉取当前分支 PR 的 review 线程与评论、逐条编号并说明修复代价，再由用户选定要处理的条目并落实修改。
+delivery: search_result
+triggers:
+  intents:
+  - 如何处理 GitHub PR 的 review 评论
+  - 找出当前分支 PR 上待解决的行评审意见
+  - 把 PR 评论按优先级编号整理并询问先改哪几条
+  - 回复并批量处理 pull request review comments with gh CLI
+  - 请求变更 review 之后怎么逐条跟进落实
+  - PR 评论处理时 gh 认证或限流失败怎么办
+  aliases:
+  - gh-address-comments
+  - PR 评审意见处理
+  - GitHub 评论跟进
+  capabilities:
+  - PR 评论梳理、编号与摘要
+  - 修复范围确认与落实顺序
+  - gh 认证/限流异常处置
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/github-small.svg
+- assets/github.png
+- scripts/fetch_comments.py
+- LOCAL_NOTES.md
+excludes:
+- CI 失败日志排查
+- 提交推送并发起 PR
+- 代码审查本身的标准与清单

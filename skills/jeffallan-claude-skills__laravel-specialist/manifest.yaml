@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__laravel-specialist
+version: 1.1.0
+description: Build Laravel 10+ applications - Eloquent models and relationships, API resources, Sanctum tokens, Horizon queues, Livewire components, Pest tests.
+delivery: search_result
+triggers:
+  intents:
+  - build Laravel Eloquent models and relationships
+  - configure Laravel Horizon queue workers
+  - implement Laravel Sanctum API token authentication
+  - build Livewire interactive components
+  - Laravel 模型关联与查询
+  - Laravel 队列与 Horizon 配置
+  - Laravel Sanctum 接口认证
+  - write Pest tests for a Laravel feature
+  - optimize Eloquent eager loading to avoid N+1
+  aliases:
+  - laravel-specialist
+  - Laravel 开发
+  - Laravel 队列
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/eloquent.md
+- references/livewire.md
+- references/queues.md
+- references/routing.md
+- references/testing.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Symfony 框架依赖注入开发
+- WordPress 插件开发

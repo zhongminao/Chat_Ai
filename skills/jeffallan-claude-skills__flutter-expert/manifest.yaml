@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__flutter-expert
+version: 1.1.0
+description: Build cross-platform apps with Flutter 3 and Dart — reusable widget patterns, Riverpod or Bloc state management, GoRouter navigation, project structure, platform-specific code and DevTools-based performance tuning.
+delivery: search_result
+triggers:
+  intents:
+  - build a Flutter widget with Riverpod state
+  - set up Bloc or Cubit state management
+  - configure GoRouter navigation and nested routes
+  - reduce Flutter rebuilds and jank
+  - Flutter 跨平台应用界面开发
+  - Riverpod 状态管理配置
+  - Flutter 项目目录结构规划
+  - Flutter 性能分析与渲染优化
+  aliases:
+  - flutter-expert
+  - Flutter 开发
+  - Dart 移动应用
+  capabilities:
+  - widget and state management patterns
+  - navigation and project structure guidance
+  - performance profiling advice
+excludes:
+  - React Native 开发
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/bloc-state.md
+- references/gorouter-navigation.md
+- references/performance.md
+- references/project-structure.md
+- references/riverpod-state.md
+- references/widget-patterns.md
+- UPSTREAM_LICENSE

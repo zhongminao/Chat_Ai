@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__ml-pipeline
+version: 1.1.0
+description: Design production ML pipelines - MLflow experiment tracking, Kubeflow or Airflow training DAGs, Feast feature stores, model registry and retraining automation.
+delivery: search_result
+triggers:
+  intents:
+  - design an ML pipeline with MLflow experiment tracking
+  - orchestrate model training workflows with Kubeflow Prefect
+  - build feature store schemas with Feast
+  - set up model registry and automated retraining
+  - 机器学习流水线编排
+  - MLflow 实验跟踪配置
+  - 特征工程与特征存储
+  aliases:
+  - ml-pipeline
+  - MLOps 流水线
+  - 机器学习训练流程
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/experiment-tracking.md
+- references/feature-engineering.md
+- references/model-validation.md
+- references/pipeline-orchestration.md
+- references/training-pipelines.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- LLM 微调 LoRA 参数配置
+- RAG 检索增强方案设计

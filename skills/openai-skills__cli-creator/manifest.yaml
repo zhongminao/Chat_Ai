@@ -1,0 +1,37 @@
+name: openai-skills__cli-creator
+version: 1.0.0
+description: 设计并实现可复用命令行工具的方法论：从 API 文档/OpenAPI/curl/SDK 提取命令面，规划 doctor、发现、解析、读取、写入与 raw 逃逸口，定义稳定 --json 契约、认证配置优先级与安装冒烟测试。
+delivery: search_result
+triggers:
+  intents:
+  - 从接口文档或 OpenAPI 规范规划命令行工具的完整命令集
+  - 命令行工具的命令面怎么规划（doctor / list / get / create / raw）
+  - CLI 的 --json 输出契约与错误格式怎么定
+  - 命令行工具的认证配置优先级（env / 配置文件 / --api-key）
+  - build a composable CLI from curl examples or an SDK
+  - 为内部工具写一个可安装到 PATH 的命令行程序
+  - 如何给 CLI 做冒烟测试并配一个配套 skill
+  aliases:
+  - cli-creator
+  - 命令行工具设计
+  - CLI 命令面规划
+  - OpenAPI 生成 CLI
+  capabilities:
+  - CLI 命令面与 JSON 契约设计
+  - Rust/TypeScript/Python 技术栈选型
+  - 认证与安装测试清单
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- LOCAL_NOTES.md
+- SKILL.md
+- agents/openai.yaml
+- manifest.yaml
+- references/agent-cli-patterns.md
+- LOCAL_NOTES.md
+excludes:
+- 单个一次性脚本改写
+- Shell 脚本语法讲解
+- 部署到云平台

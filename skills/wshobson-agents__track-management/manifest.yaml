@@ -1,0 +1,31 @@
+name: wshobson-agents__track-management
+version: 1.0.0
+description: Create, plan and close Conductor tracks (spec.md, plan.md) that organize features, bugs and
+  refactors through phased work units.
+delivery: search_result
+triggers:
+  intents:
+  - conductor track 工作单元管理
+  - 编写 spec.md 与 plan.md
+  - track 状态标记与归档
+  - 功能/缺陷/重构工作项拆分
+  - track 验收标准与阶段计划
+  aliases:
+  - track-management
+  - conductor track
+  - 工作单元 track
+  capabilities:
+  - track lifecycle management
+  - spec and plan templates
+  - status markers and registry
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 任务依赖图与并行拆分
+- 多 agent 团队编排
+- 项目上下文工件

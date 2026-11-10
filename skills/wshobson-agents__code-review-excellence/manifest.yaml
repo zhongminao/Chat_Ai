@@ -1,0 +1,35 @@
+name: wshobson-agents__code-review-excellence
+version: 1.0.0
+description: 'Review checklist depth for excellence-dimension review: catching bugs early with constructive
+  feedback.'
+delivery: search_result
+triggers:
+  intents:
+  - review checklist 深度评审
+  - excellence 维度代码评审
+  - 评审意见如何写得可执行 checklist
+  - 评审关注点 bug/可读性/设计一致
+  aliases:
+  - code-review-excellence
+  - review checklist
+  - 评审 excellence
+  capabilities:
+  - review checklists
+  - actionable feedback
+  - excellence dimensions
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- manifest.yaml
+- references/review-patterns.md
+- references/review-techniques.md
+excludes:
+- 代码审查
+- code review
+- code-reviewer
+- requesting-code-review
+- multi-reviewer-patterns
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

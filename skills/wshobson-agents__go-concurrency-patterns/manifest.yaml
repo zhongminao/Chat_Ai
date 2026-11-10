@@ -1,0 +1,34 @@
+name: wshobson-agents__go-concurrency-patterns
+version: 1.0.0
+description: Go 并发模式实战：goroutine 与 channel、worker pool 与 fan-out/fan-in 管道、sync 原语、context 取消传播、优雅关闭与
+  errgroup 限流。
+delivery: search_result
+triggers:
+  intents:
+  - goroutine 泄漏排查与生命周期管理
+  - Go channel 缓冲与非阻塞 select 写法
+  - worker pool 与 fan-out fan-in 管道
+  - sync.WaitGroup Mutex Once 使用场景
+  - context 超时取消在并发函数中的传递
+  - Go 优雅关闭 graceful shutdown 实现
+  - sync/atomic 与 errgroup 限流
+  aliases:
+  - go-concurrency-patterns
+  - Go 并发模式
+  - goroutine 并发写法
+  capabilities:
+  - worker pool and pipeline patterns
+  - context cancellation propagation
+  - graceful shutdown
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- Go Web 服务框架与路由搭建
+- Go 项目通用开发规范
+- 竞态调试与 pprof 性能剖析

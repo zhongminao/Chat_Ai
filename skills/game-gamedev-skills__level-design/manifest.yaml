@@ -1,0 +1,28 @@
+name: game-gamedev-skills__level-design
+version: 1.0.0
+description: Authored level layout, whitebox, encounter pacing, player metrics and critical-path gating (engine-neutral).
+delivery: search_result
+triggers:
+  intents:
+    - level design
+    - level whitebox layout
+    - level blockout
+    - encounter pacing
+    - 关卡设计
+    - 关卡白盒布局
+    - 关卡节奏设计
+    - 关卡关键路径
+  aliases:
+    - level-design
+    - 关卡白盒
+  capabilities:
+    - level pacing and flow
+    - player metrics for level layout
+allowed_tools:
+  - read_file
+entrypoint: SKILL.md
+references:
+  - LOCAL_NOTES.md
+  - references/pacing-and-flow.md
+  - UPSTREAM_LICENSE
+  - UPSTREAM_NOTICE

@@ -1,0 +1,30 @@
+name: wshobson-agents__changelog-automation
+version: 1.0.0
+description: Automate changelog and release notes from commits and PRs following Keep a Changelog.
+delivery: search_result
+triggers:
+  intents:
+  - CHANGELOG 自动生成
+  - Keep a Changelog 格式
+  - release notes 发布说明整理
+  - 语义化版本变更归类
+  aliases:
+  - changelog-automation
+  - changelog 自动生成
+  - release notes
+  capabilities:
+  - changelog generation
+  - Keep a Changelog format
+  - release note grouping
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- create-readme
+- conventional-commit
+- 提交信息规范
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

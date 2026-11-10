@@ -1,0 +1,30 @@
+name: wshobson-agents__gitlab-ci-patterns
+version: 1.0.0
+description: Build GitLab CI/CD pipelines with multi-stage jobs, caching, runners and Kubernetes deployment
+  automation.
+delivery: search_result
+triggers:
+  intents:
+  - gitlab-ci.yml 多阶段流水线
+  - gitlab runner 与缓存配置
+  - gitlab ci 部署到 kubernetes
+  - gitlab ci 自动化测试与制品
+  - gitlab ci 模板复用 include rules
+  aliases:
+  - gitlab-ci-patterns
+  - GitLab CI
+  - gitlab-ci.yml
+  capabilities:
+  - multi-stage pipeline design
+  - runner and cache configuration
+  - deployment jobs
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- github actions 工作流模板
+- 部署流水线门禁设计
+- nx 构建缓存

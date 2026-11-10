@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__nestjs-expert
+version: 1.1.0
+description: Build NestJS services - modules, controllers and providers, guards, interceptors and validation pipes, Passport JWT auth, TypeORM/Prisma integration and tests.
+delivery: search_result
+triggers:
+  intents:
+  - scaffold a NestJS module controller and service
+  - add NestJS guards interceptors and validation pipes
+  - configure Passport JWT authentication in NestJS
+  - migrate an Express app to NestJS structure
+  - NestJS 模块与控制器编写
+  - NestJS 守卫与拦截器
+  - NestJS 依赖注入配置
+  aliases:
+  - nestjs-expert
+  - NestJS 开发
+  - Nest.js 后端
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/authentication.md
+- references/controllers-routing.md
+- references/dtos-validation.md
+- references/migration-from-express.md
+- references/services-di.md
+- references/testing-patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Express 中间件路由组织
+- Spring Boot 后端开发

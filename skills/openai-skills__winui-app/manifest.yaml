@@ -1,0 +1,53 @@
+name: openai-skills__winui-app
+version: 1.0.0
+description: WinUI 3 / Windows App SDK 桌面应用开发指导：环境审计与依赖安装、packaged/unpackaged 打包模式选择、dotnet new winui 脚手架、XAML 结构、Shell 导航与多窗口、控件与自适应布局、Mica
+  与主题、无障碍、性能与启动验证、CommunityToolkit 取舍。
+delivery: search_result
+triggers:
+  intents:
+  - WinUI 3 应用怎么选 packaged 还是 unpackaged
+  - dotnet new winui 脚手架与 XAML 编译错误（MSB3073）排查
+  - WinUI 3 的 NavigationView 导航、标题栏与多窗口模式
+  - WinUI 控件的浅色/深色主题与 Mica 材质配置
+  - build a winui 3 desktop app with windows app sdk
+  - WinUI 应用无障碍、键盘导航与本地化处理
+  - 判断本机能否编译 WinUI 应用需要装哪些组件
+  aliases:
+  - winui-app
+  - WinUI 3 开发
+  - Windows App SDK
+  - C# 桌面应用
+  capabilities:
+  - WinUI 环境审计与脚手架流程
+  - Shell/导航/布局/主题/无障碍规范
+  - 编译与启动故障恢复清单
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/winui.png
+- config.yaml
+- references/_sections.md
+- references/accessibility-input-and-localization.md
+- references/build-run-and-launch-verification.md
+- references/community-toolkit-controls-and-helpers.md
+- references/controls-layout-and-adaptive-ui.md
+- references/foundation-environment-audit-and-remediation.md
+- references/foundation-setup-and-project-selection.md
+- references/foundation-template-first-recovery.md
+- references/foundation-winui-app-structure.md
+- references/motion-animations-and-polish.md
+- references/performance-diagnostics-and-responsiveness.md
+- references/sample-source-map.md
+- references/shell-navigation-and-windowing.md
+- references/styling-theming-materials-and-icons.md
+- references/testing-debugging-and-review-checklists.md
+- references/windows-app-sdk-lifecycle-notifications-and-deployment.md
+- LOCAL_NOTES.md
+excludes:
+- WPF / UWP 旧框架迁移
+- ASP.NET Core Web 应用
+- 跨平台 MAUI 或 Flutter

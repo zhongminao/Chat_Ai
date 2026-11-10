@@ -1,0 +1,26 @@
+name: wshobson-agents__cqrs-implementation
+version: 1.0.0
+description: Command Query Responsibility Segregation patterns for separating read and write models.
+delivery: search_result
+triggers:
+  intents:
+  - CQRS 读写分离模型
+  - command query 分离设计
+  - 读模型投影与最终一致性
+  - CQRS 与 event sourcing 结合
+  aliases:
+  - cqrs-implementation
+  - CQRS
+  - 命令查询职责分离
+  capabilities:
+  - command/query model separation
+  - read model projection
+  - consistency trade-offs
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

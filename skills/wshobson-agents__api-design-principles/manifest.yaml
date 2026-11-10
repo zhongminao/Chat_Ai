@@ -1,0 +1,35 @@
+name: wshobson-agents__api-design-principles
+version: 1.0.0
+description: REST and GraphQL API design principles for intuitive, versionable, well-specified APIs.
+delivery: search_result
+triggers:
+  intents:
+  - REST API 资源与版本设计
+  - GraphQL schema design
+  - pagination filtering sorting 设计
+  - API 错误码与状态码规范
+  - API 命名与幂等性设计
+  - 接口规范评审 checklist
+  aliases:
+  - api-design-principles
+  - REST 设计规范
+  - GraphQL schema 设计
+  capabilities:
+  - REST best practices
+  - GraphQL schema design
+  - API design checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/api-design-checklist.md
+- assets/rest-api-template.py
+- references/details.md
+- references/graphql-schema-design.md
+- references/rest-best-practices.md
+excludes:
+- api-designer
+- openapi 生成
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

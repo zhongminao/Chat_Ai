@@ -1,0 +1,33 @@
+name: wshobson-agents__context-driven-development
+version: 1.0.0
+description: Maintain project context artifacts (product.md, tech-stack.md, workflow.md, tracks.md) so
+  AI-assisted work stays consistent with the codebase.
+delivery: search_result
+triggers:
+  intents:
+  - conductor 项目上下文文档维护
+  - product.md tech-stack.md 一致性校验
+  - 从现有代码库提取项目上下文
+  - AI 协作开发的项目上下文规范
+  - 新建项目脚手架产物规划
+  - 架构变更后同步上下文工件
+  aliases:
+  - context-driven-development
+  - 项目上下文文档
+  - conductor context
+  capabilities:
+  - context artifact templates
+  - greenfield and brownfield extraction
+  - consistency validation checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/artifact-templates.md
+- references/details.md
+excludes:
+- 代码库扫描生成 AGENTS.md
+- 初创产品需求预研
+- ADR 决策记录

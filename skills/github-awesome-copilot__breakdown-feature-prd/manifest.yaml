@@ -1,0 +1,26 @@
+name: github-awesome-copilot__breakdown-feature-prd
+version: 1.0.0
+description: Expand one feature or enabler from an existing parent Epic into a feature-level PRD with stories, functional and nonfunctional requirements, acceptance criteria and exclusions; requires parent Epic context.
+delivery: search_result
+triggers:
+  intents:
+  - write a feature PRD from a parent Epic
+  - turn an Epic feature into a feature-level requirements document
+  - 根据父级 Epic 编写功能需求文档
+  - 从 Epic 拆解单个功能 PRD
+  aliases:
+  - breakdown-feature-prd
+  - Epic feature PRD
+  - Epic 功能 PRD
+  - 功能级产品需求文档
+  capabilities:
+  - Epic-to-feature PRD breakdown
+  - feature user stories and acceptance criteria
+  - 从 Epic 拆解功能需求与验收标准
+allowed_tools:
+- read_file
+- write_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

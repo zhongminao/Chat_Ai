@@ -1,0 +1,50 @@
+name: openai-skills__aspnet-core
+version: 1.0.0
+description: ASP.NET Core 官方风格的架构与实现指导：应用模型选择（Blazor/Razor Pages/MVC/Minimal API/Controller）、Program.cs 与中间件/DI/配置、安全与身份、实时与后台任务、测试性能与版本升级，附
+  15 份聚焦参考文档。
+delivery: search_result
+triggers:
+  intents:
+  - Blazor / Razor Pages / MVC / Minimal API 该选哪种应用模型
+  - 如何组织 Program.cs 的依赖注入、中间件与配置
+  - web 应用的身份认证与授权安全配置（Identity / cookie / bearer token）
+  - web 项目集成测试、性能调优与上线检查
+  - 把现有 aspnet-core 项目升级到 .NET 10 并处理破坏性变更
+  - SignalR、gRPC 与 hosted background service 实现
+  - 评审或重构一个 aspnet-core web 应用
+  aliases:
+  - aspnet-core
+  - Blazor 应用架构
+  - dotnet web 最佳实践
+  capabilities:
+  - 应用模型与模板选型
+  - 请求管线/DI/配置/安全实践
+  - 测试、性能、升级迁移参考
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- LOCAL_NOTES.md
+- SKILL.md
+- agents/openai.yaml
+- assets/dotnet-logo.png
+- manifest.yaml
+- references/_sections.md
+- references/apis-minimal-and-controllers.md
+- references/data-state-and-services.md
+- references/program-and-pipeline.md
+- references/realtime-grpc-and-background-work.md
+- references/security-and-identity.md
+- references/source-map.md
+- references/stack-selection.md
+- references/testing-performance-and-operations.md
+- references/ui-blazor.md
+- references/ui-mvc.md
+- references/ui-razor-pages.md
+- references/versioning-and-upgrades.md
+- LOCAL_NOTES.md
+excludes:
+- 非 .NET 后端框架（Django/FastAPI/Next.js）
+- WinUI 桌面应用
+- 部署到具体云平台

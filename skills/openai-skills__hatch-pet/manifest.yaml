@@ -1,0 +1,44 @@
+name: openai-skills__hatch-pet
+version: 1.0.0
+description: 生成 Codex 兼容动画宠物精灵图的工作流：8x9 网格（192x208 单元格）动画行规范、每行状态提示词、帧提取/镜像/图集合成、几何与视觉 QA 评分、透明单元格清理及 pet.json 本地打包约定。
+delivery: search_result
+triggers:
+  intents:
+  - 做一个 8x9 的宠物精灵图动画图集（sprite atlas）
+  - 宠物各状态动画行怎么写：idle / running / waving / jumping
+  - 动画图集几何与视觉 QA 检查清单
+  - 把生成的帧合成 1536x1872 图集并清理透明单元格
+  - build a codex animated pet spritesheet with pet.json packaging
+  - 品牌吉祥物宠物化：从品牌线索提炼形象提示词
+  aliases:
+  - hatch-pet
+  - 动画宠物精灵图
+  - 宠物图集制作
+  - hatch pet
+  capabilities:
+  - 图集网格与动画行规范
+  - 帧提取/合成/QA 流程
+  - 品牌线索转形象提示词
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- references/animation-rows.md
+- references/codex-pet-contract.md
+- references/qa-rubric.md
+- scripts/compose_atlas.py
+- scripts/derive_running_left_from_running_right.py
+- scripts/extract_strip_frames.py
+- scripts/inspect_frames.py
+- scripts/make_contact_sheet.py
+- scripts/prepare_pet_run.py
+- scripts/render_animation_previews.py
+- scripts/validate_atlas.py
+- LOCAL_NOTES.md
+excludes:
+- 逐帧手绘或像素画教学
+- 图片托管与发布到商店
+- 本地图片文件实际生成

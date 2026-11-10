@@ -1,0 +1,42 @@
+name: wshobson-agents__k8s-manifest-generator
+version: 1.0.0
+description: Generate production-ready Kubernetes manifests for Deployment, Service, ConfigMap, Secret
+  and PVC with resource limits, probes and security contexts.
+delivery: search_result
+triggers:
+  intents:
+  - 编写 k8s deployment yaml
+  - 生成 Kubernetes Service 与 ConfigMap 清单
+  - k8s 健康检查 liveness readiness probe 配置
+  - k8s securityContext 与资源 limit 设置
+  - PersistentVolumeClaim 清单怎么写
+  - 多环境 k8s 清单组织
+  - kubectl 排查 pod 起不来
+  aliases:
+  - k8s-manifest-generator
+  - Kubernetes 清单
+  - k8s yaml
+  capabilities:
+  - Deployment/Service/ConfigMap manifests
+  - probes and resource limits
+  - manifest troubleshooting tips
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/configmap-template.yaml
+- assets/deployment-template.yaml
+- assets/service-template.yaml
+- references/deployment-spec.md
+- references/details.md
+- references/service-spec.md
+- LOCAL_NOTES.md
+excludes:
+- helm chart 脚手架
+- dockerfile 与 CI 流水线
+- argocd flux gitops
+- k8s networkpolicy 与 rbac
+- terraform 模块
+- 云上架构设计

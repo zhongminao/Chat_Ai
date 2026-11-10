@@ -1,0 +1,34 @@
+name: obra-superpowers__using-git-worktrees
+version: 1.0.0
+description: 'Set up an isolated git worktree for feature work without disturbing the current checkout:
+  detect existing isolation or submodules first, choose the worktree directory, verify it is ignored,
+  then give the exact commands plus a clean-baseline check.'
+delivery: search_result
+triggers:
+  intents:
+  - 开新功能前怎么建独立 worktree 不影响当前分支
+  - git worktree add 的目录该放哪里，先检查 .gitignore
+  - 已经在子模块里了，还算不算在 worktree 中
+  - create an isolated git worktree for a new feature branch
+  - 把一个长任务隔离到 .worktrees 目录，给出完整命令步骤
+  - 判断当前工作区是否已经被隔离，避免重复创建 worktree
+  aliases:
+  - using-git-worktrees
+  - git worktree 隔离
+  - 工作树创建
+  capabilities:
+  - worktree and submodule isolation detection
+  - worktree directory selection and gitignore verification
+  - command-level setup with baseline test check
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 合并分支并删除 worktree
+- 帮我把这个分支合到 main
+- git commit message
+- 把普通分支推送并建 PR

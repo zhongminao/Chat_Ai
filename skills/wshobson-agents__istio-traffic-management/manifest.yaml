@@ -1,0 +1,34 @@
+name: wshobson-agents__istio-traffic-management
+version: 1.0.0
+description: 'Manage Istio traffic with VirtualService, DestinationRule and Gateway: canary and blue-green
+  routing, retries, timeouts, circuit breaking and mirroring.'
+delivery: search_result
+triggers:
+  intents:
+  - istio 流量路由配置
+  - virtualservice destinationrule 写法
+  - istio 金丝雀发布灰度流量
+  - istio 重试超时与熔断
+  - 流量镜像与故障注入
+  - istio gateway 入口配置
+  aliases:
+  - istio-traffic-management
+  - Istio
+  - istio 流量管理
+  capabilities:
+  - VirtualService/DestinationRule routing
+  - canary and traffic splitting
+  - retries timeouts and circuit breaking
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- linkerd 服务网格
+- 服务网格可观测性
+- k8s networkpolicy 与 rbac
+- CI/CD 发布流水线设计
+- mtls 证书配置

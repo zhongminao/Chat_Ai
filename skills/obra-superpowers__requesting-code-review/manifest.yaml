@@ -1,0 +1,36 @@
+name: obra-superpowers__requesting-code-review
+version: 1.0.0
+description: Prepare and dispatch an independent code review after finishing a task, major feature or before merge — compute BASE/HEAD SHAs, fill the reviewer prompt with description, requirements, diff range and verification steps, and act on returned findings.
+delivery: search_result
+triggers:
+  intents:
+  - ask a reviewer agent to review this branch
+  - prepare reviewer prompt with base and head SHAs
+  - get an independent review after finishing a feature
+  - 合并前请人做代码复审
+  - 准备代码审查请求说明
+  - 提交前找独立评审者看改动
+  aliases:
+  - requesting-code-review
+  - review request
+  - 发起代码审查
+  capabilities:
+  - reviewer prompt assembly from diff range
+  - review timing and scope guidance
+  - review finding triage
+excludes:
+  - review this diff
+  - review my pull request
+  - review a pull request
+  - 审查这个 PR
+  - 审查这个 diff
+  - 代码审查结论
+  - review 一下
+  - 这个 pr
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- code-reviewer.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

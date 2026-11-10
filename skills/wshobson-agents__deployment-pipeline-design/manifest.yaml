@@ -1,0 +1,32 @@
+name: wshobson-agents__deployment-pipeline-design
+version: 1.0.0
+description: Multi-stage CI/CD pipeline design with approval gates, canary rollouts and environment promotion.
+delivery: search_result
+triggers:
+  intents:
+  - 多阶段 CI/CD 流水线设计
+  - 金丝雀发布与灰度策略
+  - 部署审批门禁与晋级
+  - 环境晋级 promotion workflow
+  - pipeline 质量门禁设计
+  aliases:
+  - deployment-pipeline-design
+  - 部署流水线设计
+  - canary rollout
+  capabilities:
+  - multi-stage pipeline design
+  - progressive delivery
+  - approval gates
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-strategies.md
+- references/details.md
+excludes:
+- devops-engineer
+- github actions 模板
+- gitlab ci 配置
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

@@ -1,0 +1,34 @@
+name: wshobson-agents__visual-design-foundations
+version: 1.0.0
+description: 'Design visual foundations: typography, accessible color palettes, spacing,
+  design tokens and iconography.'
+delivery: search_result
+triggers:
+  intents:
+  - visual design foundations
+  - typography scale
+  - accessible color palette
+  - design tokens
+  - spacing system
+  - 视觉设计基础
+  - 字体排版
+  - 颜色系统
+  - 设计令牌
+  - 视觉层级
+  - 图标体系
+  aliases:
+  - visual-design-foundations
+  - wshobson-agents__visual-design-foundations
+  capabilities:
+  - accessible color palette
+  - design tokens
+  - spacing system
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_ADAPTATION.md
+- references/color-systems.md
+- references/spacing-iconography.md
+- references/typography-systems.md
+- UPSTREAM_LICENSE

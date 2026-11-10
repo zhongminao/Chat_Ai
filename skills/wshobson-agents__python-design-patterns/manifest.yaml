@@ -1,0 +1,32 @@
+name: wshobson-agents__python-design-patterns
+version: 1.0.0
+description: 'Python design principles: KISS, separation of concerns, single responsibility and composition
+  over inheritance.'
+delivery: search_result
+triggers:
+  intents:
+  - python design patterns
+  - Python 设计原则 KISS
+  - God class 重构
+  - composition over inheritance
+  - 单一职责重构 python
+  - 依赖倒置 依赖注入 python
+  aliases:
+  - python-design-patterns
+  - python 设计模式
+  - design patterns python
+  capabilities:
+  - composition over inheritance
+  - responsibility layering
+  - refactoring god classes
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 网页设计
+- mobile design
+- landing page design

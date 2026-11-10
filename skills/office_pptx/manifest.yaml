@@ -1,0 +1,34 @@
+name: office_pptx
+version: 0.1.0
+description: Create, inspect and modify PowerPoint PPTX/POTX slide decks; validate XML and render slides.
+delivery: search_result
+triggers:
+  intents:
+  - create PowerPoint deck
+  - edit presentation slides
+  - inspect slide deck
+  - 制作 PowerPoint 演示文稿
+  - 编辑 PPT 幻灯片
+  - 查看 PPT 演示稿
+  aliases:
+  - PPTX 幻灯片
+  - PowerPoint 模板
+  - 演示文稿
+  capabilities:
+  - pptx slide editing
+  - PPTX validation
+  - 幻灯片渲染检查
+  extensions:
+  - .pptx
+  - .potx
+excludes:
+- Google Slides API
+allowed_tools:
+- run_bash
+- read_file
+- read_image
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

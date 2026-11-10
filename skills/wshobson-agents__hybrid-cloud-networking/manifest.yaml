@@ -1,0 +1,32 @@
+name: wshobson-agents__hybrid-cloud-networking
+version: 1.0.0
+description: Connect on-premises data centers to cloud with VPN, Direct Connect, ExpressRoute and Interconnect,
+  including routing and HA design.
+delivery: search_result
+triggers:
+  intents:
+  - 混合云专线与 vpn 组网
+  - on-prem 到云的网络打通
+  - direct connect expressroute 选型
+  - 混合云高可用链路设计
+  - 跨地域网络延迟与带宽规划
+  aliases:
+  - hybrid-cloud-networking
+  - 混合云组网
+  - hybrid connectivity
+  capabilities:
+  - connection option selection
+  - routing and HA design
+  - security and compliance networking
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/direct-connect.md
+- LOCAL_NOTES.md
+excludes:
+- 多云架构服务选型
+- mTLS 服务间加密
+- 云成本优化

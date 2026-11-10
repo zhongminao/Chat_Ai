@@ -1,0 +1,39 @@
+name: wshobson-agents__stride-analysis-patterns
+version: 1.0.0
+description: 'Systematically identify threats with the STRIDE method: category-by-category analysis matrix,
+  DFD-driven elicitation and threat documentation templates.'
+delivery: search_result
+triggers:
+  intents:
+  - STRIDE 威胁分析怎么做
+  - stride threat identification checklist
+  - 按 STRIDE 六类逐项识别威胁
+  - spoofing tampering repudiation 分析矩阵
+  - STRIDE 分析矩阵与威胁清单模板
+  - stride analysis for a data flow diagram
+  - 为安全评审输出 STRIDE 威胁文档
+  - elevation of privilege denial of service 威胁举例
+  aliases:
+  - stride-analysis-patterns
+  - STRIDE
+  - STRIDE 威胁建模方法
+  capabilities:
+  - STRIDE category matrix
+  - threat elicitation per DFD element
+  - threat documentation templates
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- threat model this codebase
+- security-threat-model
+- 对代码库做威胁建模并写出威胁模型文件
+- security review against best practices
+- attack tree
+- secrets management
+- k8s security policies
+notes: 与 openai-skills__security-threat-model 分工：本技能只提供 STRIDE 方法论与分类矩阵，不基于仓库代码证据生成完整威胁模型文件。

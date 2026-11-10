@@ -1,0 +1,35 @@
+name: wshobson-agents__vector-index-tuning
+version: 1.0.0
+description: 'Tune vector index latency, recall and memory: index type selection, HNSW M/efConstruction/efSearch
+  parameters and quantization strategies.'
+delivery: search_result
+triggers:
+  intents:
+  - HNSW 参数调优
+  - 向量索引选型 flat hnsw ivf pq
+  - quantization 量化 内存 优化
+  - 召回率与延迟权衡
+  - efSearch 调节 召回
+  - 亿级向量检索扩展
+  aliases:
+  - vector-index-tuning
+  - HNSW 调优
+  - 向量索引优化
+  capabilities:
+  - index type selection
+  - HNSW parameter tuning
+  - quantization trade-offs
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 搭建 RAG 问答系统
+- 混合检索 bm25 融合
+- embedding 模型选型
+- sql 查询优化
+- 数据库 schema 迁移

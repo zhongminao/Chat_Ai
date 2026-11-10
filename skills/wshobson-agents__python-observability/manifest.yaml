@@ -1,0 +1,36 @@
+name: wshobson-agents__python-observability
+version: 1.0.0
+description: 'Instrument Python services: structured JSON logging, Prometheus metrics with bounded cardinality,
+  correlation IDs and the four golden signals.'
+delivery: search_result
+triggers:
+  intents:
+  - python 结构化日志 json logging
+  - 应用侧指标埋点 counter histogram
+  - request_id correlation id 贯穿日志
+  - four golden signals 指标设计
+  - 指标标签基数过高怎么优化
+  - 生产问题排查的日志规范
+  aliases:
+  - python-observability
+  - python 可观测性
+  - 日志与指标埋点
+  capabilities:
+  - structured logging
+  - Prometheus metrics in Python
+  - correlation ID propagation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- prometheus 服务端采集配置
+- grafana 面板设计
+- opentelemetry 链路追踪接入
+- SLI SLO 错误预算
+- python 重试与熔断
+notes: 与 prometheus-configuration 分工：本技能只讲应用侧埋点，不讲服务端 scrape 配置。

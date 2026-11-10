@@ -1,0 +1,34 @@
+name: wshobson-agents__interaction-design
+version: 1.0.0
+description: Design UI microinteractions, motion, transitions, loading feedback and
+  reduced-motion accessibility.
+delivery: search_result
+triggers:
+  intents:
+  - interaction design
+  - microinteractions
+  - UI motion design
+  - loading states
+  - reduced motion transitions
+  - 交互设计
+  - 微交互
+  - 加载状态
+  - 过渡动画
+  - 反馈动效
+  - 手势交互
+  aliases:
+  - interaction-design
+  - wshobson-agents__interaction-design
+  capabilities:
+  - UI motion design
+  - loading states
+  - reduced motion transitions
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_ADAPTATION.md
+- references/animation-libraries.md
+- references/microinteraction-patterns.md
+- references/scroll-animations.md
+- UPSTREAM_LICENSE

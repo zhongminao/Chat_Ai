@@ -1,0 +1,29 @@
+name: jeffallan-claude-skills__mcp-developer
+version: 1.1.0
+description: Build and debug Model Context Protocol servers and clients - tool handlers, resource providers, stdio/HTTP transports, JSON-RPC schemas with Zod or Pydantic.
+delivery: search_result
+triggers:
+  intents:
+  - build an MCP server tool handler in TypeScript SDK
+  - implement MCP resources and prompts over stdio transport
+  - debug JSON-RPC protocol compliance for MCP client
+  - MCP 服务器工具处理函数实现
+  - MCP 客户端与传输层调试
+  - MCP 协议消息与工具 schema 校验
+  aliases:
+  - mcp-developer
+  - MCP 开发
+  - Model Context Protocol 实现
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/protocol.md
+- references/python-sdk.md
+- references/resources.md
+- references/tools.md
+- references/typescript-sdk.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- MCP 服务器开发指南与评估用例编写

@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__django-storages-s3
+version: 1.0.0
+description: Configure Django to store static and media files on AWS S3 with django-storages and boto3 — the 4.2+ STORAGES dict, public vs private backends, presigned URLs, CloudFront and least-privilege IAM policies.
+delivery: search_result
+triggers:
+  intents:
+  - configure Django STORAGES settings for S3
+  - serve Django media files from a private S3 bucket
+  - generate presigned download or upload URLs in Django
+  - set up CloudFront and IAM policy for Django static files
+  - Django 静态文件上传到 S3
+  - django-storages 配置 S3Boto3Storage
+  - Django collectstatic 配置
+  - Django 文件存储迁移到对象存储
+  aliases:
+  - django-storages-s3
+  - django-storages 配置
+  - S3 文件存储
+  capabilities:
+  - STORAGES settings configuration
+  - presigned URL and IAM policy guidance
+  - S3 testing with moto
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/configuration.md
+- references/custom-backends.md
+- references/presigned-urls.md
+- references/testing-storages.md
+- UPSTREAM_LICENSE

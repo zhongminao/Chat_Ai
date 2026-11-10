@@ -1,0 +1,35 @@
+name: wshobson-agents__langchain-architecture
+version: 1.0.0
+description: 'Design LLM applications with LangChain 1.x and LangGraph: state graphs, ReAct and multi-agent
+  patterns, memory, tools and document pipelines.'
+delivery: search_result
+triggers:
+  intents:
+  - langchain 应用架构设计
+  - langgraph stategraph 状态机
+  - react agent 与工具调用实现
+  - 多 agent 协作 supervisor 模式
+  - 对话记忆 memory 管理
+  - langchain 项目分层与模块组织
+  aliases:
+  - langchain-architecture
+  - LangChain
+  - LangGraph
+  capabilities:
+  - LangGraph state design
+  - agent and tool patterns
+  - memory and document pipelines
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 搭建 RAG 端到端流程
+- LLM 评测指标
+- prompt 模板优化
+- 模型微调训练
+- 工作流编排 Temporal

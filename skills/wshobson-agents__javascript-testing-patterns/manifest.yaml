@@ -1,0 +1,38 @@
+name: wshobson-agents__javascript-testing-patterns
+version: 1.0.0
+description: 'Write JavaScript/TypeScript tests with Jest, Vitest and Testing Library: mocking, fixtures,
+  component tests and TDD/BDD workflow in CI.'
+delivery: search_result
+triggers:
+  intents:
+  - jest 配置与用例编写
+  - vitest 单元测试设置
+  - react testing library 组件测试
+  - vi.mock 与 spyOn 打桩
+  - typescript 测试类型与覆盖率阈值
+  - js 异步测试 promise mock
+  - 前端测试基建搭建
+  aliases:
+  - javascript-testing-patterns
+  - jest vitest
+  - JS 单元测试
+  capabilities:
+  - Jest/Vitest configuration
+  - component testing with Testing Library
+  - mocking and coverage thresholds
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-testing-patterns.md
+- LOCAL_NOTES.md
+excludes:
+- E2E 测试方案
+- pytest 用例编写
+- 测试策略与覆盖率规划
+- react 状态管理
+- react 架构迁移
+- typecheck 脚本
+notes: 与 jeffallan-claude-skills__test-master 分工：本技能聚焦 JS/TS 测试框架的具体配置与用例写法。

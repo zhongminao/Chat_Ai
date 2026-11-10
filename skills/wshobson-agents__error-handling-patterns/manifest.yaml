@@ -1,0 +1,27 @@
+name: wshobson-agents__error-handling-patterns
+version: 1.0.0
+description: 'Cross-language error handling patterns: exceptions, Result types, propagation and graceful
+  degradation.'
+delivery: search_result
+triggers:
+  intents:
+  - Result 类型错误处理
+  - 异常传播与错误链设计
+  - 优雅降级与重试策略
+  - 跨语言错误处理约定
+  aliases:
+  - error-handling-patterns
+  - error handling
+  - 错误处理模式
+  capabilities:
+  - exception vs Result
+  - error propagation
+  - graceful degradation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

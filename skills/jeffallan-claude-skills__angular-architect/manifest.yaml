@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__angular-architect
+version: 1.1.0
+description: Build enterprise Angular 17+ features with standalone components, signals, NgRx state, RxJS patterns, lazy-loaded routing guards and TestBed unit tests.
+delivery: search_result
+triggers:
+  intents:
+  - build an Angular 17 standalone component with signals
+  - set up NgRx store effects and selectors
+  - configure Angular router lazy loading and guards
+  - fix RxJS subscription leak in Angular service
+  - Angular 单页应用组件开发
+  - Angular NgRx 状态管理配置
+  - Angular 路由懒加载与守卫配置
+  - RxJS 数据流代码写法
+  aliases:
+  - angular-architect
+  - Angular 开发
+  - NgRx 状态管理
+  capabilities:
+  - standalone component and signal code
+  - NgRx store design
+  - Angular testing guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/components.md
+- references/ngrx.md
+- references/routing.md
+- references/rxjs.md
+- references/testing.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,35 @@
+name: wshobson-agents__finetuning-method-selection
+version: 1.0.0
+description: Fine-tuning router：先判断是否值得微调（vs RAG/提示工程），再路由到 SFT、DPO 家族、GRPO/RLVR 或继续预训练，并选 base model
+  尺寸。
+delivery: search_result
+triggers:
+  intents:
+  - 是否应该微调 vs RAG 与提示工程
+  - SFT 与 DPO 偏好优化的选择
+  - GRPO/RLVR 与 SFT 路由判断
+  - 继续预训练 vs 指令微调
+  - 微调数据量与标注成本评估
+  - base model 尺寸与显存预算选型
+  - 微调路线决策清单
+  aliases:
+  - finetuning-method-selection
+  - 微调方法选型路由
+  - SFT or DPO decision
+  capabilities:
+  - fine-tune vs RAG decision
+  - method routing by data shape
+  - base model class selection
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/memory-math.md
+- references/model-catalog.md
+- LOCAL_NOTES.md
+excludes:
+- LoRA/QLoRA 具体超参配置
+- RAG 检索增强实现
+- 训练数据处理与测评

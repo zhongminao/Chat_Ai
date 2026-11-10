@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__postgres-pro
+version: 1.1.0
+description: Administer and tune PostgreSQL - EXPLAIN ANALYZE plans, index types, JSONB and pg_stat analysis, VACUUM/autovacuum, logical and streaming replication, extensions.
+delivery: search_result
+triggers:
+  intents:
+  - optimize PostgreSQL query with EXPLAIN ANALYZE
+  - set up streaming and logical replication
+  - index JSONB columns with GIN indexes
+  - tune VACUUM autovacuum and pg_stat monitoring
+  - PostgreSQL JSONB 存储与索引
+  - Postgres 复制与主从延迟
+  - pg_stat 视图监控数据库健康
+  - write window functions and CTEs for analytics queries
+  aliases:
+  - postgres-pro
+  - PostgreSQL 专家
+  - Postgres 调优
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/extensions.md
+- references/jsonb.md
+- references/maintenance.md
+- references/performance.md
+- references/replication.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- MySQL 与 SQL Server 通用 SQL 优化

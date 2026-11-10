@@ -1,0 +1,28 @@
+name: video-recap-skills__video-script
+version: 1.0.0
+description: 'Draft and locally validate timestamped Chinese narration scripts and story plans from previously analyzed footage; optional MiMo text review must never run without explicit permission.'
+triggers:
+  intents:
+  - write timestamped narration script from analyzed footage
+  - draft Chinese video recap narration script
+  - revise recap promotional title and on-screen copy
+  - 根据视频理解结果写带时间戳的解说词
+  - 为已分析素材撰写视频解说文案
+  - 修改解说短片宣发标题和花字文案
+  aliases:
+  - video-recap-skills__video-script
+  - video-script
+  capabilities:
+  - recap narration script planning
+  - 已分析视频解说词校验
+delivery: search_result
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- UPSTREAM_CATALOG.json
+- references/creative-editing-playbook.md
+- references/promotional-copy.md
+- references/research-guide.md

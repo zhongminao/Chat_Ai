@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__wordpress-pro
+version: 1.1.0
+description: Develop WordPress themes and plugins - Gutenberg blocks and patterns, hooks and filters, REST API endpoints, WooCommerce extension, nonce/sanitization hardening and caching.
+delivery: search_result
+triggers:
+  intents:
+  - develop a custom WordPress theme
+  - write a WordPress plugin with hooks and filters
+  - register Gutenberg blocks and block patterns
+  - harden WordPress with nonces and sanitization
+  - WordPress 主题开发
+  - WordPress 插件编写
+  - Gutenberg 自定义区块
+  aliases:
+  - wordpress-pro
+  - WordPress 开发
+  - WooCommerce 定制
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/gutenberg-blocks.md
+- references/hooks-filters.md
+- references/performance-security.md
+- references/plugin-architecture.md
+- references/theme-development.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Laravel 框架完整应用开发

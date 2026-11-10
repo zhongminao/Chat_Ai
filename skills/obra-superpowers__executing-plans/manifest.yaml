@@ -1,0 +1,33 @@
+name: obra-superpowers__executing-plans
+version: 1.0.0
+description: Execute an existing implementation plan inline in the current session — per-task brief, watch a test fail then pass for every step, log rulings and evidence in a ledger, commit per the plan, and finish with one whole-branch review.
+delivery: search_result
+triggers:
+  intents:
+  - execute an existing plan inline task by task
+  - work through the plan inline in this session
+  - run plan tasks inline with a ledger
+  - 按计划逐任务实现
+  - 在当前会话里执行实现计划
+  - 任务执行留痕与逐条验证
+  aliases:
+  - executing-plans
+  - inline plan execution
+  - 计划执行
+  capabilities:
+  - sequential plan task execution
+  - per-task ledger and test evidence
+  - plan deviation ruling records
+excludes:
+  - 产品需求文档
+  - PRD
+  - 代码审查
+  - code review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- scripts/task-start
+- scripts/task-done
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

@@ -1,0 +1,34 @@
+name: wshobson-agents__secrets-management
+version: 1.0.0
+description: 'Manage secrets securely in CI/CD and services: Vault and cloud secret stores, rotation,
+  least-privilege access and avoiding hardcoded credentials.'
+delivery: search_result
+triggers:
+  intents:
+  - 密钥和凭据管理方案
+  - hashicorp vault 使用
+  - aws secrets manager 轮换密钥
+  - ci 中注入密钥而不是硬编码
+  - 凭据泄漏应急处理与轮换
+  - 最小权限访问密钥策略
+  aliases:
+  - secrets-management
+  - 密钥管理
+  - secret store
+  capabilities:
+  - secret store selection
+  - rotation and least privilege
+  - CI secret injection
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- mtls 证书配置
+- k8s rbac 与 networkpolicy
+- 代码安全审查
+- gdpr 数据合规
+- prometheus 指标配置

@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__spark-engineer
+version: 1.1.0
+description: Write and tune Apache Spark jobs - PySpark DataFrame transformations, Spark SQL joins, partitioning and caching, shuffle tuning and Structured Streaming pipelines.
+delivery: search_result
+triggers:
+  intents:
+  - write PySpark DataFrame transformations
+  - tune Spark shuffle partitions and skew
+  - build Spark structured streaming pipeline
+  - optimize Spark SQL joins and caching
+  - PySpark 数据处理作业编写
+  - Spark 数据倾斜与 shuffle 调优
+  - Spark Streaming 实时流处理
+  aliases:
+  - spark-engineer
+  - Spark 开发
+  - PySpark
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/partitioning-caching.md
+- references/performance-tuning.md
+- references/rdd-operations.md
+- references/spark-sql-dataframes.md
+- references/streaming-patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- pandas 小数据集分析

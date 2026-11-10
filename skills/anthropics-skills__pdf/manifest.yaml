@@ -1,0 +1,57 @@
+name: anthropics-skills__pdf
+version: 1.0.0
+description: PDF 内容制作与编辑指南——用 pypdf/pdfplumber/reportlab/qpdf 合并拆分、旋转、加水印、提取图表、加密解密、生成新 PDF 以及填写 PDF 表单（含
+  forms.md 流程与 scripts/）。
+delivery: search_result
+triggers:
+  intents:
+  - merge or split PDF files / 合并拆分 PDF
+  - create a PDF report with reportlab / 生成 PDF 报告
+  - fill a PDF form / 填写 PDF 表单
+  - add watermark or password to a PDF / PDF 加水印或加密
+  - extract tables and images from a PDF / 从 PDF 抽取表格图片
+  - rotate PDF pages or repair a broken PDF
+  - 合并 PDF
+  - 合并两个 PDF
+  - 拆分 PDF
+  - 填写 PDF 表单
+  - 填 PDF 表单
+  - 生成 PDF 报告
+  - PDF 加水印
+  - PDF 加密
+  - merge pdf
+  - split pdf
+  - fill pdf form
+  - generate pdf report
+  - watermark pdf
+  aliases:
+  - PDF 编辑与生成
+  - PDF 表单填写
+  - PDF 合并拆分
+  capabilities:
+  - PDF 创建/合并/拆分/旋转/水印/加密
+  - 表格与图片抽取、表单填写流程
+  - pypdf、qpdf、pdftk、reportlab 工具选型
+excludes:
+- 读取 PDF 正文文本并总结
+- 提取 PDF 文字
+- 扫描件 OCR 文字提取
+- 合并 Word 文档
+- 文档格式转换
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- LOCAL_NOTES.md
+- forms.md
+- reference.md
+- scripts/check_bounding_boxes.py
+- scripts/check_fillable_fields.py
+- scripts/convert_pdf_to_images.py
+- scripts/create_validation_image.py
+- scripts/extract_form_field_info.py
+- scripts/extract_form_structure.py
+- scripts/fill_fillable_fields.py
+- scripts/fill_pdf_form_with_annotations.py

@@ -1,0 +1,30 @@
+name: github-awesome-copilot__code-tour
+version: 1.0.0
+description: Author CodeTour .tour files — persona-targeted, step-by-step code walkthroughs that anchor to real files, line numbers, selections, patterns or URIs — following the bundled JSON schema and examples.
+delivery: search_result
+triggers:
+  intents:
+  - create a code tour for onboarding
+  - 生成 CodeTour 导览文件
+  - make an architecture walkthrough for the repo
+  - 给 PR 或 bug 写一个代码导览
+  - write a .tour file with persona-based steps
+  aliases:
+  - code-tour
+  - CodeTour
+  - 代码导览
+  capabilities:
+  - CodeTour JSON step authoring
+  - persona-based walkthrough narrative
+excludes:
+  - 代码审查
+  - 写 README
+  - 产品需求文档
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/codetour-schema.json
+- references/examples.md
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

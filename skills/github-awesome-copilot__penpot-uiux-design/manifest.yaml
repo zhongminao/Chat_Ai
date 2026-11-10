@@ -1,0 +1,37 @@
+name: github-awesome-copilot__penpot-uiux-design
+version: 1.0.0
+description: 'Design UI/UX inside Penpot via the penpot/penpot-mcp tools: boards and layouts, design systems with components
+  and tokens, dashboards, forms, navigation, accessibility checks and iOS/Android/Material platform guidelines.'
+delivery: search_result
+triggers:
+  intents:
+  - 在 Penpot 里用 MCP 工具搭一个仪表盘页面的设计板
+  - penpot 里怎么建组件库和 design token
+  - 把某个界面的 Penpot 设计稿改得更符合无障碍和平台规范
+  - use penpot mcp to build a mobile screen layout and export the board
+  - Penpot 设计稿的间距/字号 token 该怎么定
+  - penpot uiux 设计：表单、导航和落地页的版式建议
+  aliases:
+  - penpot uiux design
+  - penpot mcp 设计
+  - penpot 设计规范
+  capabilities:
+  - penpot board and layout construction guidance
+  - design system components and tokens in penpot
+  - platform and accessibility design checks
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/accessibility.md
+- references/component-patterns.md
+- references/platform-guidelines.md
+- references/setup-troubleshooting.md
+excludes:
+- write frontend code
+- 写前端代码
+- figma
+- sketch 设计稿
+- html css 布局实现

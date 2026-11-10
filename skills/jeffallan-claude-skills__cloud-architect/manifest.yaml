@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__cloud-architect
+version: 1.1.0
+description: Design cloud architecture across AWS, Azure and GCP — service selection, high availability topology, zero-trust security, migration waves (6Rs), cost optimization and disaster recovery RTO/RPO planning.
+delivery: search_result
+triggers:
+  intents:
+  - design an AWS architecture for a new workload
+  - plan a cloud migration to Azure or GCP
+  - reduce cloud costs with right-sizing and reserved capacity
+  - define disaster recovery RTO RPO strategy
+  - 云上架构设计与服务选型
+  - 云迁移方案与迁移波次规划
+  - 云成本优化建议
+  - 容灾与灾难恢复方案设计
+  aliases:
+  - cloud-architect
+  - 云架构设计
+  - AWS 架构
+  capabilities:
+  - multi-cloud service and topology design
+  - migration and cost optimization plans
+  - HA and DR strategy design
+excludes:
+  - Terraform 代码编写
+  - Kubernetes 集群运维
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/aws.md
+- references/azure.md
+- references/cost.md
+- references/gcp.md
+- references/multi-cloud.md
+- UPSTREAM_LICENSE

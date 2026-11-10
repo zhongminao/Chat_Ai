@@ -1,0 +1,31 @@
+name: wshobson-agents__kpi-dashboard-design
+version: 1.0.0
+description: 'Design KPI dashboards: metric selection, layout and visualization best practices, real-time
+  monitoring and metric governance.'
+delivery: search_result
+triggers:
+  intents:
+  - KPI 仪表盘指标选择与版式
+  - 高管经营看板 MRR churn 展示
+  - 运营监控大屏实时指标布局
+  - 部门指标口径统一治理
+  - 修正自相矛盾的仪表盘指标
+  aliases:
+  - kpi-dashboard-design
+  - KPI 仪表盘
+  - 经营看板设计
+  capabilities:
+  - KPI framework
+  - dashboard layout patterns
+  - metric governance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 数据故事化叙事
+- 初创指标体系定义
+- power bi 报表设计

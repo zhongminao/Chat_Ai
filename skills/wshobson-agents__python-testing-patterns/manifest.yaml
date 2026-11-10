@@ -1,0 +1,41 @@
+name: wshobson-agents__python-testing-patterns
+version: 1.0.0
+description: 'Write Python tests with pytest: fixtures, parameterization, mocking, async tests, property-based
+  testing and coverage-oriented suite structure.'
+delivery: search_result
+triggers:
+  intents:
+  - pytest fixture 怎么写
+  - python mock patch 单元测试
+  - pytest.mark.parametrize 参数化测试
+  - 测试异步 Python 代码 asyncio pytest
+  - conftest 共享 fixture 组织测试目录
+  - python property based testing hypothesis
+  - 测试数据库操作 transaction rollback
+  - mock 重试与异常分支测试
+  aliases:
+  - python-testing-patterns
+  - pytest
+  - Python 测试写法
+  capabilities:
+  - pytest fixtures and parametrization
+  - mocking and async test patterns
+  - coverage-oriented suite structure
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-patterns.md
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 测试策略与覆盖率规划
+- flaky test triage
+- E2E 测试方案
+- bats shell 脚本测试
+- temporal 工作流测试
+- 测试驱动开发流程
+notes: 与 jeffallan-claude-skills__test-master 分工：本技能聚焦 pytest 代码级写法与模式；与 obra-superpowers__test-driven-development
+  分工：本技能不讲 TDD 纪律。

@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__nextjs-developer
+version: 1.1.0
+description: Build Next.js 14+ App Router applications - layouts and route handlers, React Server Components, Server Actions, caching/revalidation and Vercel deployment.
+delivery: search_result
+triggers:
+  intents:
+  - build a Next.js 14 App Router page with layouts
+  - implement Server Components and streaming SSR
+  - write Server Actions with revalidation
+  - configure generateMetadata for SEO and deploy to Vercel
+  - Next.js App Router 路由与布局
+  - React Server Components 服务端组件
+  - Next.js Server Actions 表单提交
+  aliases:
+  - nextjs-developer
+  - Next.js 开发
+  - App Router 应用
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/app-router.md
+- references/data-fetching.md
+- references/deployment.md
+- references/server-actions.md
+- references/server-components.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- React 单页组件与 hooks 状态管理
+- Vue 3 前端开发
+- React 客户端组件

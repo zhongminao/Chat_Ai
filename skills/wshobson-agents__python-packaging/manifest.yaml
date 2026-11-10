@@ -1,0 +1,36 @@
+name: wshobson-agents__python-packaging
+version: 1.0.0
+description: Create distributable Python packages with pyproject.toml, src layout, entry points and PyPI
+  publishing.
+delivery: search_result
+triggers:
+  intents:
+  - python packaging
+  - pyproject.toml 配置
+  - publish package to PyPI
+  - 打包发布 python 库
+  - python CLI entry point
+  - wheel and sdist build
+  - python 包依赖与版本管理
+  aliases:
+  - python-packaging
+  - packaging a python library
+  - python 打包
+  capabilities:
+  - pyproject.toml packaging
+  - PyPI release workflow
+  - CLI entry points
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-patterns.md
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- create-readme
+- document a codebase
+- markdown to html
+- office docx

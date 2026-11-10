@@ -1,0 +1,40 @@
+name: github-awesome-copilot__security-review
+version: 1.0.0
+description: 'Reason about code like a security researcher: trace user input across files to dangerous sinks (SQLi, XSS, command
+  injection, SSRF, IDOR/path traversal), audit dependencies for known CVEs and hardcoded secrets, self-verify findings and
+  rank them CRITICAL to INFO with targeted patches.'
+delivery: search_result
+triggers:
+  intents:
+  - 追踪用户输入到危险汇点，查 SQL 注入和 XSS
+  - 查代码里硬编码的密钥、token 和泄露的凭据
+  - 跨文件数据流分析：命令注入、SSRF、路径穿越
+  - audit dependencies for known CVEs and exposed secrets in this repo
+  - 越权/IDOR 和访问控制逻辑的安全检查
+  - 输出带严重级别和修补方案的漏洞报告
+  aliases:
+  - security-review-copilot
+  - 跨文件数据流漏洞分析
+  - 注入漏洞与密钥泄露扫描
+  capabilities:
+  - cross-file source-to-sink data flow analysis
+  - secrets and vulnerable dependency audit
+  - severity-ranked findings with patches
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/language-patterns.md
+- references/report-format.md
+- references/secret-patterns.md
+- references/vuln-categories.md
+- references/vulnerable-packages.md
+excludes:
+- security best practices
+- 安全编码最佳实践
+- threat model
+- 威胁建模
+- check my code for bugs
+- 代码 bug 审查

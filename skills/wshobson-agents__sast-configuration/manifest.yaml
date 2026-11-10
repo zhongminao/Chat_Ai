@@ -1,0 +1,38 @@
+name: wshobson-agents__sast-configuration
+version: 1.0.0
+description: 'Configure static application security testing with Semgrep, SonarQube and CodeQL: custom
+  rules, CI quality gates, false-positive tuning and compliance scans.'
+delivery: search_result
+triggers:
+  intents:
+  - SAST 静态代码扫描配置
+  - 配置 Semgrep 自定义规则
+  - set up SonarQube quality gate
+  - CodeQL 代码扫描配置
+  - 把 SAST 接入 CI 流水线
+  - semgrep rule for hardcoded secret
+  - DevSecOps 安全卡点设计
+  - SAST 误报太多怎么调
+  aliases:
+  - sast-configuration
+  - SAST
+  - 静态应用安全测试
+  capabilities:
+  - Semgrep/SonarQube/CodeQL setup
+  - custom SAST rules
+  - CI security gates
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- security review against best practices
+- 对代码库做威胁建模
+- STRIDE 威胁分析
+- code review
+- pull request review
+- secrets management
+- dependency upgrade

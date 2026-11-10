@@ -1,0 +1,29 @@
+name: video-recap-skills__video-reference
+version: 1.0.0
+description: On-demand skill that dissects a finished video into reusable production reference - ffmpeg shot-cut and loudness measurement, manual cut review, section and audio-track labels, fact-vs-method separation - exporting production_reference.json without original names or dialogue; ffmpeg and sibling packages are not installed.
+delivery: search_result
+triggers:
+  intents:
+  - dissect a finished video into reusable production reference
+  - 拆解一部成片测量镜头节奏和响度
+  - export production_reference.json separated from source facts
+  - 标注入片音轨分工与叙事段落结构
+  - 检查制作参考里有没有原片人名台词泄漏
+  aliases:
+  - video-reference
+  - 成片拆解参考
+  capabilities:
+  - shot cut and loudness measurement guidance
+  - fact vs method production reference export
+excludes:
+  - 视频理解与场景索引
+  - 按 clip_plan 执行剪辑渲染
+  - 撰写解说稿正文
+  - 配音与 TTS
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- references/reference-schema.md

@@ -1,0 +1,33 @@
+name: wshobson-agents__nx-workspace-patterns
+version: 1.0.0
+description: 'Configure Nx monorepo workspaces: project boundaries, affected builds, remote caching and
+  dependency graph hygiene.'
+delivery: search_result
+triggers:
+  intents:
+  - nx 工作区初始化与项目边界
+  - nx affected 增量构建优化
+  - nx 远程缓存与 CI 提速
+  - nx 项目间依赖与 module boundary 约束
+  - nx project graph 与 module boundary lint
+  aliases:
+  - nx-workspace-patterns
+  - nx workspace
+  - Nx 工作区配置
+  capabilities:
+  - project boundary rules
+  - affected and cached builds
+  - monorepo architecture
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 通用 monorepo 管理（monorepo-management）
+- turborepo 构建缓存
+- gitlab ci 流水线
+- bash 脚本静态检查

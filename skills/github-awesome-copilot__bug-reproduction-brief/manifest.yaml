@@ -1,0 +1,27 @@
+name: github-awesome-copilot__bug-reproduction-brief
+version: 1.0.0
+description: Turn a vague, intermittent or environment-specific bug report into a minimal, evidence-backed reproduction brief (expected vs actual, environment, minimal fixture, repeatability) before any fix is attempted.
+delivery: search_result
+triggers:
+  intents:
+  - write a bug reproduction brief
+  - 复现这个 bug 并整理证据
+  - reduce this intermittent bug to a minimal reproduction
+  - 整理缺陷现象、环境和最小复现步骤
+  - separate expected from actual behaviour in a bug report
+  aliases:
+  - bug-reproduction-brief
+  - 缺陷复现说明
+  - 最小复现
+  capabilities:
+  - reproduction reduction and evidence log
+  - expected versus actual behaviour statement
+excludes:
+  - 修复 bug
+  - 根因分析
+  - 代码审查
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE

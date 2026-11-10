@@ -1,0 +1,26 @@
+name: video-recap-skills__video-voiceover
+version: 1.0.0
+description: 'Generate timestamped Chinese narration WAV segments from narration.json with explicit external TTS; do not send audio or text without authorization; experimental dub requires voice rights and consent.'
+triggers:
+  intents:
+  - synthesize recap narration from narration.json with TTS
+  - generate timestamped video recap voiceover segments
+  - use approved voice to dub English video into Chinese
+  - 根据 narration.json 合成分段解说配音
+  - 为视频解说稿生成带时间戳的 TTS 语音
+  - 获授权后制作英译中原声克隆配音
+  aliases:
+  - video-recap-skills__video-voiceover
+  - video-voiceover
+  capabilities:
+  - timestamped narration TTS segments
+  - 授权后解说配音音频生成
+delivery: search_result
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- UPSTREAM_CATALOG.json
+- references/index-tts.md

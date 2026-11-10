@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__csharp-developer
+version: 1.1.0
+description: Build C#/.NET 8+ applications — ASP.NET Core minimal or controller APIs, Entity Framework Core data access and migrations, async with cancellation, CQRS via MediatR, Blazor components and Span-based performance tuning.
+delivery: search_result
+triggers:
+  intents:
+  - build an ASP.NET Core minimal API endpoint
+  - configure Entity Framework Core migrations
+  - write async C# service with CancellationToken
+  - create a Blazor component with state management
+  - C# 现代语法与可空引用类型
+  - .NET 8 项目分层与依赖注入
+  - SignalR 实时通信实现
+  - C# 性能优化 Span 与 AOT
+  aliases:
+  - csharp-developer
+  - C# 开发
+  - ASP.NET Core
+  capabilities:
+  - ASP.NET Core API implementation
+  - EF Core data access design
+  - Blazor and modern C# patterns
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/aspnet-core.md
+- references/blazor.md
+- references/entity-framework.md
+- references/modern-csharp.md
+- references/performance.md
+- UPSTREAM_LICENSE

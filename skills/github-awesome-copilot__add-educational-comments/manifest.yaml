@@ -1,0 +1,28 @@
+name: github-awesome-copilot__add-educational-comments
+version: 1.0.0
+description: Add configurable educational comments to a source file so it reads as a learning resource — explaining why syntax and idioms are used, at beginner to advanced depth, without breaking encoding or build correctness.
+delivery: search_result
+triggers:
+  intents:
+  - add educational comments to this file
+  - 给这个代码文件加教学注释
+  - explain this code with beginner-friendly comments
+  - 写带讲解的注释帮助学习者理解
+  - annotate a source file with note-numbered teaching comments
+  aliases:
+  - add-educational-comments
+  - 教学注释
+  - 带讲解的注释
+  capabilities:
+  - educational comment planning
+  - encoding and indentation preservation rules
+excludes:
+  - docstring
+  - API 文档
+  - JSDoc
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__django-expert
+version: 1.1.0
+description: Build Django 5 web apps and REST APIs — model and migration design, ORM query optimization with select_related/prefetch_related, DRF serializers and viewsets, async views, JWT/session auth and Django test cases.
+delivery: search_result
+triggers:
+  intents:
+  - build a Django REST Framework serializer and viewset
+  - optimize Django ORM queries with prefetch_related
+  - design Django models with migrations and indexes
+  - configure JWT authentication in Django
+  - Django 项目模型与迁移设计
+  - Django 视图与 URL 路由编写
+  - Django ORM 查询性能优化
+  - Django 单元测试写法
+  aliases:
+  - django-expert
+  - Django 开发
+  - Django REST Framework
+  capabilities:
+  - Django model and migration design
+  - DRF API implementation guidance
+  - ORM performance optimization
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/authentication.md
+- references/drf-serializers.md
+- references/models-orm.md
+- references/testing-django.md
+- references/viewsets-views.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__spec-miner
+version: 1.1.0
+description: Reverse-engineer specifications from an existing or legacy codebase — map entry points and dependencies, extract business rules and API behavior, and write an EARS-style specification document.
+delivery: search_result
+triggers:
+  intents:
+  - reverse engineer a legacy codebase
+  - document an undocumented codebase
+  - extract specification from existing code
+  - figure out how an inherited project works
+  - 遗留代码库反向整理规格
+  - 没有文档的老项目梳理业务规则
+  - 从源码提取规格说明
+  - 遗留代码反向整理
+  - 老项目梳理
+  aliases:
+  - spec-miner
+  - legacy analysis
+  - code archaeology
+  capabilities:
+  - codebase dependency mapping
+  - business rule extraction
+  - EARS requirements specification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/analysis-checklist.md
+- references/analysis-process.md
+- references/ears-format.md
+- references/specification-template.md
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

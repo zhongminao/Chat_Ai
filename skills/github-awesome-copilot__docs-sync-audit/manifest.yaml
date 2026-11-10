@@ -1,0 +1,35 @@
+name: github-awesome-copilot__docs-sync-audit
+version: 1.0.0
+description: 'Read-only audit of documentation drift: compare README, setup guides, API docs, env docs, changelogs, examples
+  and CLI help against what the code, config and commands actually do, and report stale or missing docs with evidence.'
+delivery: search_result
+triggers:
+  intents:
+  - 审计 README 和文档是否与代码不同步
+  - 代码改了，哪些文档需要更新，帮我列出文档漂移
+  - 检查安装说明、环境变量文档和 API 文档是否过期
+  - audit docs drift between documentation and code after a change
+  - 发版前看看文档缺了哪些内容
+  - CLI 帮助输出和文档里写的命令对不上
+  aliases:
+  - docs-sync-audit
+  - 文档同步审计
+  - docs drift
+  capabilities:
+  - documentation surface inventory and risk ranking
+  - both-sides evidence for stale or missing docs
+  - post-audit doc update direction
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- scripts/docs_drift.py
+excludes:
+- review code for bugs
+- 代码 bug 审查
+- write the missing documentation
+- 重写整个文档站
+- test coverage gap
+- 测试缺口审计

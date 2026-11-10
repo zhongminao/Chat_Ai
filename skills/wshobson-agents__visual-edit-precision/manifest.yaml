@@ -1,0 +1,30 @@
+name: wshobson-agents__visual-edit-precision
+version: 1.0.0
+description: Make minimal, targeted UI edits when the user points at elements, annotates screenshots or
+  gives visual context.
+delivery: search_result
+triggers:
+  intents:
+  - 按截图标注做局部 UI 修改
+  - 只改选中元素不改其他样式
+  - 视觉批注转成最小代码改动
+  - 按设计稿局部微调组件
+  - 避免顺手重构的精准前端修改
+  aliases:
+  - visual-edit-precision
+  - 视觉批注改代码
+  - screenshot-driven edit
+  capabilities:
+  - scope the indicated element
+  - minimal CSS/markup change
+  - visual verification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- 整体界面视觉设计
+- 移动端 iOS Android 设计规范
+- 品牌落地页搭建

@@ -1,0 +1,37 @@
+name: wshobson-agents__bats-testing-patterns
+version: 1.0.0
+description: 'Write Bats (Bash Automated Testing System) suites for shell scripts: test structure, fixtures,
+  error-condition checks and CI integration.'
+delivery: search_result
+triggers:
+  intents:
+  - bats 测试 shell 脚本
+  - write bats tests for a bash script
+  - '@test 用例与 run status output 断言'
+  - shell 脚本单元测试怎么写
+  - bats setup teardown fixture
+  - 在 CI 中运行 bats 测试
+  - 测试脚本的错误分支和退出码
+  aliases:
+  - bats-testing-patterns
+  - bats
+  - Bash 脚本测试
+  capabilities:
+  - bats test authoring
+  - fixtures and teardown
+  - shell script CI testing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- write unit tests
+- pytest 用例编写
+- E2E 测试方案
+- 测试策略与覆盖率规划
+- flaky test triage
+- shellcheck 静态检查
+notes: 与 jeffallan-claude-skills__test-master 分工：本技能只覆盖 Bats/Bash 脚本测试的写法与用例模式。

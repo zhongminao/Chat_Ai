@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__cpp-pro
+version: 1.1.0
+description: Write, refactor and debug modern C++20/23 code — concepts and ranges, RAII and smart pointers, template metaprogramming, concurrency and atomics, memory/SIMD performance tuning, plus CMake and sanitizer guidance.
+delivery: search_result
+triggers:
+  intents:
+  - write modern C++20 code with concepts and ranges
+  - refactor C++ code to use RAII and smart pointers
+  - debug a C++ concurrency or lock-free issue
+  - optimize C++ performance with SIMD and cache layout
+  - C++ 模板元编程写法
+  - 配置 CMake 构建与编译器检查项
+  - C++ 内存管理与 AddressSanitizer 排查
+  - C++ 协程与多线程实现
+  aliases:
+  - cpp-pro
+  - C++ 开发
+  - 现代 C++
+  capabilities:
+  - modern C++ implementation guidance
+  - memory and performance optimization
+  - CMake and sanitizer workflow
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/build-tooling.md
+- references/concurrency.md
+- references/memory-performance.md
+- references/modern-cpp.md
+- references/templates.md
+- UPSTREAM_LICENSE

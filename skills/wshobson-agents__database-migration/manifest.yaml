@@ -1,0 +1,27 @@
+name: wshobson-agents__database-migration
+version: 1.0.0
+description: Database schema and data migrations across ORMs with zero-downtime strategies and rollback
+  plans.
+delivery: search_result
+triggers:
+  intents:
+  - 数据库 schema 迁移
+  - 零停机数据库迁移
+  - ORM 迁移脚本回滚
+  - 大数据量数据迁移与回填
+  aliases:
+  - database-migration
+  - schema migration
+  - 数据库迁移
+  capabilities:
+  - schema/data migration
+  - zero-downtime migration
+  - rollback planning
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

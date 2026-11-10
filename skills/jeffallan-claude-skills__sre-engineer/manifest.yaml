@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__sre-engineer
+version: 1.1.0
+description: Run reliability engineering practice - SLO governance reviews, capacity planning, incident postmortems and MTTR reduction, toil automation and chaos resilience drills.
+delivery: search_result
+triggers:
+  intents:
+  - reduce toil with automation playbooks
+  - plan capacity planning and reliability reviews
+  - SRE 减少重复劳动自动化
+  - 容量规划与可靠性评审
+  - toil automation and on-call MTTR reduction
+  - Service Level Objectives governance for reliability
+  aliases:
+  - sre-engineer
+  - 站点可靠性工程
+  - SRE 实践
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/automation-toil.md
+- references/error-budget-policy.md
+- references/incident-chaos.md
+- references/monitoring-alerting.md
+- references/slo-sli-management.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- SLO SLI 指标定义
+- error budget 错误预算
+- 故障应急 runbook 模板
+- 值班 on-call 处理手册

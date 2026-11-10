@@ -1,0 +1,31 @@
+name: wshobson-agents__event-store-design
+version: 1.0.0
+description: 'Design event stores for event-sourced systems: technology choices, schemas, append/read
+  patterns and scaling.'
+delivery: search_result
+triggers:
+  intents:
+  - 事件存储 event store 设计
+  - 事件溯源基础设施选型
+  - 事件 schema 与版本演进
+  - 事件存储分区与扩容
+  - append-only 事件日志建模
+  aliases:
+  - event-store-design
+  - 事件溯源存储
+  - event sourcing store
+  capabilities:
+  - event store technology choice
+  - schema design
+  - scaling patterns
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 读模型投影构建
+- saga 分布式事务
+- cqrs 读写分离总览

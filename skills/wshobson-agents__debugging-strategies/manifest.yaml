@@ -1,0 +1,31 @@
+name: wshobson-agents__debugging-strategies
+version: 1.0.0
+description: Systematic debugging techniques, profiling and root cause analysis across codebases and stacks.
+delivery: search_result
+triggers:
+  intents:
+  - root cause analysis bug 定位
+  - 根因分析 root cause analysis
+  - 性能问题 profiling 排查
+  - 二分法缩小故障范围
+  - 调用栈与日志联合排查
+  aliases:
+  - debugging-strategies
+  - 调试策略
+  - root cause analysis
+  capabilities:
+  - systematic debugging
+  - profiling techniques
+  - RCA methodology
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/tools-and-techniques.md
+excludes:
+- debugging-wizard
+- systematic-debugging
+- python 专用调试排错
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

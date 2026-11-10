@@ -1,0 +1,39 @@
+name: github-awesome-copilot__draw-io-diagram-generator
+version: 1.0.0
+description: Generate and edit .drawio / .drawio.svg / .drawio.png diagram files with correct mxGraph XML using bundled templates
+  (flowchart, architecture, sequence, ER, UML class), shape libraries and style references, plus add-shape and validate scripts.
+delivery: search_result
+triggers:
+  intents:
+  - 用模板生成一个 drawio 流程图并保证 XML 结构正确
+  - 画一个 UML 类图/ER 图的 .drawio 文件
+  - 在已有 drawio 文件里加形状和连接线
+  - create a multi-page drawio diagram from the bundled templates
+  - drawio 形状库和 style 参考怎么选
+  - 帮我用 hediet.vscode-drawio 能直接打开的格式画架构图
+  aliases:
+  - draw-io-diagram-generator
+  - mxgraph xml 编写
+  - drawio 模板与形状库
+  capabilities:
+  - mxGraph XML authoring with templates
+  - shape library and style string selection
+  - validate and add-shape helper scripts guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/templates/architecture.drawio
+- assets/templates/er-diagram.drawio
+- assets/templates/flowchart.drawio
+- assets/templates/sequence.drawio
+- assets/templates/uml-class.drawio
+- references/drawio-xml-schema.md
+- references/shape-libraries.md
+- references/style-reference.md
+- scripts/.gitignore
+- scripts/README.md
+- scripts/add-shape.py
+- scripts/validate-drawio.py

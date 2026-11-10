@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__monitoring-expert
+version: 1.1.0
+description: Instrument services for observability - structured logging, Prometheus metrics, alert rules, dashboards, load testing and profiling of performance bottlenecks.
+delivery: search_result
+triggers:
+  intents:
+  - instrument an app with metrics logging and tracing
+  - configure OpenTelemetry instrumentation and exporters
+  - run k6 load tests and profile CPU memory bottlenecks
+  - 应用监控指标与日志接入
+  - Prometheus 指标埋点与 SLO 告警阈值
+  - 性能压测与瓶颈分析
+  - build RED USE dashboards for service metrics
+  aliases:
+  - monitoring-expert
+  - 可观测性建设
+  - 可观测性监控
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/alerting-rules.md
+- references/application-profiling.md
+- references/capacity-planning.md
+- references/dashboards.md
+- references/opentelemetry.md
+- references/performance-testing.md
+- references/prometheus-metrics.md
+- references/structured-logging.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- SLO 与错误预算策略制定
+- 数据库慢查询分析
+- Grafana 面板

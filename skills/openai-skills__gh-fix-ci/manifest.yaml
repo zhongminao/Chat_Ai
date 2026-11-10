@@ -1,0 +1,35 @@
+name: openai-skills__gh-fix-ci
+version: 1.0.0
+description: 修复 GitHub Actions 失败 PR 检查的方法：用 gh 定位失败的 checks 并抽取日志片段、区分外部 CI 提供方、先给失败摘要和修复计划、经用户确认后再改代码并复查状态。
+delivery: search_result
+triggers:
+  intents:
+  - GitHub Actions 的 PR 检查失败怎么排查
+  - 抓取 PR 失败 check 的日志片段并总结原因
+  - 针对 CI 失败先出修复计划再改代码
+  - debug failing pull request checks with gh CLI
+  - 非 Actions 的 CI（如 Buildkite）失败如何处理
+  - 修复 CI 后如何复查 gh pr checks 状态
+  aliases:
+  - gh-fix-ci
+  - CI 失败修复
+  - PR checks 排查
+  capabilities:
+  - 失败 check 定位与日志摘要
+  - 修复计划与确认流程
+  - gh 字段漂移/日志缺失的兜底做法
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/github-small.svg
+- assets/github.png
+- scripts/inspect_pr_checks.py
+- LOCAL_NOTES.md
+excludes:
+- PR 评审评论处理
+- 提交推送并发起 PR
+- 本地测试框架编写

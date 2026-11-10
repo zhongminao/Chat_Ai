@@ -1,0 +1,33 @@
+name: github-awesome-copilot__architecture-blueprint-generator
+version: 1.0.0
+description: Analyze an existing codebase and produce a Project_Architecture_Blueprint.md describing detected tech stacks,
+  architectural patterns, layer/dependency rules, implementation patterns and consistency guidance.
+delivery: search_result
+triggers:
+  intents:
+  - 分析现有代码库并生成项目架构蓝图文档
+  - 根据当前代码结构写出 Project_Architecture_Blueprint 架构说明
+  - 自动识别项目用的框架和分层模式并整理成架构文档
+  - generate an architecture blueprint document from this repo
+  - 记录扩展点与依赖规则，方便新同事按现有架构开发
+  - 识别代码里实际使用的设计模式和层间约定
+  aliases:
+  - architecture blueprint generator
+  - 架构蓝图生成
+  - project_architecture_blueprint
+  capabilities:
+  - stack and pattern auto-detection from code structure
+  - architecture blueprint document outline
+  - implementation pattern and extensibility inventory
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- design a new system architecture
+- 从零设计系统架构
+- 架构方案选型
+- threat model
+- 威胁建模

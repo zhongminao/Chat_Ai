@@ -1,0 +1,40 @@
+name: github-awesome-copilot__convert-pdf-to-md
+version: 1.0.0
+description: Plan the conversion of .pdf documents into Markdown (MarkItDown text/tables plus PyMuPDF-extracted images appended
+  per page) with the bundled script, including batch folders of PDFs.
+delivery: search_result
+triggers:
+  intents:
+  - 把这个 pdf 转成 markdown 再分析
+  - 把 pdf 里的表格和正文提取成 markdown 文件
+  - pdf 文档里的图片也要导出来放进 markdown
+  - convert all pdf files in a folder to markdown
+  - pdf 文档转换后图片怎么导出到 markdown
+  - pdf 转 md 的输出目录和图片放在哪里
+  aliases:
+  - convert-pdf-to-md
+  - pdf 转 markdown 文档
+  capabilities:
+  - pdf to markdown conversion plan
+  - text/table extraction and per-page image export
+  - batch folder conversion workflow
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/setup.md
+- scripts/convert_pdf_to_md.py
+- scripts/requirements.txt
+excludes:
+- read pdf text directly
+- 直接读取 pdf 文本内容
+- markdown to pdf
+- markdown 转成 pdf
+- xlsx to markdown
+- excel 转 markdown
+- word 文档转成 markdown
+- word docx to markdown
+- docx 转 markdown
+- 把 word 转成 markdown

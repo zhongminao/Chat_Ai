@@ -1,0 +1,31 @@
+name: wshobson-agents__session-guard
+version: 1.0.0
+description: 'Keep long agent sessions healthy: monitor tool-call thresholds, re-anchor critical rules
+  after compaction and split scope before drift.'
+delivery: search_result
+triggers:
+  intents:
+  - 长会话上下文腐化自查
+  - 压缩后重述关键规则
+  - 工具调用超过阈值时拆分任务
+  - 会话中途偏离既定约定纠正
+  - 避免长任务上下文遗忘
+  aliases:
+  - session-guard
+  - 长会话守护
+  - session health check
+  capabilities:
+  - health signal thresholds
+  - rule re-anchoring
+  - session splitting
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 任务依赖图拆分
+- 项目上下文文档维护
+- 代码审查

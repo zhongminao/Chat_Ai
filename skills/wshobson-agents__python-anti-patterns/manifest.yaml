@@ -1,0 +1,33 @@
+name: wshobson-agents__python-anti-patterns
+version: 1.0.0
+description: Checklist of common Python anti-patterns, bad practices and code smells to review before
+  merging code.
+delivery: search_result
+triggers:
+  intents:
+  - python anti-patterns checklist
+  - Python 反模式检查
+  - mutable default argument 问题
+  - bad practice review python
+  - python 代码坏味道
+  - review python for common mistakes
+  aliases:
+  - python-anti-patterns
+  - python 反模式
+  - antipatterns
+  capabilities:
+  - anti-pattern checklist
+  - mutable default checks
+  - python code smells
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- code-review-excellence
+- pull request review
+- code review
+- 审查代码

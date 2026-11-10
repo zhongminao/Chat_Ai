@@ -1,0 +1,32 @@
+name: wshobson-agents__vision-sft
+version: 1.0.0
+description: 视觉语言模型 SFT：冻结视觉编码器与 LoRA 挂载、min_pixels/max_pixels 预算、图像文本打包采样与 VLM 微调踩坑排查。
+delivery: search_result
+triggers:
+  intents:
+  - VLM 视觉编码器冻结与 LoRA 挂载位置
+  - 多模态训练 min_pixels max_pixels 预算
+  - 图像文本对数据打包与采样
+  - 视觉微调 loss 不下降原因排查
+  - 图像 token 截断与分辨率处理
+  - 视觉 projector 训练策略
+  aliases:
+  - vision-sft
+  - VLM 视觉微调配置
+  - 多模态 SFT 配方
+  capabilities:
+  - frozen vision tower LoRA
+  - pixel budget configuration
+  - VLM debug pitfalls
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/collators-and-pitfalls.md
+- LOCAL_NOTES.md
+excludes:
+- 多模态模型推理调用
+- 图像生成模型训练
+- 文本 SFT 超参 recipe

@@ -1,0 +1,28 @@
+name: github-awesome-copilot__create-technical-spike
+version: 1.0.0
+description: Write a time-boxed technical spike document for one open technical question — objective, timebox, research plan, success criteria, findings and a final recommendation.
+delivery: search_result
+triggers:
+  intents:
+  - create a technical spike document
+  - 写一份技术调研 spike 文档
+  - timeboxed investigation before choosing a library
+  - 为架构决策做限时技术预研
+  - spike to evaluate an API integration option
+  aliases:
+  - create-technical-spike
+  - technical-spike
+  - 技术预研
+  capabilities:
+  - spike document template
+  - research plan and success criteria
+excludes:
+  - 产品需求文档
+  - PRD
+  - 实施计划
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

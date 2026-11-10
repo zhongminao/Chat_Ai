@@ -1,0 +1,121 @@
+name: anthropics-skills__claude-api
+version: 1.0.0
+description: Claude API / Anthropic SDK 参考手册：模型 ID 与定价、参数、流式、工具调用、MCP、Managed Agents、提示缓存、token 计数、成本优化与模型迁移，覆盖 Python/TypeScript/Go/Java/C#/PHP/Ruby/cURL。
+delivery: search_result
+triggers:
+  intents:
+  - Claude API 和 Anthropic SDK 怎么用 / 模型 id 与参数
+  - 如何调用 Claude 实现流式输出与工具调用 tool use
+  - Claude 提示缓存 prompt caching 与 token 计数、成本优化
+  - 把现有代码迁移到新 Claude 模型 model migration
+  - build an LLM app with Anthropic SDK in python or typescript
+  - Claude Managed Agents 与 MCP 集成方案
+  - Anthropic API key 配置与错误码排查
+  aliases:
+  - claude-api
+  - Anthropic SDK 参考
+  - Claude 模型选型
+  - Claude API 密钥配置
+  capabilities:
+  - 八种语言 SDK 用法与参数表
+  - 模型定价/缓存/成本与迁移指南
+  - Managed Agents 与工具调用模式
+excludes:
+- OpenAI / GPT / Gemini 等其他厂商模型开发
+- 生成课程推荐
+- PDF 与办公文档处理
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- csharp/claude-api/README.md
+- csharp/claude-api/batches.md
+- csharp/claude-api/files-api.md
+- csharp/claude-api/streaming.md
+- csharp/claude-api/tool-use.md
+- curl/examples.md
+- curl/managed-agents.md
+- go/claude-api/README.md
+- go/claude-api/files-api.md
+- go/claude-api/streaming.md
+- go/claude-api/tool-use.md
+- go/managed-agents/README.md
+- java/claude-api/README.md
+- java/claude-api/files-api.md
+- java/claude-api/streaming.md
+- java/claude-api/tool-use.md
+- java/managed-agents/README.md
+- php/claude-api/README.md
+- php/claude-api/batches.md
+- php/claude-api/files-api.md
+- php/claude-api/streaming.md
+- php/claude-api/tool-use.md
+- php/managed-agents/README.md
+- python/claude-api/README.md
+- python/claude-api/batches.md
+- python/claude-api/files-api.md
+- python/claude-api/sdk-upgrade.md
+- python/claude-api/streaming.md
+- python/claude-api/tool-use.md
+- python/managed-agents/README.md
+- ruby/claude-api/README.md
+- ruby/claude-api/streaming.md
+- ruby/claude-api/tool-use.md
+- ruby/managed-agents/README.md
+- shared/admin-api.md
+- shared/agent-design.md
+- shared/anthropic-cli.md
+- shared/claude-platform-on-aws.md
+- shared/cost-optimization.md
+- shared/error-codes.md
+- shared/live-sources.md
+- shared/managed-agents-api-reference.md
+- shared/managed-agents-client-patterns.md
+- shared/managed-agents-core.md
+- shared/managed-agents-environments.md
+- shared/managed-agents-events.md
+- shared/managed-agents-memory.md
+- shared/managed-agents-multiagent.md
+- shared/managed-agents-onboarding-from-quickstart.md
+- shared/managed-agents-onboarding-from-url.md
+- shared/managed-agents-onboarding.md
+- shared/managed-agents-outcomes.md
+- shared/managed-agents-overview.md
+- shared/managed-agents-quickstarts/bug-hunter.md
+- shared/managed-agents-quickstarts/contract-tracker.md
+- shared/managed-agents-quickstarts/data-analyst.md
+- shared/managed-agents-quickstarts/deep-researcher.md
+- shared/managed-agents-quickstarts/explainer-video-maker.md
+- shared/managed-agents-quickstarts/field-monitor.md
+- shared/managed-agents-quickstarts/incident-commander.md
+- shared/managed-agents-quickstarts/performance-tuner.md
+- shared/managed-agents-quickstarts/sprint-retro-facilitator.md
+- shared/managed-agents-quickstarts/structured-extractor.md
+- shared/managed-agents-quickstarts/support-agent.md
+- shared/managed-agents-quickstarts/support-to-eng-escalator.md
+- shared/managed-agents-quickstarts/watchlist-scanner.md
+- shared/managed-agents-scheduled-deployments.md
+- shared/managed-agents-self-hosted-sandboxes.md
+- shared/managed-agents-tools.md
+- shared/managed-agents-webhooks.md
+- shared/model-migration.md
+- shared/models.md
+- shared/platform-availability.md
+- shared/preserved-thinking-migration.md
+- shared/preserved-thinking-migration/causes.md
+- shared/preserved-thinking-migration/drop_block_probe.py
+- shared/preserved-thinking-migration/prefix_diff.py
+- shared/prompt-audit.md
+- shared/prompt-caching.md
+- shared/token-counting.md
+- shared/tool-use-concepts.md
+- typescript/claude-api/README.md
+- typescript/claude-api/batches.md
+- typescript/claude-api/files-api.md
+- typescript/claude-api/streaming.md
+- typescript/claude-api/tool-use.md
+- typescript/managed-agents/README.md
+- LOCAL_NOTES.md

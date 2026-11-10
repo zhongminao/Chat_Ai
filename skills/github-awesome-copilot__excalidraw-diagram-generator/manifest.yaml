@@ -1,0 +1,47 @@
+name: github-awesome-copilot__excalidraw-diagram-generator
+version: 1.0.0
+description: Generate Excalidraw .excalidraw JSON scenes (flowcharts, mind maps, relationship, architecture, DFD, swimlane,
+  class, sequence, ER diagrams) from a natural-language description using bundled templates and schema references.
+delivery: search_result
+triggers:
+  intents:
+  - 生成一个 excalidraw 文件的流程图 JSON
+  - 用模板画一张 excalidraw 思维导图
+  - 把这段业务流程画成 Excalidraw 泳道图
+  - create an excalidraw mind map json from this description
+  - excalidraw 元素 id、binding 和箭头怎么填才能直接打开
+  - 做一个 excalidraw 架构图，用内置模板
+  aliases:
+  - excalidraw diagram generator
+  - excalidraw 手绘风格图表
+  - excalidraw json
+  capabilities:
+  - excalidraw scene JSON generation
+  - diagram-type templates (flowchart, mind map, swimlane, ER...)
+  - schema and element type references
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/element-types.md
+- references/excalidraw-schema.md
+- scripts/.gitignore
+- scripts/README.md
+- scripts/add-arrow.py
+- scripts/add-icon-to-diagram.py
+- scripts/split-excalidraw-library.py
+- templates/business-flow-swimlane-template.excalidraw
+- templates/class-diagram-template.excalidraw
+- templates/data-flow-diagram-template.excalidraw
+- templates/er-diagram-template.excalidraw
+- templates/flowchart-template.excalidraw
+- templates/mindmap-template.excalidraw
+- templates/relationship-template.excalidraw
+- templates/sequence-diagram-template.excalidraw
+excludes:
+- drawio
+- .drawio 文件
+- svg icon
+- 图标库拆分

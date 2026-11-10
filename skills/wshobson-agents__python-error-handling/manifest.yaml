@@ -1,0 +1,28 @@
+name: wshobson-agents__python-error-handling
+version: 1.0.0
+description: 'Python error handling patterns: input validation, exception hierarchies, retries and partial-failure
+  handling.'
+delivery: search_result
+triggers:
+  intents:
+  - python error handling
+  - 自定义异常层次 exception hierarchy
+  - 输入校验 pydantic
+  - 批处理失败 partial failure
+  - python 重试与降级
+  - API 错误响应设计
+  aliases:
+  - python-error-handling
+  - python 异常处理
+  - error handling python
+  capabilities:
+  - exception hierarchy design
+  - input validation
+  - partial failure handling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

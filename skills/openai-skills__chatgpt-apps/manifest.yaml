@@ -1,0 +1,43 @@
+name: openai-skills__chatgpt-apps
+version: 1.0.0
+description: ChatGPT Apps SDK 应用开发指导：先分类应用原型（tool-only / vanilla-widget / react-widget / interactive-decoupled / submission-ready），再规划
+  MCP server 工具、widget UI、CSP 与元数据、仓库契约校验，并给出脚手架与调试步骤。
+delivery: search_result
+triggers:
+  intents:
+  - 用 Apps SDK 做一个 ChatGPT 应用 / MCP server + widget
+  - 设计 ChatGPT App 的 tools 名称、schema 与 annotations
+  - widget 如何接 MCP Apps bridge 与 window.openai 兼容 API
+  - 配置 Apps SDK 的 CSP、domain 白名单与 UI resource 元数据
+  - scaffold a ChatGPT apps SDK project with an MCP server
+  - 准备 ChatGPT App 的提交审核与目录上架材料
+  - 排查 ChatGPT Apps 本地开发与 connector 连接问题
+  aliases:
+  - chatgpt-apps
+  - ChatGPT Apps SDK
+  - MCP 应用脚手架
+  - ChatGPT 应用提交
+  capabilities:
+  - 应用原型分类与仓库结构决策
+  - MCP server 与 widget 脚手架方案
+  - 仓库契约校验与上架检查
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- references/app-archetypes.md
+- references/apps-sdk-docs-workflow.md
+- references/interactive-state-sync-patterns.md
+- references/repo-contract-and-validation.md
+- references/search-fetch-standard.md
+- references/upstream-example-workflow.md
+- references/window-openai-patterns.md
+- scripts/scaffold_node_ext_apps.mjs
+- LOCAL_NOTES.md
+excludes:
+- Claude 生态 MCP 服务开发（见 mcp-builder）
+- 通用前端设计
+- 云平台部署操作

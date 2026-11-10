@@ -1,0 +1,29 @@
+name: video-recap-skills__video-cut
+version: 1.0.0
+description: Editing-stage skill that validates an agent-written clip_plan.json against the source video, snaps clip boundaries to safe sentence ends and shot cuts, runs required-evidence QC and renders a constant-frame-rate edited_source.mp4; needs ffmpeg and sibling packages that are not installed.
+delivery: search_result
+triggers:
+  intents:
+  - validate clip_plan json and snap clip boundaries to sentence ends
+  - 按剪辑计划从长视频里截取片段并拼接
+  - render edited_source.mp4 with constant frame rate from selected ranges
+  - 多源素材拼剪并检查必保片段没被切掉
+  - run shot review report on densely cut short shots
+  aliases:
+  - video-cut
+  - 剪辑计划执行
+  capabilities:
+  - clip plan validation and boundary snapping guidance
+  - edited source render and QC contract
+excludes:
+  - 撰写解说稿正文
+  - 配音与 TTS
+  - 视频理解与场景索引
+  - 拆解成片为制作参考
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- references/shot-review.md

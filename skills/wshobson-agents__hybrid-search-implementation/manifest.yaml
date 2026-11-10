@@ -1,0 +1,36 @@
+name: wshobson-agents__hybrid-search-implementation
+version: 1.0.0
+description: 'Combine vector and keyword (BM25) retrieval for better recall: RRF and linear fusion, cross-encoder
+  reranking and cascade pipelines.'
+delivery: search_result
+triggers:
+  intents:
+  - 混合检索实现
+  - bm25 与向量检索融合
+  - rrf 倒数排名融合
+  - cross encoder 重排 rerank
+  - 关键词精确匹配加语义检索
+  - 检索召回不足怎么优化
+  - hybrid search 权重调参
+  aliases:
+  - hybrid-search-implementation
+  - hybrid search
+  - 混合检索
+  capabilities:
+  - vector + BM25 fusion
+  - RRF and weighted scoring
+  - reranking pipelines
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 搭建 RAG 端到端流程
+- HNSW 参数调优
+- 相似度度量选择
+- embedding 模型选型
+- LLM 评测指标

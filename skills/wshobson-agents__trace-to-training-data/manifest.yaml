@@ -1,0 +1,33 @@
+name: wshobson-agents__trace-to-training-data
+version: 1.0.0
+description: Turn graded agent 轨迹 trace 与生产日志 into SFT 样本 and DPO 偏好对 via rejection sampling、脱敏去重与质量过滤。
+delivery: search_result
+triggers:
+  intents:
+  - agent 轨迹 trace 转 SFT 训练样本
+  - 失败与通过轨迹构造 DPO 偏好对
+  - rejection sampling 筛选高质量回答
+  - 轨迹脱敏与去重清洗
+  - 任务成功率 reward 标注到数据行
+  - 轨迹数据格式 jsonl 组织
+  - 低质量轨迹过滤规则
+  aliases:
+  - trace-to-training-data
+  - trace 转训练数据
+  - 轨迹数据构造
+  capabilities:
+  - trace to SFT conversion
+  - preference pair construction
+  - rejection sampling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/conversion-recipes.md
+- LOCAL_NOTES.md
+excludes:
+- 线上链路性能观测与分布式追踪
+- 评测集与 grader 构建
+- 训练数据爬取与合成

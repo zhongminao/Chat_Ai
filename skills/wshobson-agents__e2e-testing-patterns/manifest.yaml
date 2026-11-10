@@ -1,0 +1,30 @@
+name: wshobson-agents__e2e-testing-patterns
+version: 1.0.0
+description: End-to-end testing with Playwright and Cypress, including page objects and flaky test diagnosis.
+delivery: search_result
+triggers:
+  intents:
+  - Playwright E2E 测试
+  - Cypress 端到端测试
+  - flaky test 稳定性治理
+  - end-to-end 测试分层与 fixture
+  aliases:
+  - e2e-testing-patterns
+  - e2e 测试
+  - Playwright 测试
+  capabilities:
+  - Playwright/Cypress patterns
+  - page objects
+  - flaky test mitigation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- test-master
+- webapp-testing
+- 单元测试
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

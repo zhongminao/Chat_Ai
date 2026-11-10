@@ -1,0 +1,36 @@
+name: wshobson-agents__gdpr-data-handling
+version: 1.0.0
+description: 'Build GDPR-compliant data handling: lawful bases, consent management, data subject requests,
+  retention, retention encryption and cross-border transfer safeguards.'
+delivery: search_result
+triggers:
+  intents:
+  - gdpr 合规数据处理
+  - 数据主体请求 dsar 处理流程
+  - 用户同意 consent 管理设计
+  - 个人数据保留期限与删除
+  - 跨境数据传输 scc 合规
+  - 隐私设计 privacy by design
+  - 敏感个人数据分类处理
+  aliases:
+  - gdpr-data-handling
+  - GDPR
+  - 个人数据合规
+  capabilities:
+  - lawful basis and consent design
+  - DSR handling workflow
+  - retention and transfer safeguards
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 密钥与凭据管理
+- 代码安全审查
+- pci dss 支付卡合规
+- 威胁建模
+- 数据质量校验框架
+notes: 合规建议仅供参考，不构成法律意见。

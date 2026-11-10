@@ -1,0 +1,38 @@
+name: wshobson-agents__threat-mitigation-mapping
+version: 1.0.0
+description: Map identified threats to preventive, detective and corrective controls, prioritize remediation
+  and validate control coverage for defense in depth.
+delivery: search_result
+triggers:
+  intents:
+  - 威胁与缓解措施映射
+  - map threats to security controls
+  - 预防性 检测性 纠正性控制分类
+  - 威胁整改优先级排序
+  - 威胁到控制项的映射矩阵
+  - security control coverage analysis
+  - 为已识别威胁制定缓解路线图
+  - layered defense in depth 控制清单
+  aliases:
+  - threat-mitigation-mapping
+  - mitigation mapping
+  - 威胁缓解映射
+  capabilities:
+  - threat-to-control mapping matrix
+  - control category taxonomy
+  - remediation prioritization
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- manifest.yaml
+- references/details.md
+excludes:
+- threat model this codebase
+- STRIDE 威胁分析
+- attack tree
+- secrets management
+- incident response runbook
+- SIEM 告警规则配置

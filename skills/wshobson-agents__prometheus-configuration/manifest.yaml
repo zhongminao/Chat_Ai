@@ -1,0 +1,36 @@
+name: wshobson-agents__prometheus-configuration
+version: 1.0.0
+description: 'Configure Prometheus for metric collection and alerting: scrape configs, service discovery,
+  relabeling, recording rules and retention/HA.'
+delivery: search_result
+triggers:
+  intents:
+  - prometheus 采集配置
+  - prometheus.yml scrape_configs 写法
+  - prometheus 告警规则配置
+  - promql 录制规则 recording rule
+  - prometheus 服务发现与 relabel
+  - prometheus 长期存储 Thanos
+  - 监控指标命名规范
+  aliases:
+  - prometheus-configuration
+  - prometheus
+  - 普罗米修斯监控配置
+  capabilities:
+  - scrape and relabel config
+  - recording and alert rules
+  - HA and long-term storage advice
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- grafana 面板设计
+- SLI SLO 错误预算
+- 链路追踪接入
+- python 日志与指标埋点
+- k8s 部署清单

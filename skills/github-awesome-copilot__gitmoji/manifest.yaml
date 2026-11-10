@@ -1,0 +1,31 @@
+name: github-awesome-copilot__gitmoji
+version: 1.0.0
+description: Pick the single most accurate gitmoji emoji for a change described by a diff, staged file list or plain description, and write a copyable emoji-prefixed commit message without running git.
+delivery: search_result
+triggers:
+  intents:
+  - write a gitmoji commit message
+  - 用 gitmoji 表情写提交信息
+  - which gitmoji emoji should I use for this change
+  - 给这次改动挑一个 emoji 提交前缀
+  - convert my diff into an emoji-prefixed commit message
+  - gitmoji 短代码 vs unicode 选择
+  aliases:
+  - gitmoji
+  - emoji 提交信息
+  - 表情提交前缀
+  capabilities:
+  - gitmoji intent selection from diff
+  - emoji commit message formatting
+excludes:
+  - conventional commit
+  - feat(
+  - fix(
+  - 执行 git commit
+  - 暂存文件
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/gitmoji-reference.md
+- UPSTREAM_LICENSE

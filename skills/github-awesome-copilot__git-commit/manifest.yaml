@@ -1,0 +1,32 @@
+name: github-awesome-copilot__git-commit
+version: 1.0.0
+description: Review a repository's commit rules and current diff, split changes into one logical commit, and prepare the exact git status/add/commit command sequence with a Conventional Commits message and safety checks.
+delivery: search_result
+triggers:
+  intents:
+  - commit my changes as one logical commit
+  - 把这次改动提交成一个 commit
+  - split staged changes into two commits
+  - 完成改动后帮我准备 git add 和 git commit 命令
+  - handle unmerged files or a merge in progress before committing
+  - 按仓库 commitlint 规则生成提交命令
+  - /commit
+  aliases:
+  - git-commit
+  - 暂存并提交
+  - git 提交流程
+  capabilities:
+  - git status and diff workflow guidance
+  - commit splitting and safety checks
+excludes:
+  - conventional commit message only
+  - 只生成提交信息
+  - 推送代码
+  - force push
+  - git rebase
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

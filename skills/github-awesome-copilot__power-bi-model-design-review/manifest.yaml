@@ -1,0 +1,34 @@
+name: github-awesome-copilot__power-bi-model-design-review
+version: 1.0.0
+description: 'Review a Power BI semantic model design: star schema compliance, table grain and types, relationship cardinality
+  and filter direction, performance/scalability, governance, and pre-production readiness checklists.'
+delivery: search_result
+triggers:
+  intents:
+  - 审查这个 Power BI 数据模型的表和关系设计
+  - 我的语义模型是否满足星型模型，维度和事实表怎么拆
+  - 检查模型关系方向、双向筛选和基数设置是否有问题
+  - review my power bi semantic model relationships and star schema
+  - Power BI 模型上线前的设计审查清单
+  - 数据模型性能问题：关系过多或雪花化怎么处理
+  aliases:
+  - power bi model design review
+  - power bi 数据模型评审
+  - 语义模型设计审查
+  capabilities:
+  - star schema and grain review
+  - relationship cardinality and filter direction audit
+  - pre-production model design checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- dax formula optimization
+- DAX 公式优化
+- report page layout
+- 报表页面视觉设计
+- sql table design
+- 关系数据库表结构设计

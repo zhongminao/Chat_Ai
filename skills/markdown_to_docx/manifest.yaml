@@ -1,0 +1,28 @@
+name: markdown_to_docx
+version: 0.1.0
+description: Convert Markdown source to formatted Word DOCX with title page, TOC, tables and local PNG images.
+delivery: search_result
+triggers:
+  intents:
+  - convert Markdown to Word
+  - Markdown to DOCX
+  - generate Word from Markdown
+  - Markdown 转 Word
+  - MD 转 DOCX
+  - 将 Markdown 导出为 Word
+  aliases:
+  - md-to-docx
+  - Markdown 生成 Word
+  capabilities:
+  - embed PNG images in DOCX
+  - Markdown 目录生成
+excludes:
+- Word 转 Markdown
+allowed_tools:
+- run_bash
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- scripts/package.json
+- UPSTREAM_LICENSE

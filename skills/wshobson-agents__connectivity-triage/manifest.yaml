@@ -1,0 +1,35 @@
+name: wshobson-agents__connectivity-triage
+version: 1.0.0
+description: 'Diagnose active connectivity failures read-only: localize link, DNS, reachability and service
+  layers before choosing any safe next action.'
+delivery: search_result
+triggers:
+  intents:
+  - 网络连接失败排查
+  - dns 解析失败定位
+  - 接口超时或断连诊断
+  - macos 本地网络连通性检查
+  - 丢包延迟不稳定排查
+  - 只读诊断不改网络配置
+  aliases:
+  - connectivity-triage
+  - 连通性排查
+  - 网络故障定位
+  capabilities:
+  - fault domain localization
+  - DNS and reachability checks
+  - evidence-based diagnosis
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- k8s 服务网格连通性
+- 故障应急 runbook 编写
+- 故障复盘文档
+- 抓包协议逆向分析
+- 服务端 nginx 配置

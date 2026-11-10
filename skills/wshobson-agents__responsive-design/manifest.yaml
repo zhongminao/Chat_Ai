@@ -1,0 +1,35 @@
+name: wshobson-agents__responsive-design
+version: 1.0.0
+description: Build responsive interfaces with mobile-first breakpoints, fluid layouts,
+  container queries and adaptive CSS.
+delivery: search_result
+triggers:
+  intents:
+  - responsive web design
+  - mobile-first layout
+  - container queries
+  - fluid typography
+  - responsive breakpoints
+  - 响应式网页布局
+  - 移动优先布局
+  - 容器查询
+  - 流式排版
+  - 断点策略
+  - 自适应界面
+  aliases:
+  - responsive-design
+  - wshobson-agents__responsive-design
+  capabilities:
+  - container queries
+  - fluid typography
+  - responsive breakpoints
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_ADAPTATION.md
+- references/breakpoint-strategies.md
+- references/container-queries.md
+- references/details.md
+- references/fluid-layouts.md
+- UPSTREAM_LICENSE

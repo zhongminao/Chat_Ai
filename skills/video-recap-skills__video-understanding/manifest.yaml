@@ -1,0 +1,31 @@
+name: video-recap-skills__video-understanding
+version: 1.0.0
+description: Analysis-stage skill that turns a source video into a structured understanding index - scene detection, ASR transcript, per-scene VLM observation, silence windows, fused timeline and a narration brief - requiring ffmpeg and a MiMo API key plus sibling packages that are not installed.
+delivery: search_result
+triggers:
+  intents:
+  - analyze a source video into scenes asr and vlm json index
+  - 把长视频拆成场景检测和逐段画面分析索引
+  - 导出静音窗口与融合时间线给解说阶段用
+  - understand what happens in a video before writing narration
+  - 对原始素材做视频理解并生成 agent narration brief
+  aliases:
+  - video-understanding
+  - 视频理解与索引
+  capabilities:
+  - video scene asr vlm understanding index design
+  - narration brief generation guidance
+excludes:
+  - 撰写解说稿正文
+  - 配音与 TTS
+  - 按 clip_plan 执行剪辑渲染
+  - 拆解成片为制作参考
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- references/data-schema.md
+- references/prompt-templates.md
+- references/research-guide.md

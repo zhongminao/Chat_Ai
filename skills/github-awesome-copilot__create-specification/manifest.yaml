@@ -1,0 +1,26 @@
+name: github-awesome-copilot__create-specification
+version: 1.0.0
+description: Write a standalone, AI-readable technical specification in Markdown defining requirements, interfaces, acceptance criteria, validation and dependencies; not a PRD.
+delivery: search_result
+triggers:
+  intents:
+  - create an AI-ready technical specification for a solution
+  - write structured solution component specification
+  - 编写适合 AI 理解的技术规格文档
+  - 撰写解决方案组件规范
+  aliases:
+  - create-specification
+  - technical specification document
+  - 技术规格说明书
+  - 解决方案技术规范
+  capabilities:
+  - define requirements constraints and interfaces in a specification
+  - write testable acceptance criteria for a technical spec
+  - 编写接口与验收标准规格
+allowed_tools:
+- read_file
+- write_file
+entrypoint: SKILL.md
+references:
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

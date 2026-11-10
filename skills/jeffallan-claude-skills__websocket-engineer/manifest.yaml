@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__websocket-engineer
+version: 1.1.1
+description: Build real-time WebSocket and Socket.IO systems - authenticated connections, rooms, presence tracking, Redis pub/sub scaling, sticky sessions and transport choices.
+delivery: search_result
+triggers:
+  intents:
+  - build a WebSocket server with Socket.IO
+  - scale Socket.IO with Redis pub sub adapter
+  - implement presence tracking and rooms
+  - choose SSE versus WebSocket transport
+  - WebSocket 双向实时通信实现
+  - Socket.IO 房间与广播
+  - 实时聊天与在线状态
+  aliases:
+  - websocket-engineer
+  - WebSocket 开发
+  - Socket.IO 实时通信
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/alternatives.md
+- references/patterns.md
+- references/protocol.md
+- references/scaling.md
+- references/security.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- GraphQL 订阅实时推送实现

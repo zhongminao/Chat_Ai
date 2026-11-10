@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__sql-pro
+version: 1.1.0
+description: Write and migrate complex SQL across PostgreSQL, MySQL and SQL Server - window functions, recursive CTEs, execution plan reading, covering indexes and dialect rewrites.
+delivery: search_result
+triggers:
+  intents:
+  - write window functions and recursive CTEs
+  - migrate SQL between PostgreSQL MySQL and SQL Server dialects
+  - SQL 窗口函数与 CTE 复杂查询
+  - 跨数据库方言 SQL 迁移改写
+  - SQL 执行计划 EXPLAIN ANALYZE 解读
+  - 索引设计覆盖索引与查询重写
+  aliases:
+  - sql-pro
+  - SQL 优化
+  - SQL 查询编写
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/database-design.md
+- references/dialect-differences.md
+- references/optimization.md
+- references/query-patterns.md
+- references/window-functions.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- MySQL 与 SQL Server 数据库性能联合优化
+- 慢查询优化 explain

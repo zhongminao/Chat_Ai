@@ -1,0 +1,34 @@
+name: wshobson-agents__on-call-handoff-patterns
+version: 1.0.0
+description: 'Run clean on-call shift handoffs: handoff summaries covering active incidents, investigations,
+  recent changes, known issues and upcoming events.'
+delivery: search_result
+triggers:
+  intents:
+  - on-call 交接班模板
+  - shift handoff summary
+  - 值班交接记录怎么写
+  - 交接进行中故障与进展
+  - on-call 轮值流程规范
+  - 新值班同事交接清单
+  aliases:
+  - on-call-handoff-patterns
+  - on-call 交接
+  - 值班交接
+  capabilities:
+  - handoff summary structure
+  - incident status transfer
+  - rotation process guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 编写故障应急手册 runbook
+- 故障复盘 postmortem
+- SLO 错误预算
+- 会议纪要
+- 周报生成

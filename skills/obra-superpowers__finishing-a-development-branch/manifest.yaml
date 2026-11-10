@@ -1,0 +1,36 @@
+name: obra-superpowers__finishing-a-development-branch
+version: 1.0.0
+description: 'Close out a completed feature branch: offer the standard merge / open-PR / keep-as-is menu,
+  confirm the base branch first, and lay out the merge, pull-request and worktree-cleanup steps in a safe
+  order without discarding work.'
+delivery: search_result
+triggers:
+  intents:
+  - 功能做完了，接下来是本地合并还是开 PR
+  - 开发分支收尾：确认基线分支、合并顺序和清理 worktree 的步骤
+  - 分支上的活干完了，帮我列出合并前后的检查清单
+  - wrap up a finished feature branch with merge or PR options
+  - 合并前要不要重跑测试，合并后怎么清理分支和工作区
+  - 已经提了 PR，worktree 什么时候能清理
+  aliases:
+  - finishing-a-development-branch
+  - 分支收尾
+  - 开发分支整合决策
+  capabilities:
+  - merge / PR / keep-as-is decision menu
+  - base-branch confirmation and merge-order safety
+  - post-merge worktree and branch cleanup checklist
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 开工前创建 worktree
+- 建一个隔离的 worktree
+- 创建隔离工作区
+- git 提交信息生成
+- 分支命名规范
+- 代码审查报告

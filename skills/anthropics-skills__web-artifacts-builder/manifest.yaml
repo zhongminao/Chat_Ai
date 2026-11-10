@@ -1,0 +1,29 @@
+name: anthropics-skills__web-artifacts-builder
+version: 1.0.0
+description: Instructions and helper shell scripts for building multi-component single-file HTML artifacts with React 18, TypeScript, Vite, Tailwind and shadcn/ui, then bundling them into one HTML file; scripts install npm dependencies and are not run here.
+delivery: search_result
+triggers:
+  intents:
+  - build a multi-component React artifact bundled into one HTML file
+  - 用 React 和 shadcn/ui 做可交互网页小应用
+  - turn a React + Tailwind prototype into a shareable single HTML
+  - use shadcn components with routing and state in an artifact
+  - 初始化 Vite 前端项目并打包成离线 HTML
+  aliases:
+  - web-artifacts-builder
+  - HTML 组件化小应用构建
+  capabilities:
+  - React/shadcn artifact scaffold and single-file bundling guidance
+  - AI-slop-free artifact style constraints
+excludes:
+  - PPT 演示文稿
+  - 生成营销海报图片
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- scripts/init-artifact.sh
+- scripts/bundle-artifact.sh

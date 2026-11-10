@@ -1,0 +1,32 @@
+name: wshobson-agents__turborepo-caching
+version: 1.0.0
+description: Set up Turborepo pipelines with task graphs, local and remote caching, and cache-miss debugging
+  for monorepos.
+delivery: search_result
+triggers:
+  intents:
+  - turborepo 流水线与任务依赖
+  - turbo 远程缓存配置
+  - 解决 turbo cache miss 问题
+  - turbo pipeline 缓存命中率优化
+  - 从其他 monorepo 工具迁移到 turborepo
+  aliases:
+  - turborepo-caching
+  - Turborepo
+  - turbo 缓存
+  capabilities:
+  - pipeline task graph
+  - remote caching setup
+  - cache miss debugging
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- nx 工作区项目边界
+- 通用 monorepo 管理
+- github actions 模板
+- 云成本优化

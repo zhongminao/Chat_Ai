@@ -1,0 +1,50 @@
+name: openai-skills__migrate-to-codex
+version: 1.0.0
+description: 把 Claude Code 配置迁移到 Codex 的映射参考与流程：CLAUDE.md→AGENTS.md、.claude/commands→.agents/skills、agents→.codex/agents、.mcp.json→.codex/config.toml、hooks→hooks.json，含
+  scan/plan/doctor/dry-run/validate 步骤与差异对照表。
+delivery: search_result
+triggers:
+  intents:
+  - 把 Claude Code 的 CLAUDE.md 和 .claude 配置迁移到 Codex
+  - Claude slash command 怎么转成 Codex skill
+  - Claude 的 MCP 配置怎么搬到 .codex/config.toml
+  - Claude hooks 与 subagent 在 Codex 里如何对应
+  - migrate .claude settings and agents into a Codex project
+  - 迁移前如何做 scan-only / plan / doctor 检查
+  aliases:
+  - migrate-to-codex
+  - Claude 配置迁移
+  - Codex 迁移
+  - CLAUDE.md 转 AGENTS.md
+  capabilities:
+  - Claude Code→Codex 逐类映射与差异对照
+  - 迁移步骤与验证顺序
+  - 不支持项的手工改造建议
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- references/differences.md
+- scripts/cli.py
+- scripts/migrate-to-codex.py
+- scripts/migrate/__init__.py
+- scripts/migrate/agents.py
+- scripts/migrate/codex_config.py
+- scripts/migrate/common.py
+- scripts/migrate/hooks.py
+- scripts/migrate/instructions.py
+- scripts/migrate/mcps.py
+- scripts/migrate/plugins.py
+- scripts/migrate/settings.py
+- scripts/migrate/skills.py
+- scripts/utils/__init__.py
+- scripts/utils/scan.py
+- scripts/utils/util.py
+- LOCAL_NOTES.md
+excludes:
+- Codex 配置本身的日常编辑
+- 技能编写规范
+- git 操作与 PR 流程

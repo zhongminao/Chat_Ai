@@ -1,0 +1,31 @@
+name: wshobson-agents__tailwind-design-system
+version: 1.0.0
+description: Build Tailwind CSS v4 design systems with CSS-first tokens, component variants and responsive
+  patterns.
+delivery: search_result
+triggers:
+  intents:
+  - Tailwind CSS v4 主题配置
+  - Tailwind 设计令牌 tokens
+  - Tailwind 组件变体 variants
+  - Tailwind utility 类组织规范
+  aliases:
+  - tailwind-design-system
+  - tailwind css
+  - tailwind 组件库
+  capabilities:
+  - Tailwind v4 tokens
+  - component variants
+  - responsive utilities
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/advanced-patterns.md
+- references/details.md
+excludes:
+- design-system-patterns
+- ui-ux-pro-max
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

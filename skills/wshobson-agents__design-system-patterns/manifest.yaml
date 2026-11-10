@@ -1,0 +1,35 @@
+name: wshobson-agents__design-system-patterns
+version: 1.0.0
+description: Design system architecture with design tokens, theming infrastructure and component library
+  patterns.
+delivery: search_result
+triggers:
+  intents:
+  - design tokens 设计变量体系
+  - 主题切换 theming 架构
+  - 组件库分层与 tokens 治理
+  - design system 治理规范
+  aliases:
+  - design-system-patterns
+  - design system
+  - 设计系统
+  capabilities:
+  - design tokens
+  - theming architecture
+  - component library structure
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- manifest.yaml
+- references/component-architecture.md
+- references/design-tokens.md
+- references/details.md
+- references/theming-architecture.md
+excludes:
+- ui-ux-pro-max
+- visual-design-foundations
+- 配色与视觉风格
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

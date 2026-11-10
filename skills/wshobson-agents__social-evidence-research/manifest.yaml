@@ -1,0 +1,34 @@
+name: wshobson-agents__social-evidence-research
+version: 1.0.0
+description: Research public social-platform discussion and write cited reports where every claim traces
+  to inspected source material.
+delivery: search_result
+triggers:
+  intents:
+  - 社交平台公开讨论调研
+  - 带引用的舆情报告撰写
+  - 核实转发与二手结论来源
+  - 社交媒体导出数据证据整理
+  - 报告中的访问缺口说明
+  aliases:
+  - social-evidence-research
+  - 社交舆情取证
+  - evidence-based social report
+  capabilities:
+  - provenance-based evidence records
+  - access gap logging
+  - cited report template
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/acceptance-examples.md
+- references/evidence-record.md
+- references/report-template.md
+- LOCAL_NOTES.md
+excludes:
+- 竞争格局分析
+- 支付与交易类调研
+- 营销投放执行

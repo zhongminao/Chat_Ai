@@ -1,0 +1,28 @@
+name: anthropics-skills__webapp-testing
+version: 1.0.0
+description: Guidance for testing local web applications with native Python Playwright scripts - verifying frontend behavior, capturing screenshots and reading browser console logs - plus a server-lifecycle helper script that requires Playwright and Node tooling that are not installed.
+delivery: search_result
+triggers:
+  intents:
+  - test a local web app with Playwright python scripts
+  - 用 Playwright 自动化点击本地前端页面并截图
+  - debug frontend UI behavior by reading browser console logs
+  - start dev server and run browser automation against it
+  - 给单页应用写端到端浏览器冒烟测试
+  aliases:
+  - webapp-testing
+  - 本地网页端到端测试
+  capabilities:
+  - Playwright browser automation test guidance
+  - dev server lifecycle helper usage
+excludes:
+  - PDF 文档读取
+  - 视频剪辑
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- scripts/with_server.py

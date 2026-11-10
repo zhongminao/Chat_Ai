@@ -1,0 +1,35 @@
+name: wshobson-agents__embedding-strategies
+version: 1.0.0
+description: 'Choose and optimize embedding models for search and RAG: model comparison, chunking and
+  preprocessing, dimension reduction and domain adaptation.'
+delivery: search_result
+triggers:
+  intents:
+  - embedding 模型选型
+  - chunking 切分策略与重叠大小
+  - 多语言 embedding 模型
+  - 降维与归一化 embedding
+  - 领域文本 embedding 微调
+  - bge e5 voyage 模型对比
+  aliases:
+  - embedding-strategies
+  - embedding 策略
+  - 向量化模型选择
+  capabilities:
+  - embedding model comparison
+  - chunking and preprocessing
+  - dimension and domain tuning
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 搭建 RAG 端到端流程
+- HNSW 参数调优
+- 混合检索融合
+- LLM 输出评测
+- 模型微调 lora

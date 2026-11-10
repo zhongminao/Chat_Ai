@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__kotlin-specialist
+version: 1.1.0
+description: Write idiomatic Kotlin - coroutines and Flow, sealed-class state models, Kotlin Multiplatform expect/actual, Jetpack Compose UI and Ktor server code.
+delivery: search_result
+triggers:
+  intents:
+  - write Kotlin coroutines with structured concurrency
+  - build Kotlin Multiplatform shared code with expect actual
+  - create Jetpack Compose UI screens and ViewModels
+  - build a Ktor server with routing and plugins
+  - Kotlin 协程与 Flow 数据流
+  - Kotlin 多平台共享代码
+  - Jetpack Compose 界面开发
+  - use Kotlin Flow to handle streams
+  - design type-safe Kotlin DSL builders
+  aliases:
+  - kotlin-specialist
+  - Kotlin 开发
+  - Kotlin 协程
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/android-compose.md
+- references/coroutines-flow.md
+- references/dsl-idioms.md
+- references/ktor-server.md
+- references/multiplatform-kmp.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Flutter Dart 移动应用开发
+- Java Spring 后端开发

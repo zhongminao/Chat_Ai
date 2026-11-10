@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__php-pro
+version: 1.1.0
+description: Write modern PHP 8.3 code - strict typing, readonly classes and enums, PHPStan level 9, PSR standards, Symfony/Laravel service patterns and PHPUnit/Pest tests.
+delivery: search_result
+triggers:
+  intents:
+  - write modern PHP 8.3 readonly classes and enums
+  - reach PHPStan level 9 strict typing
+  - build Symfony controllers and DI services
+  - write PHPUnit and Pest tests for PHP code
+  - PHP 8.3 严格类型代码编写
+  - PHPStan 静态分析与 PSR 规范
+  - Symfony 框架服务开发
+  - use Swoole or ReactPHP fibers for async PHP
+  aliases:
+  - php-pro
+  - PHP 开发
+  - PHP 8.3
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async-patterns.md
+- references/laravel-patterns.md
+- references/modern-php-features.md
+- references/symfony-patterns.md
+- references/testing-quality.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Laravel 框架完整应用开发
+- WordPress 主题插件

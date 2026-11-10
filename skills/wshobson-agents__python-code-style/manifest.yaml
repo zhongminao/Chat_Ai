@@ -1,0 +1,33 @@
+name: wshobson-agents__python-code-style
+version: 1.0.0
+description: Python code style, Ruff/Black formatting, naming conventions, linter config and docstring
+  standards.
+delivery: search_result
+triggers:
+  intents:
+  - python code style
+  - ruff 和 black 配置
+  - python docstring 规范
+  - PEP8 命名规范
+  - configure ruff linting
+  - python 项目风格指南
+  aliases:
+  - python-code-style
+  - python style guide
+  - python 代码风格
+  capabilities:
+  - ruff/black configuration
+  - docstring standards
+  - PEP8 naming conventions
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- code-review-excellence
+- pull request review
+- code review
+- 审查代码

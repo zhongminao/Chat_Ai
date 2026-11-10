@@ -1,0 +1,35 @@
+name: wshobson-agents__grpo-rlvr-training
+version: 1.0.0
+description: GRPO/RLVR 强化学习训练：可验证奖励 verifier 设计、group size 与优势归一化、reward hacking 检测、KL 约束与 DAPO/DrGRPO
+  变体选择。
+delivery: search_result
+triggers:
+  intents:
+  - 可验证奖励 verifier 设计（数学/代码/工具调用）
+  - GRPO 组采样 group size 与优势归一化
+  - RL 训练奖励作弊 reward hacking 检测
+  - KL 约束与参考模型设置
+  - GRPO 训练崩溃发散排查
+  - DAPO DrGRPO 等变体选择
+  - RLVR 题目难度过滤与数据构造
+  aliases:
+  - grpo-rlvr-training
+  - GRPO 训练配置
+  - RLVR 强化学习
+  capabilities:
+  - GRPO config recipe
+  - reward function design
+  - reward inspection gate
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/grpo-memory.md
+- references/reward-functions.md
+- LOCAL_NOTES.md
+excludes:
+- 偏好优化 DPO/KTO 训练
+- LoRA 适配器超参 recipe
+- 评测集构建与方法论

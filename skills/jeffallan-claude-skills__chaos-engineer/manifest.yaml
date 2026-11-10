@@ -1,0 +1,35 @@
+name: jeffallan-claude-skills__chaos-engineer
+version: 1.1.0
+description: Design chaos experiments and game days for distributed systems — hypothesis and steady-state definition, blast-radius controls, failure injection manifests (Litmus/Chaos Mesh), rollback procedures and post-mortem templates.
+delivery: search_result
+triggers:
+  intents:
+  - design a chaos experiment for a distributed service
+  - plan a game day exercise
+  - inject pod or network failures with Litmus Chaos
+  - define blast radius and rollback for fault injection
+  - 混沌工程实验设计与故障注入
+  - 韧性演练 Game Day 组织
+  - Kubernetes Pod 故障演练方案
+  - 故障演练回滚与复盘模板
+  aliases:
+  - chaos-engineer
+  - 混沌工程
+  - 故障注入演练
+  capabilities:
+  - experiment hypothesis and steady-state design
+  - chaos tooling and manifest examples
+  - game day and post-mortem templates
+excludes:
+  - security penetration testing
+  - 安全审计
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/chaos-tools.md
+- references/experiment-design.md
+- references/game-days.md
+- references/infrastructure-chaos.md
+- references/kubernetes-chaos.md
+- UPSTREAM_LICENSE

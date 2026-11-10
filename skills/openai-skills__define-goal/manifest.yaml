@@ -1,0 +1,32 @@
+name: openai-skills__define-goal
+version: 1.0.0
+description: Turn a fuzzy intention into a concrete, measurable goal before work starts — restate the outcome, name the artifact and verification evidence, add quantitative acceptance thresholds, reject pure activity goals, and set scope and out-of-scope bounds.
+delivery: search_result
+triggers:
+  intents:
+  - turn a vague intention into a measurable goal
+  - help me set an objective with success criteria
+  - define completion criteria before starting work
+  - 把模糊想法变成可量化目标
+  - 帮我设定有验收标准的目标
+  - 开工前明确完成标准和范围
+  aliases:
+  - define-goal
+  - goal setting
+  - 目标定义
+  capabilities:
+  - measurable objective rewriting
+  - acceptance evidence specification
+  - scope and stop condition definition
+excludes:
+  - 产品需求文档
+  - PRD
+  - 根据需求写实现计划
+  - 技术规格文档
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- agents/openai.yaml
+- LICENSE.txt
+- LOCAL_NOTES.md

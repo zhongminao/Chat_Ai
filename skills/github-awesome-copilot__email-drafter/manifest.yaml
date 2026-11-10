@@ -1,0 +1,28 @@
+name: github-awesome-copilot__email-drafter
+version: 1.0.0
+description: Draft and revise professional, concise emails (reply, follow-up, proposal, status update) for a given recipient and purpose, offering a tone/style note instead of sending anything.
+delivery: search_result
+triggers:
+  intents:
+  - draft an email to a customer about our timeline
+  - 帮我起草一封邮件
+  - write a follow-up email about the migration
+  - 写一封回复邮件说明技术方案
+  - compose a professional status update email
+  aliases:
+  - email-drafter
+  - 邮件草稿
+  - 邮件起草
+  capabilities:
+  - professional email drafting
+  - greeting and sign-off tone matching
+excludes:
+  - 会议纪要
+  - 产品需求文档
+  - PRD
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

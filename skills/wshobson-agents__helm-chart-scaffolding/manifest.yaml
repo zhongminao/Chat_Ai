@@ -1,0 +1,39 @@
+name: wshobson-agents__helm-chart-scaffolding
+version: 1.0.0
+description: 'Scaffold Helm charts for Kubernetes apps: chart structure, template helpers, values design,
+  dependencies and lint/validate workflow.'
+delivery: search_result
+triggers:
+  intents:
+  - 创建 helm chart 目录结构
+  - helm 模板 _helpers.tpl 写法
+  - values.yaml 多环境配置设计
+  - helm chart 依赖与版本管理
+  - helm lint template 校验
+  - 打包发布 helm chart 到仓库
+  aliases:
+  - helm-chart-scaffolding
+  - helm chart
+  - Helm 图表脚手架
+  capabilities:
+  - chart directory scaffolding
+  - template and values patterns
+  - chart validation workflow
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/Chart.yaml.template
+- assets/values.yaml.template
+- references/chart-structure.md
+- references/details.md
+- scripts/validate-chart.sh
+- LOCAL_NOTES.md
+excludes:
+- k8s 原生清单编写
+- argocd flux gitops
+- dockerfile 与 CI 流水线
+- terraform 模块
+- k8s 安全策略

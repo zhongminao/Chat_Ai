@@ -1,0 +1,38 @@
+name: obra-superpowers__systematic-debugging
+version: 1.0.0
+description: Run a four-phase root-cause investigation for any bug, test failure or unexpected behavior — read errors fully, reproduce reliably, check recent changes, instrument component boundaries, then form and prove one hypothesis before changing any code.
+delivery: search_result
+triggers:
+  intents:
+  - root cause investigation before fixing a bug
+  - four phase systematic debugging process
+  - multiple failed fix attempts going in circles
+  - add diagnostic logging across service boundaries
+  - 先找根因再改代码
+  - 反复修不好的 bug 怎么办
+  - 跨服务链路增加诊断日志定位问题
+  aliases:
+  - systematic-debugging
+  - root cause tracing
+  - 系统化调试
+  capabilities:
+  - root cause tracing across components
+  - defense in depth instrumentation
+  - condition based waiting technique
+excludes:
+  - 代码审查
+  - code review
+  - 测试策略与用例设计
+  - integration test strategy
+  - E2E test plan
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- root-cause-tracing.md
+- defense-in-depth.md
+- condition-based-waiting.md
+- condition-based-waiting-example.ts
+- find-polluter.sh
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

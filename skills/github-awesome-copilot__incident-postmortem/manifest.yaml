@@ -1,0 +1,36 @@
+name: github-awesome-copilot__incident-postmortem
+version: 1.0.0
+description: 'Guide a blameless production post-mortem in Google SRE format: restore the UTC timeline, widen causes with a
+  fishbone, drill confirmed branches with 5 Whys, and produce typed action items in Markdown.'
+delivery: search_result
+triggers:
+  intents:
+  - 写一份线上故障的无责复盘 post-mortem
+  - 按 Google SRE 模板整理事故时间线和影响
+  - 用鱼骨图和 5 Whys 分析这次故障的根因
+  - write a blameless incident postmortem with action items
+  - 线上发布导致服务降级，帮我做 RCA 文档
+  - 复盘报告要有 action item 分类和负责人
+  aliases:
+  - incident postmortem
+  - 事故复盘文档
+  - rca 报告
+  capabilities:
+  - blameless timeline reconstruction
+  - fishbone plus 5 whys causal analysis
+  - typed action items and impact quantification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/fishbone-example.md
+- references/postmortem-template.md
+excludes:
+- fix this bug
+- 修复这个 bug
+- bug receipt
+- 缺陷结案回执
+- monitoring dashboard setup
+- 搭建监控告警

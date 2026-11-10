@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__terraform-engineer
+version: 1.1.0
+description: Write Terraform infrastructure as code - reusable modules, remote state backends and migration, AWS/Azure/GCP providers, plan review and validation workflow.
+delivery: search_result
+triggers:
+  intents:
+  - terraform plan review then controlled apply workflow
+  - manage terraform state remote backend migration
+  - configure AWS Azure GCP providers
+  - review terraform plan before apply
+  - Terraform plan 破坏性变更确认后 apply
+  - 把 terraform state 迁移到远程后端并解决锁冲突
+  - 云资源 IaC 代码编写
+  aliases:
+  - terraform-engineer
+  - Terraform 开发
+  - IaC 基础设施代码
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/best-practices.md
+- references/module-patterns.md
+- references/providers.md
+- references/state-management.md
+- references/testing.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 云架构整体方案设计
+- Kubernetes 部署清单编写

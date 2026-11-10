@@ -1,0 +1,29 @@
+name: github-awesome-copilot__create-implementation-plan
+version: 1.0.0
+description: Write a machine-readable implementation plan for a feature, refactor, upgrade or infrastructure change, using a fixed template with REQ/TASK/GOAL/RISK identifiers, phases and validation criteria.
+delivery: search_result
+triggers:
+  intents:
+  - write a machine-readable plan that cites REQ TASK GOAL RISK identifier prefixes
+  - generate a machine-readable plan with phased TASK tables
+  - 写一份带 REQ/TASK 编号的功能实施计划
+  - 用固定模板输出 Feature 升级的分阶段实施计划文档
+  - produce an AI-executable implementation plan with validation criteria
+  aliases:
+  - create-implementation-plan
+  - 实施计划模板
+  - 机器可读实施计划
+  capabilities:
+  - phased implementation plan template
+  - identifier and template compliance checklist
+excludes:
+  - 产品需求文档
+  - PRD
+  - 技术预研
+  - 会议纪要
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

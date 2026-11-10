@@ -1,0 +1,35 @@
+name: obra-superpowers__test-driven-development
+version: 1.0.0
+description: Apply strict RED-GREEN-REFACTOR test-first discipline when writing new behavior — write the failing test, watch it fail for the right reason, write the minimal code to pass, refactor, and delete code written before its test.
+delivery: search_result
+triggers:
+  intents:
+  - test driven development red green refactor
+  - write the failing test before the implementation
+  - TDD cycle for new feature code
+  - strictly test-first discipline while coding
+  - 测试驱动开发流程
+  - 先写失败测试再写实现
+  - 红绿重构循环
+  aliases:
+  - test-driven-development
+  - TDD
+  - 测试先行
+  capabilities:
+  - red-green-refactor cycle enforcement
+  - minimal implementation guidance
+  - test quality review checklist
+excludes:
+  - 测试策略与用例设计
+  - integration test strategy
+  - E2E test plan
+  - 提升测试覆盖率
+  - 代码审查
+  - code review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- writing-good-tests.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

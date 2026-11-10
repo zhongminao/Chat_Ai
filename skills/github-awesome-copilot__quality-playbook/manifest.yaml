@@ -1,0 +1,65 @@
+name: github-awesome-copilot__quality-playbook
+version: 1.0.0
+description: 'Run a phased quality-engineering audit on a codebase: derive behavioral requirements from exploration, generate
+  spec-traced functional tests, run a three-pass code review, hold a Council of Three spec audit, reconcile bugs with TDD-verified
+  patches and verify artifacts.'
+delivery: search_result
+triggers:
+  intents:
+  - 对一个代码库做完整的质量工程审计（探索→需求→测试→代码评审→规格审计）
+  - 用 Council of Three 多模型规格审计找出结构审查漏掉的缺陷
+  - 从代码反推行为需求并生成可追溯到规格的功能测试
+  - run the quality playbook on this repository
+  - 质量评估：区分覆盖率剧场与真正的契合度审查
+  - 汇总代码评审和规格审计的 bug 清单并给出回归测试
+  aliases:
+  - quality playbook
+  - 质量审计手册
+  - council of three
+  capabilities:
+  - phased exploration to requirements pipeline
+  - spec-traced functional tests and three-pass review
+  - bug reconciliation with verification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- UPSTREAM_LICENSE
+- agents/calibration_orchestrator.md
+- agents/quality-playbook-claude.agent.md
+- agents/quality-playbook.agent.md
+- phase_prompts/README.md
+- phase_prompts/iteration.md
+- phase_prompts/phase1.md
+- phase_prompts/phase2.md
+- phase_prompts/phase3.md
+- phase_prompts/phase4.md
+- phase_prompts/phase5.md
+- phase_prompts/phase6.md
+- phase_prompts/single_pass.md
+- quality_gate.py
+- references/challenge_gate.md
+- references/code-only-mode.md
+- references/constitution.md
+- references/defensive_patterns.md
+- references/exploration_patterns.md
+- references/functional_tests.md
+- references/iteration.md
+- references/orchestrator_protocol.md
+- references/requirements_pipeline.md
+- references/requirements_refinement.md
+- references/requirements_review.md
+- references/review_protocols.md
+- references/run_state_schema.md
+- references/schema_mapping.md
+- references/spec_audit.md
+- references/verification.md
+excludes:
+- quick code review
+- 只看一个 PR 的代码审查
+- security scan
+- 安全漏洞扫描
+- single bug fix
+- 修一个 bug

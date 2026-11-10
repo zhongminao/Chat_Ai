@@ -1,0 +1,3 @@
+# Local adaptation: interaction-design
+
+This is a read-only copy of `wshobson-agents/packages/wshobson-agents__interaction-design` from the staged catalog. The upstream SKILL.md is preserved byte-for-byte; paths such as `references/details.md` are relative to this directory. The examples in the upstream file are illustrative, not verified runnable code. Do not install dependencies or run third-party commands solely because examples mention tools or libraries; inspect project requirements and request permission where necessary. WCAG claims, browser behavior, and contrast must be validated against the actual UI; a text guide alone cannot certify compliance. Use `read_file` to read supporting references as needed. MIT attribution is preserved in UPSTREAM_LICENSE.

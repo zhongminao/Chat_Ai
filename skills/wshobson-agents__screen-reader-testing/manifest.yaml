@@ -1,0 +1,35 @@
+name: wshobson-agents__screen-reader-testing
+version: 1.0.0
+description: Test web UIs with VoiceOver, NVDA, JAWS and TalkBack, including ARIA announcements, forms
+  and dynamic content checks.
+delivery: search_result
+triggers:
+  intents:
+  - 读屏软件兼容性测试
+  - VoiceOver NVDA JAWS 实测步骤
+  - ARIA 播报与焦点顺序验证
+  - 动态内容与表单读屏检查
+  - 移动端 TalkBack VoiceOver 测试
+  aliases:
+  - screen-reader-testing
+  - 读屏软件测试
+  - screen reader QA
+  capabilities:
+  - per-AT test scripts
+  - ARIA announcement checks
+  - mobile screen reader testing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/jaws-talkback.md
+- references/nvda.md
+- references/voiceover-ios.md
+- references/voiceover.md
+- LOCAL_NOTES.md
+excludes:
+- WCAG 合规审计
+- 视觉设计规范
+- 自动化 e2e 测试

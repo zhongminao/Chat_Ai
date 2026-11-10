@@ -1,0 +1,32 @@
+name: wshobson-agents__market-sizing-analysis
+version: 1.0.0
+description: Size market opportunity with TAM/SAM/SOM using top-down, bottom-up and value-theory methodologies
+  for startup and investor materials.
+delivery: search_result
+triggers:
+  intents:
+  - TAM SAM SOM 市场规模测算
+  - 自下而上市场空间估算
+  - 投资人市场机会论证
+  - 新业务市场容量验证
+  - 价值理论定价规模推算
+  aliases:
+  - market-sizing-analysis
+  - TAM SAM SOM
+  - 市场规模测算
+  capabilities:
+  - top-down and bottom-up sizing
+  - value theory method
+  - investor-ready market narrative
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/data-sources.md
+- references/details.md
+excludes:
+- 竞争格局与波特五力
+- 财务模型与烧钱率
+- 产品需求预研

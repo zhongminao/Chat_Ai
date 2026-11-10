@@ -1,0 +1,36 @@
+name: wshobson-agents__llm-evaluation
+version: 1.0.0
+description: Evaluate LLM applications with automated metrics, LLM-as-judge, human review rubrics and
+  regression benchmarking against baselines.
+delivery: search_result
+triggers:
+  intents:
+  - 大模型应用效果评测
+  - LLM as judge 评测设计
+  - rag 检索指标 mrr ndcg
+  - bleu rouge bertscore 指标选型
+  - prompt 改动的回归测试
+  - 建立评测集与基线
+  - 人工评估评分量表设计
+  aliases:
+  - llm-evaluation
+  - LLM 评测
+  - 模型效果评估
+  capabilities:
+  - automated metric selection
+  - LLM-as-judge rubrics
+  - regression benchmarking
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- prompt 写法与模板设计
+- rag 流程搭建
+- embedding 模型选型
+- 模型微调训练
+- 测试用例代码编写

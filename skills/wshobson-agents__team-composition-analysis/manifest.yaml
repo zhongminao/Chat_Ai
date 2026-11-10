@@ -1,0 +1,32 @@
+name: wshobson-agents__team-composition-analysis
+version: 1.0.0
+description: Plan early-stage startup team structure, hiring sequence, compensation and equity allocation
+  from pre-seed to Series A.
+delivery: search_result
+triggers:
+  intents:
+  - 初创公司早期招聘计划
+  - 按融资阶段设计组织架构
+  - 薪资与期权区间设定
+  - 下一个该招什么岗位
+  - 人头预算与收入里程碑对齐
+  aliases:
+  - team-composition-analysis
+  - 初创团队规划
+  - startup hiring plan
+  capabilities:
+  - stage-based org design
+  - hiring sequence
+  - compensation and equity ranges
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 多 agent 团队编排
+- 创业指标体系
+- 市场空间测算

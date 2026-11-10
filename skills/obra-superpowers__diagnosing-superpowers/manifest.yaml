@@ -1,0 +1,54 @@
+name: obra-superpowers__diagnosing-superpowers
+version: 1.0.0
+description: Read a past AI coding session transcript line by line and report what went wrong — repeated
+  work, ignored plan steps, stumbles, wasted tokens or wall-clock — with every finding cited as path:line,
+  following a fixed case/report template.
+delivery: search_result
+triggers:
+  intents:
+  - 上次那个会话为什么反复返工，帮我查聊天记录
+  - 复盘上一轮 AI 编码为什么耗时长、花了多少 token
+  - 按 path:line 取证说明这次会话里哪些步骤偏离了计划
+  - review a past agent session transcript and cite what went wrong
+  - 为什么技能没有被触发，从会话日志里找出原因
+  - 整理一份带证据的 AI 会话失败复盘报告
+  aliases:
+  - diagnosing-superpowers
+  - 会话复盘取证
+  - AI 会话失败分析
+  capabilities:
+  - transcript reading with path:line citation discipline
+  - repeated-work, stumbles and plan-deviation reporting
+  - case + report template filling for session review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- prompts/analyst-common.md
+- prompts/cost-and-time.md
+- prompts/plan-adherence.md
+- prompts/quality-evidence.md
+- prompts/repeated-work.md
+- prompts/request-conflicts.md
+- prompts/scrub-audit.md
+- prompts/scrub.md
+- prompts/similar-session.md
+- prompts/skill-timeline.md
+- prompts/stumbles.md
+- references/context-safety.md
+- references/github-issues.md
+- references/redaction-policy.md
+- references/session-discovery.md
+- templates/bundle-README.md
+- templates/case.md
+- templates/issue.md
+- templates/report.md
+- LOCAL_NOTES.md
+excludes:
+- 生产事故复盘
+- production incident post-mortem
+- 写缺陷工单结案回执
+- 检查我的改动是否真的完成并验证
+- 优化提示词

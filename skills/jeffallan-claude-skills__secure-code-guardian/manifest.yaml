@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__secure-code-guardian
+version: 1.1.0
+description: Implement security controls in application code - password hashing, JWT and session handling, authorization checks, parameterized queries, input validation and OWASP Top 10 prevention.
+delivery: search_result
+triggers:
+  intents:
+  - implement authentication and authorization securely
+  - hash passwords with bcrypt or argon2
+  - prevent OWASP Top 10 SQL injection and XSS
+  - validate input with Zod and parameterized queries
+  - 安全编码与口令哈希实现
+  - OWASP Top 10 漏洞防护
+  - 输入校验与 SQL 注入防护
+  aliases:
+  - secure-code-guardian
+  - 安全编码
+  - OWASP 防护
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/authentication.md
+- references/input-validation.md
+- references/owasp-prevention.md
+- references/security-headers.md
+- references/xss-csrf.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 安全审计报告与渗透测试

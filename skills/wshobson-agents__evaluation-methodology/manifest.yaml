@@ -1,0 +1,33 @@
+name: wshobson-agents__evaluation-methodology
+version: 1.0.0
+description: 'Understand plugin and skill quality scoring: dimensions, rubrics, depth layers and thresholds
+  used to judge triggering accuracy and orchestration fitness.'
+delivery: search_result
+triggers:
+  intents:
+  - 插件技能质量评分口径
+  - triggering accuracy 打分维度
+  - 理解 PluginEval 分数与徽章
+  - 设定技能 marketplace 分数阈值
+  - 根据低分维度改进技能描述
+  aliases:
+  - evaluation-methodology
+  - PluginEval 方法学
+  - skill 质量评分
+  capabilities:
+  - scoring dimensions and rubrics
+  - evaluation depth layers
+  - improvement guidance
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/improving-scores.md
+- references/rubrics.md
+- LOCAL_NOTES.md
+excludes:
+- LLM 输出评测集构建
+- 技能安装与接入流程
+- 代码质量审查

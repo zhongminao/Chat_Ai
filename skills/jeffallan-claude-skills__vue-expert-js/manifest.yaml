@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__vue-expert-js
+version: 1.1.0
+description: Build Vue 3 apps in plain JavaScript without TypeScript - script setup SFCs, JS composables, JSDoc typedef prop typing, Vite setup and Options API migration to Composition API.
+delivery: search_result
+triggers:
+  intents:
+  - generate Vue 3 SFC using script setup with plain JavaScript
+  - vue 3 无 ts Options API 转 script setup
+  - convert a Vue 2 options API component to script setup in JS
+  - 在纯 JavaScript 的 Vue 3 项目里写组合式函数 composable
+  - Vue 3 项目不引入 TypeScript 如何获得类型提示
+  - 把 Vue 2 Options API 组件用 JS 改写成 script setup 组合式写法
+  aliases:
+  - vue-expert-js
+  - Vue JavaScript 开发
+  - Vue JSDoc 用法
+  - Vue 无 TS 写法
+  - Vue 组合式 API 写法
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/component-architecture.md
+- references/composables-patterns.md
+- references/jsdoc-typing.md
+- references/state-management.md
+- references/testing-patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Vue 3 组合式 API 组件开发
+- Nuxt 3 SSR 项目配置
+- jsdoc 注释

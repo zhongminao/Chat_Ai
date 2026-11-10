@@ -1,0 +1,29 @@
+name: github-awesome-copilot__drawio
+version: 1.0.0
+description: Author a native .drawio (mxGraphModel) XML file for a diagram and plan exporting it to PNG/SVG/PDF with embedded
+  XML via the draw.io desktop CLI or the bundled headless export script for Word embedding.
+delivery: search_result
+triggers:
+  intents:
+  - 生成 .drawio 文件并导出成 PNG 插到 Word 文档里
+  - 用 drawio 命令行把图导出成带 XML 的 SVG/PDF
+  - 给我画个流程图的 drawio xml，导出 png 用 drawio CLI
+  - export a .drawio diagram to png with embedded editable XML
+  - drawio 导出图片时找不到 draw.io 桌面版怎么降级
+  - 把目录里所有 drawio 文件批量导出成图片
+  aliases:
+  - drawio-cli-export
+  - draw.io 导出 png/svg/pdf
+  - drawio 图导出脚本
+  capabilities:
+  - mxGraphModel XML authoring
+  - draw.io CLI export commands and renderer fallback
+  - format choice for PNG/SVG/PDF with embedded XML
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- scripts/drawio-to-png.mjs
+- scripts/package.json

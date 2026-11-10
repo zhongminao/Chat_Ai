@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__pandas-pro
+version: 1.1.0
+description: Manipulate pandas DataFrames for analysis - cleaning and NaN handling, groupby aggregation, pivot tables, multi-key merges, time-series resample and memory tuning.
+delivery: search_result
+triggers:
+  intents:
+  - manipulate pandas DataFrame columns and dtypes
+  - clean data and handle NaN with interpolation
+  - groupby aggregation and pivot tables
+  - merge and join DataFrames on multiple keys
+  - pandas DataFrame 数据清洗
+  - groupby 分组聚合统计
+  - 时间序列 resample 与透视表
+  aliases:
+  - pandas-pro
+  - pandas 数据分析
+  - DataFrame 处理
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/aggregation-groupby.md
+- references/data-cleaning.md
+- references/dataframe-operations.md
+- references/merging-joining.md
+- references/performance-optimization.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Python 项目结构与类型注解
+- Spark 大数据处理

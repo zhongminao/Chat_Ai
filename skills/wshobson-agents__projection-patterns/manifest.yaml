@@ -1,0 +1,31 @@
+name: wshobson-agents__projection-patterns
+version: 1.0.0
+description: Build read models and projections from event streams for CQRS query sides, materialized views
+  and search indexes.
+delivery: search_result
+triggers:
+  intents:
+  - 事件流读模型投影
+  - 从事件重建搜索索引
+  - 投影重放与幂等更新
+  - read model 投影订阅与版本化
+  - 实时看板数据聚合
+  aliases:
+  - projection-patterns
+  - 读模型投影
+  - projection read model
+  capabilities:
+  - read model design
+  - projection rebuild
+  - query optimization
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 事件存储设计
+- saga 补偿事务
+- KPI 指标选择

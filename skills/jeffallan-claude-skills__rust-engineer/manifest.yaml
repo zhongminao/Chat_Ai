@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__rust-engineer
+version: 1.1.0
+description: Write idiomatic Rust - ownership, borrowing and lifetimes, trait hierarchies, Result/Option error handling, async with tokio and clippy-driven cleanup.
+delivery: search_result
+triggers:
+  intents:
+  - resolve Rust ownership and lifetime borrow errors
+  - design trait hierarchies with generics
+  - build async Rust applications with tokio
+  - handle errors with Result Option and thiserror
+  - Rust 所有权与借用检查
+  - Rust trait 设计与泛型
+  - tokio 异步编程
+  - run cargo clippy and fix warnings
+  aliases:
+  - rust-engineer
+  - Rust 开发
+  - Cargo 项目
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async.md
+- references/error-handling.md
+- references/ownership.md
+- references/testing.md
+- references/traits.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- C++20 模板与内存管理
+- Dart 移动端开发

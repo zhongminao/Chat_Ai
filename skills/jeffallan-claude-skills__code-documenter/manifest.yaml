@@ -1,0 +1,37 @@
+name: jeffallan-claude-skills__code-documenter
+version: 1.1.0
+description: Write and validate developer documentation — docstrings, JSDoc, OpenAPI/Swagger specs, API reference pages, doc portals and getting-started guides.
+delivery: search_result
+triggers:
+  intents:
+  - add docstrings to this function
+  - write an OpenAPI spec
+  - generate API reference docs
+  - write JSDoc comments
+  - 写接口文档
+  - 给函数加注释文档
+  - 编写上手教程
+  aliases:
+  - code-documenter
+  - API 文档
+  - JSDoc
+  capabilities:
+  - OpenAPI Swagger specification
+  - docstring and JSDoc generation
+  - user guide and tutorial writing
+excludes:
+  - 产品需求文档
+  - PRD
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/api-docs-fastapi-django.md
+- references/api-docs-nestjs-express.md
+- references/coverage-reports.md
+- references/documentation-systems.md
+- references/interactive-api-docs.md
+- references/python-docstrings.md
+- references/typescript-jsdoc.md
+- references/user-guides-tutorials.md
+- UPSTREAM_LICENSE

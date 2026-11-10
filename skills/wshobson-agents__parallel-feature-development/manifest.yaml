@@ -1,0 +1,32 @@
+name: wshobson-agents__parallel-feature-development
+version: 1.0.0
+description: Split a feature into parallel work streams with file ownership rules, interface contracts
+  and merge strategies for multi-agent delivery.
+delivery: search_result
+triggers:
+  intents:
+  - 大型特性并行开发拆分
+  - 多 agent 文件所有权划分
+  - 并行实现之间的接口契约
+  - vertical slice vs horizontal layer 取舍
+  - 并行分支合并冲突规避
+  aliases:
+  - parallel-feature-development
+  - 并行特性开发
+  - file ownership
+  capabilities:
+  - work stream decomposition
+  - file ownership strategies
+  - merge strategies
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/file-ownership.md
+- references/merge-strategies.md
+excludes:
+- 任务依赖图与工作负载均衡
+- 多维度代码评审
+- 独立工作树并行修复

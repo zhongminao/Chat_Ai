@@ -1,0 +1,32 @@
+name: wshobson-agents__scan
+version: 1.0.0
+description: Scan a codebase to generate project-doc.md and AGENTS.md, with delta rescans to detect architectural
+  drift.
+delivery: search_result
+triggers:
+  intents:
+  - 扫描代码库生成 AGENTS.md
+  - 生成项目说明 project-doc.md
+  - 增量扫描检测架构漂移
+  - 新仓库初始化 agent 文档
+  - 代码结构自动梳理成文档
+  aliases:
+  - scan
+  - 代码库扫描生成 AGENTS.md
+  - codebase scanner
+  capabilities:
+  - full and delta scan
+  - project doc generation
+  - drift detection
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/agents-template.md
+- LOCAL_NOTES.md
+excludes:
+- 项目上下文文档一致性校验
+- 可溯源知识库
+- README 撰写模板

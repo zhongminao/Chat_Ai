@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__vue-expert
+version: 1.1.0
+description: Build Vue 3 applications with the Composition API - SFC components and composables, Pinia stores, Nuxt 3 SSR, Vite build tuning and PWA service workers.
+delivery: search_result
+triggers:
+  intents:
+  - build Vue 3 components with Composition API
+  - create reusable Vue composables with ref and reactive
+  - set up Pinia stores in Nuxt 3
+  - optimize Vite build and PWA service worker
+  - Vue 3 组合式 API 组件开发
+  - Nuxt 3 SSR 项目配置
+  - Pinia 状态管理
+  aliases:
+  - vue-expert
+  - Vue 3 开发
+  - Nuxt 开发
+  - Vue 组合式 API
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/build-tooling.md
+- references/components.md
+- references/composition-api.md
+- references/mobile-hybrid.md
+- references/nuxt.md
+- references/state-management.md
+- references/typescript.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Vue 纯 JavaScript 无 TypeScript 开发

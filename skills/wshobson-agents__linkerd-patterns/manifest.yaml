@@ -1,0 +1,34 @@
+name: wshobson-agents__linkerd-patterns
+version: 1.0.0
+description: 'Operate Linkerd mesh in production: installation and CLI checks, automatic mTLS, TrafficSplit
+  canary rollouts and ServiceProfile per-route metrics.'
+delivery: search_result
+triggers:
+  intents:
+  - linkerd 服务网格安装
+  - linkerd trafficsplit 金丝雀发布
+  - linkerd serviceprofile 路由指标
+  - linkerd 自动 mtls 验证
+  - linkerd 注入命名空间注解
+  - 多集群 linkerd 配置
+  aliases:
+  - linkerd-patterns
+  - Linkerd
+  - linkerd 网格
+  capabilities:
+  - Linkerd installation and checks
+  - TrafficSplit canary
+  - service profiles and mTLS
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- istio 流量管理
+- 服务网格可观测性
+- k8s 安全策略
+- helm chart 脚手架
+- mtls 证书签发流程

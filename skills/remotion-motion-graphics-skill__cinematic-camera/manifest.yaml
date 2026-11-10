@@ -1,0 +1,28 @@
+name: remotion-motion-graphics-skill__cinematic-camera
+version: 1.0.0
+description: Continuous-scene Remotion camera system guide - one shared world larger than the viewport, focal-point/zoom keyframe timeline, hold-move-hold choreography, anti-neon visual bans and approved-reference QA; depends on sibling skills and a Remotion runtime that are not installed here.
+delivery: search_result
+triggers:
+  intents:
+  - build a shared Remotion camera rig with focal point and zoom keyframes
+  - 做一条镜头在场景间连续推移的产品展示短片
+  - hold and reveal choreography for a 9:16 Instagram motion clip
+  - avoid neon glow and glassmorphism in an AI-generated motion video
+  - 用抽帧对比已批准参考来验收镜头运动
+  aliases:
+  - cinematic-camera
+  - Remotion 连续运镜
+  capabilities:
+  - Remotion camera keyframe and choreography design guidance
+  - anti-neon visual restraint and first-pass QA checklist
+excludes:
+  - 视频解说脚本撰写
+  - 配音与音频混音
+  - 视频解说成片剪辑流程
+  - 转场弹簧缓动组件库
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

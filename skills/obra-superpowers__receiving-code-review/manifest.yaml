@@ -1,0 +1,35 @@
+name: obra-superpowers__receiving-code-review
+version: 1.0.0
+description: 'Handle incoming review feedback technically: clarify unclear items before touching code,
+  check each suggestion against the real codebase, push back with reasoning when it is wrong or YAGNI,
+  then implement remaining fixes in a blocked-first order.'
+delivery: search_result
+triggers:
+  intents:
+  - 收到 reviewer 的 6 条意见，先帮我逐条判断是否成立
+  - 对这条代码审查意见有异议，怎么用技术理由反驳
+  - 评审意见里有几条没看懂，该先问什么
+  - triage reviewer feedback before changing any code
+  - how to respond to review comments without just agreeing
+  - 多条审查意见按什么顺序改，先修阻塞问题
+  aliases:
+  - receiving-code-review
+  - 审查意见处理
+  - 评审反馈反驳
+  capabilities:
+  - feedback clarification and restatement
+  - suggestion verification against current code
+  - blocked-first fix ordering with per-item testing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 发起代码审查
+- ask a reviewer to review this branch
+- 准备审查请求说明
+- 审查这个 PR 并给出结论
+- 生产事故复盘

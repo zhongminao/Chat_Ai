@@ -1,0 +1,39 @@
+name: wshobson-agents__nodejs-backend-patterns
+version: 1.0.0
+description: 'Build Node.js backend services with Express/Fastify: middleware, error handling, auth, database
+  integration and API design.'
+delivery: search_result
+triggers:
+  intents:
+  - nodejs backend patterns
+  - Express 中间件与路由组织
+  - Fastify 中间件模式
+  - Node.js 错误处理中间件
+  - JWT 认证 express
+  - nodejs 数据库集成 repository 层
+  aliases:
+  - nodejs-backend-patterns
+  - node backend
+  - Node.js 后端
+  capabilities:
+  - Express/Fastify middleware
+  - API error handling
+  - backend auth and DB integration
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- SKILL.md
+- UPSTREAM_LICENSE
+- manifest.yaml
+- references/advanced-patterns.md
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- api-designer
+- OpenAPI 规范编写
+- design a REST API for my domain model
+- node.js 前端
+- react
+- vue

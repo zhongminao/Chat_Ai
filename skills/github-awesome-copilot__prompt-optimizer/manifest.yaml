@@ -1,0 +1,33 @@
+name: github-awesome-copilot__prompt-optimizer
+version: 1.0.0
+description: Rewrite a rough idea, draft prompt or task description into one finished, copy-pasteable chat prompt for any
+  LLM chat interface, with no placeholders or template variables and the content baked in.
+delivery: search_result
+triggers:
+  intents:
+  - 把我这段粗略的需求改写成一条可以直接发给 chat 的提示词
+  - 优化我给 ChatGPT 的 prompt，不要留下占位符
+  - 帮我把想法写成一个完整的 prompt 发出去就能用
+  - rewrite this draft prompt into a finished copy-pasteable chat prompt
+  - 我想让 LLM 做这件事，帮我写一个不用填空的 prompt
+  - 这个 prompt 太松散，帮我改成结构化、可直接粘贴的版本
+  aliases:
+  - prompt-optimizer
+  - 提示词改写
+  - 一键可粘贴 prompt
+  capabilities:
+  - no-placeholder finished chat prompt
+  - structure, role and reasoning cues
+  - content baked in from the user's draft
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- refactor an llm feature prompt template
+- 提示词工程与评测框架
+- few-shot 与 chain-of-thought 设计
+- system prompt guardrails
+- 写系统提示词

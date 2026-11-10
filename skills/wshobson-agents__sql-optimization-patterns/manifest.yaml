@@ -1,0 +1,27 @@
+name: wshobson-agents__sql-optimization-patterns
+version: 1.0.0
+description: Optimize SQL queries with indexing strategies, EXPLAIN plan analysis and N+1 elimination.
+delivery: search_result
+triggers:
+  intents:
+  - sql optimization
+  - 慢查询优化 explain
+  - 索引设计 indexing strategy
+  - N+1 查询问题
+  - SQL 执行计划分析
+  - 数据库查询性能调优
+  aliases:
+  - sql-optimization-patterns
+  - sql tuning
+  - SQL 优化
+  capabilities:
+  - EXPLAIN plan analysis
+  - index design
+  - slow query diagnosis
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

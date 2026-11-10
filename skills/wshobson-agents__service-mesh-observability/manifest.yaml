@@ -1,0 +1,37 @@
+name: wshobson-agents__service-mesh-observability
+version: 1.0.0
+description: 'Observe service mesh traffic end to end: mesh metrics and dashboards, distributed tracing
+  across sidecars, connectivity troubleshooting and mesh SLOs.'
+delivery: search_result
+triggers:
+  intents:
+  - 服务网格可观测性建设
+  - istio 指标与访问日志分析
+  - 服务网格 tracing 与 span 关联
+  - service mesh 延迟与错误率排查
+  - 服务依赖拓扑可视化
+  - mesh 连通性故障排查
+  - 网格层 SLO 指标定义
+  aliases:
+  - service-mesh-observability
+  - service mesh 监控
+  - 网格可观测性
+  capabilities:
+  - mesh metrics and dashboards
+  - sidecar-level tracing
+  - connectivity troubleshooting
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- prometheus 指标采集配置
+- grafana 面板模板编写
+- SLI SLO 错误预算计算
+- istio 流量路由规则
+- k8s networkpolicy 与 rbac
+- mtls 证书配置

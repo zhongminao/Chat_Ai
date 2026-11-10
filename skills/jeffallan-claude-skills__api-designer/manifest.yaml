@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__api-designer
+version: 1.1.0
+description: Design REST or GraphQL APIs end to end — resource modeling, URI and status-code conventions, pagination, versioning strategy, RFC 7807 error contracts and an OpenAPI 3.1 specification.
+delivery: search_result
+triggers:
+  intents:
+  - design a REST API for my domain model
+  - write an OpenAPI 3.1 specification
+  - choose pagination and versioning strategy for an API
+  - standardize API error responses with RFC 7807
+  - 设计 REST 接口规范和资源模型
+  - 编写 OpenAPI 接口文档
+  - 接口分页与版本化方案设计
+  - 统一接口错误响应格式
+  aliases:
+  - api-designer
+  - API 设计
+  - OpenAPI 规范编写
+  capabilities:
+  - resource and endpoint modeling
+  - OpenAPI 3.1 spec drafting
+  - versioning and error contract design
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/error-handling.md
+- references/openapi.md
+- references/pagination.md
+- references/rest-patterns.md
+- references/versioning.md
+- UPSTREAM_LICENSE

@@ -1,0 +1,31 @@
+name: jeffallan-claude-skills__the-fool
+version: 1.0.0
+description: Stress-test an idea, plan or decision with structured critical reasoning - devil's advocate, pre-mortem, red team, assumption audit and dialectic synthesis.
+delivery: search_result
+triggers:
+  intents:
+  - play devil's advocate on my plan
+  - run a pre-mortem on this decision
+  - red team this proposal
+  - poke holes in my assumptions
+  - 帮我的方案唱反调挑毛病
+  - 对决策做事前验尸 pre-mortem
+  - 红队视角挑战我的想法
+  aliases:
+  - the-fool
+  - 唱反调
+  - 魔鬼代言人
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/dialectic-synthesis.md
+- references/evidence-audit.md
+- references/mode-selection-guide.md
+- references/pre-mortem-analysis.md
+- references/red-team-adversarial.md
+- references/socratic-questioning.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 代码审查 bug 评审报告

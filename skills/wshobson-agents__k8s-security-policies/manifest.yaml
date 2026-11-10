@@ -1,0 +1,38 @@
+name: wshobson-agents__k8s-security-policies
+version: 1.0.0
+description: Harden Kubernetes with NetworkPolicy network isolation, Pod Security Standards/admission,
+  and least-privilege RBAC for multi-tenant clusters.
+delivery: search_result
+triggers:
+  intents:
+  - k8s networkpolicy 网络隔离
+  - pod security standards 配置
+  - kubernetes rbac 最小权限
+  - 多租户集群隔离方案
+  - k8s 准入控制策略
+  - 禁止特权容器与 hostPath
+  - 命名空间安全基线
+  aliases:
+  - k8s-security-policies
+  - Kubernetes 安全策略
+  - k8s rbac networkpolicy
+  capabilities:
+  - NetworkPolicy examples
+  - Pod Security Standards labeling
+  - RBAC least privilege patterns
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/network-policy-template.yaml
+- references/rbac-patterns.md
+- LOCAL_NOTES.md
+excludes:
+- k8s 原生清单编写
+- gitops 同步策略
+- helm chart 脚手架
+- secrets management 通用方案
+- 代码安全审查
+- mtls 服务间加密

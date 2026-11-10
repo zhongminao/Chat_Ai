@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__golang-pro
+version: 1.1.1
+description: Write idiomatic Go 1.21+ code — goroutines, channels and context cancellation, small composed interfaces and generics, gRPC/REST microservices, table-driven tests with the race detector, and pprof-driven allocation tuning.
+delivery: search_result
+triggers:
+  intents:
+  - write a goroutine pool with channels and context cancellation
+  - design small Go interfaces and generics constraints
+  - build a gRPC or REST service in Go
+  - add table-driven tests with the race detector
+  - Go 并发编程与 goroutine 泄漏排查
+  - Go 项目目录与 go.mod 结构规划
+  - pprof 分析 Go 内存分配与性能
+  - Go 错误处理与 context 传递
+  aliases:
+  - golang-pro
+  - Go 开发
+  - Golang 并发
+  capabilities:
+  - concurrent Go pattern implementation
+  - interface and generics design guidance
+  - Go testing and profiling workflow
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/concurrency.md
+- references/generics.md
+- references/interfaces.md
+- references/project-structure.md
+- references/testing.md
+- UPSTREAM_LICENSE

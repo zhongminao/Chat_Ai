@@ -1,0 +1,26 @@
+name: wshobson-agents__dbt-transformation-patterns
+version: 1.0.0
+description: dbt model organization, incremental strategies, tests and documentation for analytics engineering.
+delivery: search_result
+triggers:
+  intents:
+  - dbt 数据模型分层组织
+  - dbt incremental 增量模型
+  - dbt 测试与文档生成
+  - analytics engineering 项目结构
+  aliases:
+  - dbt-transformation-patterns
+  - dbt
+  - 数据转换建模
+  capabilities:
+  - dbt model layering
+  - incremental strategies
+  - dbt tests and docs
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

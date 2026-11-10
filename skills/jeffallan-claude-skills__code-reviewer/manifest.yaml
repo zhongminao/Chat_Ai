@@ -1,0 +1,36 @@
+name: jeffallan-claude-skills__code-reviewer
+version: 1.1.0
+description: Review a pull request, diff or changed files for bugs, security weaknesses, N+1 queries and maintainability, then produce a prioritized review report with a merge verdict.
+delivery: search_result
+triggers:
+  intents:
+  - code review
+  - review a pull request
+  - review my diff
+  - PR review feedback
+  - 代码审查
+  - 审查这个 PR
+  - 评审代码改动
+  aliases:
+  - code-reviewer
+  - PR 评审
+  - 代码评审报告
+  capabilities:
+  - pull request review report
+  - code smell and N+1 detection
+  - review checklist
+excludes:
+  - security audit
+  - 安全审计
+  - pen test
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/common-issues.md
+- references/feedback-examples.md
+- references/receiving-feedback.md
+- references/report-template.md
+- references/review-checklist.md
+- references/spec-compliance-review.md
+- UPSTREAM_LICENSE

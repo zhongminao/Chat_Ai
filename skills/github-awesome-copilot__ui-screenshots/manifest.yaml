@@ -1,0 +1,34 @@
+name: github-awesome-copilot__ui-screenshots
+version: 1.0.0
+description: 'Capture UI screenshots of a running web app or desktop window for change documentation: full-page tall-viewport
+  capture, cropping iterations with PIL instead of re-capturing, interactive states and section-specific shots.'
+delivery: search_result
+triggers:
+  intents:
+  - 截一张整页截图记录这次 UI 改动前后对比
+  - 截长页面时用高视口一次拍全，再用 PIL 裁切
+  - 抓 hover/tooltip 这种交互态的截图
+  - capture a full-page screenshot of my running web app
+  - 截取页面的某个区域，不要重新截图
+  - 桌面窗口截图用什么方案（mss + ctypes）
+  aliases:
+  - ui-screenshots
+  - 界面截图流程
+  - 整页截图与裁切
+  capabilities:
+  - tall-viewport full page capture workflow
+  - crop-and-iterate image workflow
+  - interactive state and desktop window capture options
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- verify ui behavior
+- 检查页面功能是否正常
+- visual design review
+- 视觉设计审查
+- chart rendering
+- 生成图表图片

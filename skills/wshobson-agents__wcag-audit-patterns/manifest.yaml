@@ -1,0 +1,32 @@
+name: wshobson-agents__wcag-audit-patterns
+version: 1.0.0
+description: Audit web content against WCAG 2.2 with automated and manual checks, violation triage and
+  remediation guidance.
+delivery: search_result
+triggers:
+  intents:
+  - WCAG 2.2 无障碍审计
+  - 网站无障碍违规修复
+  - ADA Section 508 vpat 合规准备
+  - 可访问组件实现模式
+  - 对照 success criteria 逐条核查
+  aliases:
+  - wcag-audit-patterns
+  - WCAG 审计
+  - accessibility audit
+  capabilities:
+  - automated and manual audit steps
+  - violation remediation
+  - accessible component patterns
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- 读屏软件实测
+- 前端视觉风格设计
+- SEO 优化

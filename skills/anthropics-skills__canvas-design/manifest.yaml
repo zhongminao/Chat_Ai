@@ -1,0 +1,31 @@
+name: anthropics-skills__canvas-design
+version: 1.0.0
+description: Guidance for composing original static visual design in PDF/PNG - write a design philosophy, then express it as poster or canvas artwork - with 54 bundled open-licensed fonts (OFL texts included).
+delivery: search_result
+triggers:
+  intents:
+  - design a poster as PDF or PNG from a visual philosophy
+  - 做一张极简排版风格海报图片
+  - create static visual artwork with carefully chosen bundled fonts
+  - write a design manifesto and translate it into a visual canvas
+  - 生成活动宣传图或封面画布
+  aliases:
+  - canvas-design
+  - 静态海报画布设计
+  capabilities:
+  - static poster and canvas visual design guidance
+  - bundled open-licensed font selection
+excludes:
+  - 前端网页开发
+  - p5.js 生成艺术代码
+  - 视频剪辑
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- canvas-fonts/WorkSans-OFL.txt
+- canvas-fonts/JetBrainsMono-OFL.txt
+- canvas-fonts/IBMPlexMono-OFL.txt

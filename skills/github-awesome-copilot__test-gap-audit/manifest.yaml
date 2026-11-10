@@ -1,0 +1,35 @@
+name: github-awesome-copilot__test-gap-audit
+version: 1.0.0
+description: 'Read-only audit of missing, weak, stale or mis-scoped tests: inventory routes and packages, map existing coverage
+  by name/path/imports, and report prioritized gaps where behavior is not actually proven by assertions.'
+delivery: search_result
+triggers:
+  intents:
+  - 审计这个仓库哪些关键路径没有测试
+  - 这些测试只有调用没有断言，算不算真的覆盖了
+  - 改动后需要补哪些回归测试才能证明安全
+  - audit which important code paths lack meaningful tests
+  - 找出 mock 掉了行为、实际上没验证的测试
+  - 某个功能缺少负面和权限测试，帮我列出来
+  aliases:
+  - test-gap-audit
+  - 测试缺口盘点
+  - 缺失测试识别
+  capabilities:
+  - source-to-test mapping by naming and imports
+  - assertion and mocking weakness detection
+  - prioritized gap report with risk ranking
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- scripts/coverage_map.py
+excludes:
+- raise line coverage to 100%
+- 把行覆盖率补到 100%
+- write the full test suite
+- 整套测试用例代码
+- security review
+- 安全漏洞扫描

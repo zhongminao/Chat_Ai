@@ -1,0 +1,35 @@
+name: wshobson-agents__avoid-ai-writing
+version: 1.0.0
+description: Audit and rewrite prose that reads as machine-generated, with detect, rewrite and edit-in-place
+  modes for docs, READMEs and blog posts.
+delivery: search_result
+triggers:
+  intents:
+  - 去除文章里的 AI 味
+  - 机器生成文风检测与重写
+  - README changelog 语言自然化
+  - 文稿句式节奏与套话清理
+  - 发布前文字风格审查
+  - 让文本读起来更像真人写的
+  aliases:
+  - avoid-ai-writing
+  - 去 AI 味
+  - AI tells audit
+  capabilities:
+  - AI-ism pattern catalog
+  - rewrite and detect modes
+  - voice and context profiles
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/pattern-catalog.md
+- references/profiles.md
+- references/word-tiers.md
+- LOCAL_NOTES.md
+excludes:
+- README 从零撰写
+- 代码审查
+- 中文公文写作规范

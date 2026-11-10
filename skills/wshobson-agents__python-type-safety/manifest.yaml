@@ -1,0 +1,27 @@
+name: wshobson-agents__python-type-safety
+version: 1.0.0
+description: Python static type safety with type hints, generics, Protocols and strict mypy/pyright configuration.
+delivery: search_result
+triggers:
+  intents:
+  - python type hints
+  - mypy 严格模式配置
+  - Protocol 结构化子类型
+  - generic class typing python
+  - pyright 类型检查
+  - Python 类型注解规范
+  aliases:
+  - python-type-safety
+  - python typing
+  - Python 类型安全
+  capabilities:
+  - type hints and generics
+  - Protocol structural typing
+  - mypy/pyright configuration
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

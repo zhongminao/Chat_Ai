@@ -1,0 +1,37 @@
+name: wshobson-agents__protocol-reverse-engineering
+version: 1.0.0
+description: 'Capture and reverse engineer network protocols: Wireshark/tcpdump capture, field structure
+  and framing analysis, and documenting a protocol spec.'
+delivery: search_result
+triggers:
+  intents:
+  - 抓包分析网络协议
+  - wireshark tshark 过滤表达式
+  - 逆向协议报文格式
+  - tcpdump 保存 pcap 分析
+  - 私有协议字段与帧结构分析
+  - 编写协议文档规范
+  - 二进制加密流量分析
+  aliases:
+  - protocol-reverse-engineering
+  - 协议逆向
+  - pcap 分析
+  capabilities:
+  - packet capture workflows
+  - protocol field analysis
+  - protocol documentation
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/binary-encryption-analysis.md
+- references/protocol-documentation.md
+- LOCAL_NOTES.md
+excludes:
+- 网络连通性故障排查
+- 二进制恶意样本取证
+- 反反调试绕过技术
+- 内存取证
+- 代码安全审查

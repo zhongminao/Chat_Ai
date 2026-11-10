@@ -1,0 +1,34 @@
+name: jeffallan-claude-skills__react-expert
+version: 1.1.0
+description: Build React 18/19 web components with hooks - custom hooks, state management, Suspense and Server Components, rendering performance and React Testing Library.
+delivery: search_result
+triggers:
+  intents:
+  - build React 19 components with hooks
+  - implement custom hooks and state management
+  - migrate class components to modern React
+  - optimize rendering with memo and TanStack Query
+  - React 函数组件与 hooks 编写
+  - React 状态管理方案
+  - React 渲染性能优化
+  - React 客户端组件与 Suspense
+  aliases:
+  - react-expert
+  - React 开发
+  - React 组件开发
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/hooks-patterns.md
+- references/migration-class-to-modern.md
+- references/performance.md
+- references/react-19-features.md
+- references/server-components.md
+- references/state-management.md
+- references/testing-react.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- Vue 3 前端开发
+- React Native 原生移动应用开发

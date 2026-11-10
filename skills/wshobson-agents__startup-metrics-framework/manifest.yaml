@@ -1,0 +1,32 @@
+name: wshobson-agents__startup-metrics-framework
+version: 1.0.0
+description: Define and benchmark SaaS, marketplace, consumer and B2B startup metrics from seed to Series
+  A, including unit economics and cash efficiency.
+delivery: search_result
+triggers:
+  intents:
+  - 创业公司指标体系搭建
+  - SaaS CAC LTV 单位经济计算
+  - burn multiple 与增长效率评估
+  - 董事会与投资人月度指标看板
+  - marketplace GMV take rate 指标
+  - 早期公司财务健康度基准
+  aliases:
+  - startup-metrics-framework
+  - 创业指标框架
+  - CAC LTV
+  capabilities:
+  - unit economics calculation
+  - stage-appropriate metric selection
+  - investor benchmarking
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/universal-and-saas-metrics.md
+excludes:
+- KPI 仪表盘界面设计
+- 市场规模测算
+- 初创财务模型搭建

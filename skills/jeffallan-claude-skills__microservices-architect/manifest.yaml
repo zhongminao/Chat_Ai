@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__microservices-architect
+version: 1.1.0
+description: Design distributed microservice systems - resilience patterns, saga and event-driven communication, service mesh, progressive delivery and distributed tracing.
+delivery: search_result
+triggers:
+  intents:
+  - implement saga pattern for distributed transactions
+  - plan distributed tracing and correlation IDs across services
+  - 微服务容错模式与熔断超时降级
+  - 事件驱动服务间异步通信设计
+  - 多集群服务网格与流量治理
+  - distributed systems resilience patterns for microservice calls
+  - service mesh and progressive delivery for microservices
+  aliases:
+  - microservices-architect
+  - 微服务系统设计
+  - 分布式系统架构
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/communication.md
+- references/data.md
+- references/decomposition.md
+- references/observability.md
+- references/patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 微服务拆分与服务边界
+- CQRS 读写分离模型
+- 微服务架构
+- decompose a monolith into microservices

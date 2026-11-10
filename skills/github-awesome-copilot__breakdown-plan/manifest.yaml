@@ -1,0 +1,34 @@
+name: github-awesome-copilot__breakdown-plan
+version: 1.0.0
+description: Turn feature artifacts (PRD, UX design, technical breakdown, test plan) into a GitHub project plan with Epic
+  > Feature > Story/Enabler > Test hierarchy, issue templates, dependencies, priorities and milestones.
+delivery: search_result
+triggers:
+  intents:
+  - 把 PRD 拆成 GitHub issue 层级：Epic/Feature/Story/Enabler/Test
+  - 生成 GitHub 项目计划的 issue 模板、标签、里程碑和依赖关系
+  - 按 INVEST 原则给功能拆任务并排优先级
+  - create a GitHub project plan with epic, feature and story issues
+  - 列出 issue 之间的 blocks/blocked by 依赖与关键路径
+  - 把已经完成的 PRD 和技术拆分整理成可跟踪的看板计划
+  aliases:
+  - breakdown-plan
+  - github issue 拆分
+  - 项目计划 issue 规划
+  capabilities:
+  - epic/feature/story/test issue templates
+  - dependency, priority and milestone planning
+  - Kanban-style project plan outline
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- epic prd
+- 编写 Epic 级 PRD
+- test strategy
+- 测试策略与 QA 计划
+- implementation plan for a feature
+- 功能实现计划

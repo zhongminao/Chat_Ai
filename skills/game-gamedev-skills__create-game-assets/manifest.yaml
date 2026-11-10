@@ -1,0 +1,33 @@
+name: game-gamedev-skills__create-game-assets
+version: 1.0.0
+description: Art-direction briefs, sprites, tilesets, raster QA and asset provenance; no bundled licensed art.
+delivery: search_result
+triggers:
+  intents:
+    - create game assets
+    - pixel sprite asset pipeline
+    - tileset art direction
+    - sprite asset provenance
+    - 像素角色素材制作
+    - 精灵图素材制作
+    - 瓦片地图美术素材
+    - 美术素材版权溯源
+  aliases:
+    - create-game-assets
+    - 像素画素材规范
+  capabilities:
+    - sprite asset manifest
+    - raster asset QA
+allowed_tools:
+  - read_file
+entrypoint: SKILL.md
+references:
+  - LOCAL_NOTES.md
+  - assets/art-direction-brief.md
+  - assets/asset-manifest.json
+  - references/art-direction.md
+  - references/raster-pipeline.md
+  - references/three-d-pipeline.md
+  - references/provenance.md
+  - UPSTREAM_LICENSE
+  - UPSTREAM_NOTICE

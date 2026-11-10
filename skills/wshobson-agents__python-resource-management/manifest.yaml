@@ -1,0 +1,28 @@
+name: wshobson-agents__python-resource-management
+version: 1.0.0
+description: Python context managers, deterministic cleanup, connection pooling and streaming resource
+  patterns.
+delivery: search_result
+triggers:
+  intents:
+  - python resource management
+  - context manager 自定义
+  - 文件句柄与连接池释放
+  - streaming response 生成器清理
+  - with 语句资源管理
+  - python 优雅清理 exit stack
+  aliases:
+  - python-resource-management
+  - context manager
+  - Python 资源管理
+  capabilities:
+  - custom context managers
+  - connection pool cleanup
+  - streaming resource handling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

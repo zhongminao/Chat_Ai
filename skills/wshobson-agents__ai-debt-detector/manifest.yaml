@@ -1,0 +1,31 @@
+name: wshobson-agents__ai-debt-detector
+version: 1.0.0
+description: 'Audit AI-generated code for hidden debt: missing error handling, orphaned resources, hallucinated
+  packages and silent architectural drift.'
+delivery: search_result
+triggers:
+  intents:
+  - AI 生成代码隐患自查
+  - 检查遗漏的错误处理与资源释放
+  - 排查幻觉依赖包与空实现
+  - 验收 AI 代码前的隐性债务清单
+  - vibe coding 后技术债评估
+  aliases:
+  - ai-debt-detector
+  - AI 代码技术债
+  - AI debt audit
+  capabilities:
+  - failure mode checklist
+  - orphan resource detection
+  - hallucinated dependency checks
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 通用代码审查
+- 多维度评审组织
+- 性能剖析

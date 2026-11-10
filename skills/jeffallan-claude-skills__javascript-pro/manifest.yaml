@@ -1,0 +1,32 @@
+name: jeffallan-claude-skills__javascript-pro
+version: 1.1.0
+description: Write and refactor modern ES2023 JavaScript - async/await and Promise handling, ESM/CJS modules, Fetch API, Web Workers and Node.js runtime APIs.
+delivery: search_result
+triggers:
+  intents:
+  - write modern ES2023 vanilla JavaScript code
+  - fix async await promise handling and event loop issues
+  - organize ESM and CommonJS module exports
+  - use Fetch API and Web Workers in the browser
+  - JavaScript 原生异步代码写法
+  - ESM 模块导入导出组织
+  - 浏览器 Fetch 请求与 Web Worker 用法
+  - refactor a vanilla .js file for correctness and best practices
+  - 用 Service Worker 缓存静态资源
+  aliases:
+  - javascript-pro
+  - JavaScript 开发
+  - JS 异步编程
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/async-patterns.md
+- references/browser-apis.md
+- references/modern-syntax.md
+- references/modules.md
+- references/node-essentials.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- TypeScript 类型系统与泛型

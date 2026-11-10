@@ -1,0 +1,37 @@
+name: office_docx
+version: 0.1.0
+description: Create/edit Word DOCX or DOTX files, including tracked changes and comments. General Word workflow;
+  conversion-only tasks have dedicated skills.
+delivery: search_result
+triggers:
+  intents:
+  - create Word document
+  - edit Word document
+  - Word tracked changes
+  - Word comments
+  - 创建 Word 文档
+  - 编辑 Word 文档
+  - Word 修订批注
+  aliases:
+  - Word 文档
+  - Word 模板
+  - DOCX 编辑
+  capabilities:
+  - edit OOXML Word
+  - DOCX comments
+  - Word 修订
+  extensions:
+  - .docx
+  - .dotx
+excludes:
+- Google Docs
+- Excel 工作簿
+allowed_tools:
+- run_bash
+- read_file
+- read_image
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

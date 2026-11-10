@@ -1,0 +1,44 @@
+name: obra-superpowers__brainstorming
+version: 1.0.0
+description: Run a design dialogue before implementation — read the existing project, restate the request, ask the one question that would change what gets built, lay out approaches for the user to pick, and get the short or full design doc approved before writing code. Bundled browser companion scripts are not run.
+delivery: search_result
+triggers:
+  intents:
+  - brainstorm what to build before coding
+  - clarify requirements before implementing a feature
+  - discuss design approaches and pick one
+  - design doc before implementation
+  - 需求澄清后再动手实现
+  - 先讨论设计方案再写代码
+  - 界面原型草图对话评审
+  - 和用户一起头脑风暴产品想法
+  aliases:
+  - brainstorming
+  - design dialogue
+  - 头脑风暴设计
+  - 方案讨论
+  capabilities:
+  - requirement clarification questioning
+  - design approach tradeoff presentation
+  - short and full design doc drafting
+excludes:
+  - 产品需求文档
+  - PRD
+  - product requirements document
+  - 技术规格文档
+  - technical specification
+  - 代码审查
+  - code review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- builder-check-prompt.md
+- visual-companion.md
+- scripts/frame-template.html
+- scripts/helper.js
+- scripts/server.cjs
+- scripts/start-server.sh
+- scripts/stop-server.sh
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md

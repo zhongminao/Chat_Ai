@@ -1,0 +1,26 @@
+name: wshobson-agents__dependency-upgrade
+version: 1.0.0
+description: Plan and execute major dependency version upgrades with compatibility analysis and staged
+  rollout.
+delivery: search_result
+triggers:
+  intents:
+  - 大版本依赖升级计划
+  - breaking change 兼容性排查
+  - 渐进式依赖升级与回滚
+  - 框架版本升级测试策略
+  aliases:
+  - dependency-upgrade
+  - 依赖升级
+  - version upgrade
+  capabilities:
+  - compatibility analysis
+  - staged rollout
+  - breaking change handling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

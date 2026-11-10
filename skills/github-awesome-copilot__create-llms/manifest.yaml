@@ -1,0 +1,29 @@
+name: github-awesome-copilot__create-llms
+version: 1.0.0
+description: Draft an llms.txt file for a repository per the llmstxt.org specification — H1 project name, blockquote summary and categorized H2 link lists to the docs an LLM should read first.
+delivery: search_result
+triggers:
+  intents:
+  - create an llms.txt file for this repository
+  - 按 llmstxt.org 规范写 llms.txt
+  - draft an LLM entry point listing key docs
+  - 为仓库生成给大模型看的文档索引
+  - build an llms.txt with documentation and specification sections
+  aliases:
+  - create-llms
+  - llms.txt
+  - llmstxt
+  capabilities:
+  - llms.txt structure and link lists
+  - repository documentation inventory
+excludes:
+  - README
+  - API 文档
+  - 产品需求文档
+  - 更新已有 llms.txt
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE

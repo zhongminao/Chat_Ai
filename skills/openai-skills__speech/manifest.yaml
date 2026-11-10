@@ -1,0 +1,47 @@
+name: openai-skills__speech
+version: 1.0.0
+description: OpenAI 语音合成(TTS)的内容与方法：单条与批量旁白决策、voice 与 instructions 的标注模板（语气/节奏/口音）、各场景提示词范例（旁白、配音、无障碍朗读、IVR）、4096 字符切分与 50
+  RPM 限制，以及 gpt-4o-mini-tts 用法参考。
+delivery: search_result
+triggers:
+  intents:
+  - 把一段文字转成旁白语音（TTS）该怎么准备
+  - TTS 的 instructions 怎么写：语气、节奏、情绪标注
+  - 宣传片配音、无障碍朗读、IVR 语音提示的脚本规范
+  - 批量生成语音：长文本切分与 50 次/分钟限制
+  - text to speech voiceover narration script for promo video
+  - OpenAI TTS 可用 voice 列表与响应格式选择
+  aliases:
+  - speech
+  - 语音合成
+  - TTS 旁白
+  - 配音脚本
+  capabilities:
+  - TTS 提示词标注模板与场景范例
+  - 单条/批量工作流与限额规则
+  - 语音脚本可读性验收要点
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/speech-small.svg
+- assets/speech.png
+- references/accessibility.md
+- references/audio-api.md
+- references/cli.md
+- references/codex-network.md
+- references/ivr.md
+- references/narration.md
+- references/prompting.md
+- references/sample-prompts.md
+- references/voice-directions.md
+- references/voiceover.md
+- scripts/text_to_speech.py
+- LOCAL_NOTES.md
+excludes:
+- 音频转写（见 transcribe）
+- 声音克隆或自定义音色
+- 音乐生成与音效设计

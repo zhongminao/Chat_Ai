@@ -1,0 +1,28 @@
+name: wshobson-agents__python-configuration
+version: 1.0.0
+description: Python configuration management with environment variables, pydantic-settings and typed settings
+  objects.
+delivery: search_result
+triggers:
+  intents:
+  - python configuration management
+  - 环境变量配置 pydantic-settings
+  - 12-factor 配置分离
+  - typed settings object python
+  - secrets 注入配置
+  - 多环境 settings 管理
+  aliases:
+  - python-configuration
+  - python config
+  - Python 配置管理
+  capabilities:
+  - pydantic-settings
+  - environment variable config
+  - secrets handling
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md

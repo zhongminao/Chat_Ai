@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__legacy-modernizer
+version: 1.1.0
+description: Modernize a legacy codebase incrementally - system assessment, dependency map, strangler fig facade, characterization tests and phased migration roadmap with rollback.
+delivery: search_result
+triggers:
+  intents:
+  - plan a strangler fig migration for a legacy system
+  - decompose a monolith into services incrementally
+  - build characterization tests before refactoring legacy code
+  - create a dependency map and risk register for aging codebase
+  - 遗留系统渐进式迁移方案
+  - 单体应用拆分改造
+  - 遗留代码特征测试与防腐层
+  aliases:
+  - legacy-modernizer
+  - 遗留系统现代化
+  - strangler fig
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/legacy-testing.md
+- references/migration-strategies.md
+- references/refactoring-patterns.md
+- references/strangler-fig-pattern.md
+- references/system-assessment.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 现有遗留代码反推功能规格

@@ -1,0 +1,33 @@
+name: github-awesome-copilot__api-breaking-change-detector
+version: 1.0.0
+description: Cross-check a C# Web API's controllers, DTOs and JSON naming policy against its TypeScript/JavaScript consumers
+  to find request/response contract drift in both directions before merge.
+delivery: search_result
+triggers:
+  intents:
+  - 检查这次 C# 控制器/DTO 改动会不会破坏 TypeScript 前端
+  - C# Web API 接口契约和后端 DTO 不一致，帮我核对有没有 breaking change
+  - DTO 字段重命名或删除后，哪些前端调用点会报错
+  - 前端 TypeScript 往接口多传了后端不再读取的字段，帮我查契约漂移
+  - audit DTO contract drift between C# API and React/Angular consumers
+  - response JSON key renamed, which client code breaks
+  aliases:
+  - api breaking change detector
+  - 接口契约漂移检查
+  - dto 破坏性改动
+  capabilities:
+  - C# controller and DTO contract inventory
+  - TypeScript/JS consumer cross-reference
+  - bidirectional contract drift report
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- design a REST API
+- 设计 REST API
+- write OpenAPI spec
+- 编写 OpenAPI 文档
+- two OpenAPI yaml files diff

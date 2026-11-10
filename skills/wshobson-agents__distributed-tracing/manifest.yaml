@@ -1,0 +1,36 @@
+name: wshobson-agents__distributed-tracing
+version: 1.0.0
+description: 'Implement distributed tracing with Jaeger and Tempo: OpenTelemetry instrumentation, context
+  propagation, sampling strategy and trace-log correlation.'
+delivery: search_result
+triggers:
+  intents:
+  - 分布式链路追踪接入
+  - opentelemetry span 埋点
+  - jaeger tempo 部署与查询
+  - trace context 跨服务传播
+  - 采样率设置 tracing sampling
+  - trace_id 与日志关联
+  - 定位微服务调用延迟瓶颈
+  aliases:
+  - distributed-tracing
+  - 分布式追踪
+  - 链路追踪
+  capabilities:
+  - OpenTelemetry instrumentation
+  - context propagation
+  - Jaeger/Tempo setup
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- prometheus 指标采集配置
+- SLO 错误预算
+- grafana 面板设计
+- python 日志埋点规范
+- 服务网格流量管理

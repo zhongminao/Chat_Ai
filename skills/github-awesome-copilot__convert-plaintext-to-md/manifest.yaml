@@ -1,0 +1,36 @@
+name: github-awesome-copilot__convert-plaintext-to-md
+version: 1.0.0
+description: Convert raw plaintext or generic .txt documentation into well-structured Markdown (headings, lists, tables, code
+  blocks) using explicit instructions, a predefined option or an existing Markdown file as the formatting pattern.
+delivery: search_result
+triggers:
+  intents:
+  - 把纯文本 txt 文档整理成带标题和列表的 markdown
+  - 把手写说明 .txt 按 markdown 最佳实践排版
+  - 以已有的 md 文件为模板把同类纯文本转换过来
+  - convert plain text documentation into markdown with headings and tables
+  - 纯文本没格式，帮我补上 markdown 标题层级和代码块
+  - txt 转 md，并去掉标题前的编号、调整缩进
+  aliases:
+  - convert-plaintext-to-md
+  - 纯文本转 markdown
+  - txt 转 md
+  capabilities:
+  - plaintext to markdown structure conversion
+  - pattern-guided conversion from an existing md file
+  - heading, list and table normalization options
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- xlsx to markdown
+- excel 转 markdown
+- pdf to markdown
+- pdf 转 markdown
+- docx to markdown
+- word 转 markdown
+- markdown to html
+- markdown 转 html

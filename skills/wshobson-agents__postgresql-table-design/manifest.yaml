@@ -1,0 +1,36 @@
+name: wshobson-agents__postgresql-table-design
+version: 1.0.0
+description: 'Design PostgreSQL schemas well: column type and constraint choices, FK indexes, JSONB and
+  partitioning, and low-downtime schema changes.'
+delivery: search_result
+triggers:
+  intents:
+  - postgresql 表结构设计
+  - 字段类型选择 timestamptz numeric uuid
+  - postgres 外键索引与约束
+  - jsonb 存储与索引 gin
+  - 大表分区策略
+  - 在线改表结构避免锁表
+  - pg 唯一约束与 null 处理
+  aliases:
+  - postgresql-table-design
+  - PostgreSQL 表设计
+  - pg schema design
+  capabilities:
+  - PostgreSQL type and constraint rules
+  - JSONB and partitioning guidance
+  - low-downtime schema change
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- sql 查询优化与执行计划
+- 数据库迁移脚本编排
+- mysql 优化
+- ORM 模型定义
+- 数据库连接池配置

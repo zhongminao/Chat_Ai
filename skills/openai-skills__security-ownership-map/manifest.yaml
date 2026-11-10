@@ -1,0 +1,39 @@
+name: openai-skills__security-ownership-map
+version: 1.0.0
+description: 基于 git 历史的安全所有权拓扑分析：构建人员-文件二分图，计算 bus factor、敏感代码归属、孤儿敏感代码与隐藏 owner，做文件共变(Jaccard)聚类与社区维护者分析，导出 CSV/JSON 供 Neo4j/Gephi
+  使用。
+delivery: search_result
+triggers:
+  intents:
+  - 分析仓库安全所有权与 bus factor
+  - 找出孤儿敏感代码（低维护、单点依赖）
+  - 敏感代码 hotspots：auth、crypto、secrets 目录的负责人
+  - 用 git 历史做文件共变聚类与社区维护者分析
+  - 'security ownership map: people-to-file graph and CODEOWNERS reality check'
+  - 把所有权图导入 Neo4j 或 Gephi 可视化
+  aliases:
+  - security-ownership-map
+  - 安全所有权分析
+  - bus factor 分析
+  - 代码归属风险
+  capabilities:
+  - 人员-文件所有权图与 bus factor 指标
+  - 敏感路径规则与孤儿代码识别
+  - CSV/JSON/graphml 导出与 Neo4j 导入步骤
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- references/neo4j-import.md
+- scripts/build_ownership_map.py
+- scripts/community_maintainers.py
+- scripts/query_ownership.py
+- scripts/run_ownership_map.py
+- LOCAL_NOTES.md
+excludes:
+- 通用维护者名单或非安全类归属统计
+- 威胁建模（见 security-threat-model）
+- 代码审查清单

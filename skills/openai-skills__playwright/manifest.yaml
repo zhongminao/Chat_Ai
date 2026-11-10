@@ -1,0 +1,38 @@
+name: openai-skills__playwright
+version: 1.0.0
+description: 用 playwright-cli 从终端驱动真实浏览器的操作规范：open→snapshot→按元素 ref 交互→重新快照的循环、表单填写与提交、多标签、trace 录制与截图/PDF 产出，以及 ref 过期与故障排查。
+delivery: search_result
+triggers:
+  intents:
+  - 用 playwright-cli 驱动浏览器自动化操作页面
+  - 浏览器自动化里 snapshot 与元素 ref 的正确用法
+  - 用 Playwright 填表单、点击、多标签页切换
+  - 抓取页面截图和 PDF、录制 trace 调试 UI 流程
+  - playwright-cli 报错缺 ref 或 npx 不存在怎么处理
+  - automate a real browser from the terminal with playwright CLI
+  aliases:
+  - playwright
+  - 浏览器自动化
+  - playwright-cli
+  capabilities:
+  - snapshot/ref 交互循环与重启快照时机
+  - 表单、多标签、trace 工作流
+  - CLI 命令参考与排错
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- NOTICE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/playwright-small.svg
+- assets/playwright.png
+- references/cli.md
+- references/workflows.md
+- scripts/playwright_cli.sh
+- LOCAL_NOTES.md
+excludes:
+- 编写 @playwright/test 测试用例
+- Electron 应用持久会话调试
+- 前端组件单元测试

@@ -1,0 +1,26 @@
+name: anthropics-skills__internal-comms
+version: 1.0.0
+description: Format guidelines for internal company communications - 3P updates, newsletters, FAQ replies, status reports, leadership and incident updates - but its referenced examples/ guideline files are absent from the staged package.
+delivery: search_result
+triggers:
+  intents:
+  - draft a 3P progress plans problems team update
+  - 写一封公司内部全员信或月报
+  - write an incident report for internal stakeholders
+  - draft FAQ answers for staff questions
+  - 写项目状态周报给上级
+  aliases:
+  - internal-comms
+  - 内部沟通写作
+  capabilities:
+  - internal communication format guidance
+excludes:
+  - 对外营销文案
+  - 会议纪要
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md

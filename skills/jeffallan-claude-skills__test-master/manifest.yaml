@@ -1,0 +1,36 @@
+name: jeffallan-claude-skills__test-master
+version: 1.1.1
+description: Design test strategy and write unit, integration and E2E tests; plan coverage, mocking, flaky-test triage and quality gates, and report defects with severity.
+delivery: search_result
+triggers:
+  intents:
+  - write unit tests
+  - integration test strategy
+  - E2E test plan
+  - improve test coverage
+  - flaky test triage
+  - 编写单元测试
+  - 测试策略与用例设计
+  - 提升测试覆盖率
+  aliases:
+  - test-master
+  - QA 测试计划
+  - 测试自动化方案
+  capabilities:
+  - unit test generation
+  - coverage gap analysis
+  - regression quality gates
+excludes:
+  - 代码审查
+  - code review
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/automation-frameworks.md
+- references/e2e-testing.md
+- references/integration-testing.md
+- references/performance-testing.md
+- references/qa-methodology.md
+- references/security-testing.md
+- UPSTREAM_LICENSE

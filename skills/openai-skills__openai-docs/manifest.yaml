@@ -1,0 +1,40 @@
+name: openai-skills__openai-docs
+version: 1.0.0
+description: OpenAI 官方文档与技术选型指引：模型选择与"最新模型"判断、模型字符串升级与提示词升级方法、Codex 自身能力（AGENTS.md/skills/plugins/MCP/hooks/automations/各产品面）的来源优先级与回答边界，附最新模型、升级与提示词指南的离线参考。
+delivery: search_result
+triggers:
+  intents:
+  - OpenAI 现在该用哪个模型 / 最新模型是哪个
+  - 把项目里的模型字符串升级到新版本并同步改提示词
+  - Codex 的 AGENTS.md、skills、plugins、MCP、hooks 该怎么选
+  - 哪些自定义该放 AGENTS.md、config.toml、skill 还是 plugin
+  - choose the latest OpenAI model and migrate prompts safely
+  - Responses API 与 Chat Completions API 该用哪个
+  aliases:
+  - openai-docs
+  - OpenAI 文档
+  - 最新模型选择
+  - 模型升级与提示词升级
+  capabilities:
+  - 模型选择与升级决策规则
+  - Codex 能力面与配置位置选型
+  - 离线回退参考文档
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LICENSE.txt
+- SKILL.md
+- agents/openai.yaml
+- assets/openai-small.svg
+- assets/openai.png
+- references/latest-model.md
+- references/prompting-guide.md
+- references/upgrade-guide.md
+- scripts/fetch-codex-manual.mjs
+- scripts/resolve-latest-model-info.js
+- LOCAL_NOTES.md
+excludes:
+- Anthropic Claude API 参考
+- OpenAI 价格明细报价
+- 企业合同与采购

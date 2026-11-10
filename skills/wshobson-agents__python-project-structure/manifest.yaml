@@ -1,0 +1,27 @@
+name: wshobson-agents__python-project-structure
+version: 1.0.0
+description: 'Organize Python projects: directory layout, module boundaries, __all__ public API design
+  and src-layout decisions.'
+delivery: search_result
+triggers:
+  intents:
+  - python project structure
+  - python 目录结构规划
+  - module layout design
+  - __all__ public API design
+  - python 项目分层
+  - src layout vs flat layout
+  aliases:
+  - python-project-structure
+  - python 项目结构
+  - project layout python
+  capabilities:
+  - directory layout planning
+  - module boundary design
+  - public API via __all__
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE

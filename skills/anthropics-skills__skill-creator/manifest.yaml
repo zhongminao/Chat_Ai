@@ -1,0 +1,35 @@
+name: anthropics-skills__skill-creator
+version: 1.0.0
+description: Guide for authoring, revising and evaluating a skill's SKILL.md - capture intent, draft instructions, run trigger/quality evals and package the skill; upstream helper scripts are not installed or run.
+delivery: search_result
+triggers:
+  intents:
+  - create a new skill from scratch with SKILL.md
+  - 把这段工作流程做成一个 skill
+  - improve an existing skill's SKILL.md description
+  - optimize skill description for better triggering accuracy
+  - run evals and benchmark a skill with variance analysis
+  - 编写技能评测用例并比较两个版本的得分
+  - package a skill folder into a .skill file
+  aliases:
+  - skill-creator
+  - 技能创建器
+  - create skill template
+  capabilities:
+  - skill authoring and description optimization guidance
+  - skill eval and benchmark workflow design
+excludes:
+  - 会议纪要
+  - PPT 演示文稿
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- LICENSE.txt
+- UPSTREAM_THIRD_PARTY_NOTICES.md
+- references/schemas.md
+- agents/grader.md
+- agents/comparator.md
+- agents/analyzer.md
+- assets/eval_review.html

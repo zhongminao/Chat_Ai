@@ -1,0 +1,32 @@
+name: claude-remotion-skill__remotion-motion-graphics
+version: 1.0.0
+description: Craft rules and copy-paste component patterns for building non-generic motion graphics videos in Remotion (React) - easing, staggered entrances, layer stacks, Ken Burns, text reveals and frame-level render verification; npm/Chromium runtime is not installed.
+delivery: search_result
+triggers:
+  intents:
+  - write Remotion React composition with spring easing and staggered entrances
+  - 用 Remotion 做一个竖屏短片开场片头动画
+  - make this Remotion video look less generic with motion craft rules
+  - 给已有视频叠加动态字幕和文字动画
+  - set up theme.ts and scene structure for a Remotion project
+  - 提取渲染帧检查 Remotion 成片排版问题
+  aliases:
+  - remotion-motion-graphics
+  - Remotion 动效视频
+  capabilities:
+  - Remotion motion design rules and component patterns
+  - render frame verification checklist
+excludes:
+  - 视频解说脚本撰写
+  - 配音与音频混音
+  - 视频解说成片剪辑流程
+  - 3D 相机运镜
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- references/motion-patterns.md
+- references/design-rules.md
+- assets/theme.ts

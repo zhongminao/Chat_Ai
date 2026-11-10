@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__rag-architect
+version: 1.1.0
+description: Design retrieval-augmented generation systems - vector store and index architecture, chunking, embedding selection, retrieval evaluation and reranking pipelines.
+delivery: search_result
+triggers:
+  intents:
+  - architecture for retrieval augmented generation knowledge base
+  - vector search index design for semantic retrieval
+  - retrieval quality evaluation harness for RAG
+  - 企业知识库检索增强架构方案
+  - 语义检索召回率评估
+  - 向量存储与索引分片规划
+  aliases:
+  - rag-architect
+  - RAG 架构
+  - 检索增强生成方案
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/chunking-strategies.md
+- references/embedding-models.md
+- references/rag-evaluation.md
+- references/retrieval-optimization.md
+- references/vector-databases.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- LLM 微调与 LoRA 训练
+- 通用向量相似度脚本

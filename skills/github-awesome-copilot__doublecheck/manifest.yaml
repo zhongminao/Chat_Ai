@@ -1,0 +1,35 @@
+name: github-awesome-copilot__doublecheck
+version: 1.0.0
+description: 'Three-layer verification pipeline for AI output: extract verifiable claims, look for supporting or contradicting
+  sources, run an adversarial hallucination-pattern review, and produce a confidence-rated verification report.'
+delivery: search_result
+triggers:
+  intents:
+  - 核查我刚才那段回答里的事实性陈述
+  - 检查这段文字有没有幻觉或编造的引用
+  - 对这份报告做事实核查并给出可信度评级
+  - verify the factual claims in this text and flag fabrication risk
+  - 帮我找出这段话里没有来源支撑的说法
+  - 给一个研究报告做对抗性审阅，列出需要人工复核的地方
+  aliases:
+  - doublecheck
+  - 事实核查
+  - verification report
+  capabilities:
+  - claim extraction and internal consistency check
+  - source search strategy and citation handling
+  - hallucination pattern checklist and confidence ratings
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- assets/verification-report-template.md
+excludes:
+- proofread grammar
+- 校对错别字和语法
+- translate this text
+- 翻译这段文字
+- write a literature review
+- 写文献综述

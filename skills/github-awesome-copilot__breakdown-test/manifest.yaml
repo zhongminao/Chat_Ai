@@ -1,0 +1,34 @@
+name: github-awesome-copilot__breakdown-test
+version: 1.0.0
+description: 'Produce a project-level test strategy and QA plan from feature artifacts: ISTQB test design techniques, ISO
+  25010 quality characteristics, environment/data strategy, test issue checklists and Playwright test issue templates.'
+delivery: search_result
+triggers:
+  intents:
+  - 按 ISTQB 和 ISO 25010 为功能制定测试策略文档
+  - 把 PRD 和技术拆分转成测试计划与测试 issue 清单
+  - 列出单元/集成/E2E/性能/安全/无障碍测试 issue 及优先级
+  - write a QA plan with test design techniques and quality gates
+  - 生成 Playwright 测试实现 issue 模板和测试用例设计
+  - 定义测试环境和测试数据管理策略
+  aliases:
+  - breakdown-test
+  - 测试计划拆分
+  - qa 计划与测试策略
+  capabilities:
+  - ISTQB test design and ISO 25010 quality matrix
+  - test issue checklist and prioritization
+  - test environment and data strategy planning
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- write unit tests
+- 编写单元测试代码
+- pytest coverage
+- 测试用例代码实现
+- find missing test coverage
+- 测试缺口审计

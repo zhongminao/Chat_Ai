@@ -1,0 +1,37 @@
+name: wshobson-agents__rag-implementation
+version: 1.0.0
+description: 'Build RAG systems: document chunking, embedding choices, vector database selection and grounded
+  response generation with citations.'
+delivery: search_result
+triggers:
+  intents:
+  - 搭建 RAG 知识库问答
+  - rag pipeline 检索增强生成
+  - vector database 选型 pinecone qdrant pgvector
+  - 文档切片 chunking 策略
+  - 如何减少 RAG 幻觉并带引用回答
+  - 给企业文档做语义检索问答
+  - embedding 模型选型对比
+  aliases:
+  - rag-implementation
+  - RAG
+  - 检索增强生成
+  capabilities:
+  - RAG pipeline design
+  - vector DB selection
+  - grounded answering with citations
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- HNSW 参数调优
+- 混合检索 bm25 融合
+- LLM 输出评测指标
+- LangChain/LangGraph 架构
+- 微调与 LoRA
+notes: 与 embedding-strategies / vector-index-tuning / hybrid-search-implementation 分工：本技能负责端到端 RAG 流程与向量库选型。

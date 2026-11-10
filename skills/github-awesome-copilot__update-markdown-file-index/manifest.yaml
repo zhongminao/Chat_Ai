@@ -1,0 +1,34 @@
+name: github-awesome-copilot__update-markdown-file-index
+version: 1.0.0
+description: Write or refresh an index table inside a markdown file that lists the files of a given folder
+  (optionally filtered by pattern), matching the existing document's table or list formatting.
+delivery: search_result
+triggers:
+  intents:
+  - 在 README 里加一个列出 examples 目录所有文件的表格索引
+  - 把 docs 目录下所有 .md 文件整理成 markdown 表格追加到索引页
+  - 更新 markdown 文档里那张文件清单表，按目录现状重排
+  - update the file index table in a markdown file from a folder listing
+  - insert a table of files in a directory into my markdown doc
+  - 为某个目录生成文件目录清单并写进已有的 markdown 小节
+  aliases:
+  - update-markdown-file-index
+  - markdown 文件索引表
+  - 目录文件清单表
+  capabilities:
+  - folder-to-markdown table or list generation
+  - in-place index section update preserving document style
+  - pattern-filtered file listing
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- create an llms.txt file for this repository
+- 更新已有 llms.txt
+- rewrite the whole README
+- 仓库内容树与架构说明文档
+- git 提交信息

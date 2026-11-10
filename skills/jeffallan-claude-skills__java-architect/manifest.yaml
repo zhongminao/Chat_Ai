@@ -1,0 +1,30 @@
+name: jeffallan-claude-skills__java-architect
+version: 1.1.0
+description: Build enterprise Java 21 / Spring Boot 3 services - JPA and Hibernate query tuning, WebFlux reactive endpoints, Spring Security OAuth2/JWT and DDD layer design.
+delivery: search_result
+triggers:
+  intents:
+  - build enterprise Java 21 Spring Boot 3 service layers
+  - optimize JPA Hibernate queries and entity mappings
+  - implement WebFlux reactive endpoints with Reactor
+  - configure Spring Security OAuth2 JWT filter chain
+  - 调优 JPA 关联查询与抓取策略
+  - 用 WebFlux 编写响应式接口
+  - Java 企业级分层架构与领域建模
+  aliases:
+  - java-architect
+  - Java 架构
+  - Spring JPA 优化
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/jpa-optimization.md
+- references/reactive-webflux.md
+- references/spring-boot-setup.md
+- references/spring-security.md
+- references/testing-patterns.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- 生成 Spring Boot 控制器与 REST 接口骨架

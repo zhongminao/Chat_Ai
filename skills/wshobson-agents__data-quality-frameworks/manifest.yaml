@@ -1,0 +1,29 @@
+name: wshobson-agents__data-quality-frameworks
+version: 1.0.0
+description: Data quality validation with Great Expectations, dbt tests and data contracts for reliable
+  pipelines.
+delivery: search_result
+triggers:
+  intents:
+  - 数据质量校验规则设计
+  - Great Expectations 期望套件
+  - data contract 数据契约
+  - dbt 数据质量测试
+  aliases:
+  - data-quality-frameworks
+  - data quality
+  - 数据质量
+  capabilities:
+  - quality rule design
+  - data contracts
+  - expectation suites
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- 数据可视化
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

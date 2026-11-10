@@ -1,0 +1,36 @@
+name: wshobson-agents__airflow-dag-patterns
+version: 1.0.0
+description: 'Build production Airflow DAGs: idempotent task design, dependency wiring, operators/sensors,
+  task groups, retries and local DAG testing.'
+delivery: search_result
+triggers:
+  intents:
+  - airflow dag 设计模式
+  - airflow 任务依赖与 task group
+  - 编写 airflow operator 与 sensor
+  - airflow dag 本地测试
+  - airflow 重试与告警配置
+  - 数据管道增量调度设计
+  - dag 运行失败排查
+  aliases:
+  - airflow-dag-patterns
+  - Airflow
+  - airflow dag
+  capabilities:
+  - DAG design principles
+  - operators sensors and task groups
+  - DAG testing and deployment
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+- LOCAL_NOTES.md
+excludes:
+- dbt 模型与增量策略
+- spark 作业优化
+- 数据库迁移
+- 数据质量校验框架
+- k8s 部署清单

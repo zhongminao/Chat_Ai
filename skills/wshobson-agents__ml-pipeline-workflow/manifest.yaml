@@ -1,0 +1,33 @@
+name: wshobson-agents__ml-pipeline-workflow
+version: 1.0.0
+description: 'Orchestrate end-to-end MLOps pipelines: ingestion, preparation, training, validation, deployment
+  and monitoring with DAG-based reproducibility.'
+delivery: search_result
+triggers:
+  intents:
+  - ml 流水线端到端编排
+  - MLOps pipeline 设计
+  - 训练工作流 DAG 编排 kubeflow dagster
+  - 模型可复现训练与版本管理
+  - 模型部署与线上监控
+  - 机器学习项目从数据到上线流程
+  aliases:
+  - ml-pipeline-workflow
+  - MLOps
+  - 机器学习流水线
+  capabilities:
+  - end-to-end pipeline architecture
+  - orchestration tooling choices
+  - reproducible training workflows
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+excludes:
+- airflow dag 具体写法
+- 数据质量校验框架
+- 微调方法与数据集格式
+- spark 作业优化
+- LLM 效果评测

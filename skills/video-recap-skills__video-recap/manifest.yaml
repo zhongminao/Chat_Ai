@@ -1,0 +1,29 @@
+name: video-recap-skills__video-recap
+version: 1.0.0
+description: 'Plan an end-to-end video recap pipeline: media analysis, timed narration, cuts, voiceover and assembly; upstream runner needs missing sibling packages and external services and is not runnable as installed.'
+triggers:
+  intents:
+  - create complete Chinese narrated recap video from source footage
+  - end-to-end video recap production from mp4
+  - produce narrated science explainer video from source footage
+  - 从原始视频制作完整中文解说成片
+  - 从素材自动编排科普视频解说短片全流程
+  - 从影视素材剪辑并生成中文解说成片
+  aliases:
+  - video-recap-skills__video-recap
+  - video-recap
+  capabilities:
+  - end-to-end narrated recap pipeline planning
+  - 完整视频解说编排流程
+delivery: search_result
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- LOCAL_NOTES.md
+- UPSTREAM_LICENSE
+- UPSTREAM_CATALOG.json
+- references/audio-routing.md
+- references/config-playbook.md
+- references/data-schema.md
+- references/resource-library.md

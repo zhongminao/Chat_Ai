@@ -1,0 +1,33 @@
+name: jeffallan-claude-skills__typescript-pro
+version: 1.1.0
+description: Apply advanced TypeScript typing to application code - type guards and discriminated unions, branded and utility types, strict tsconfig setup and tRPC end-to-end types.
+delivery: search_result
+triggers:
+  intents:
+  - write type guards and discriminated unions
+  - branded types and utility types for domain modeling
+  - configure tsconfig strict mode and project references
+  - set up tRPC end to end type safety
+  - TypeScript 类型守卫与判别联合
+  - TypeScript 品牌类型与工具类型
+  - tsconfig 严格模式与项目引用
+  - tRPC 端到端类型安全
+  aliases:
+  - typescript-pro
+  - TypeScript 开发
+  - TypeScript 工程配置
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- references/advanced-types.md
+- references/configuration.md
+- references/patterns.md
+- references/type-guards.md
+- references/utility-types.md
+- UPSTREAM_LICENSE
+- LOCAL_NOTES.md
+excludes:
+- typescript advanced types
+- TypeScript 泛型设计
+- TypeScript 类型体操

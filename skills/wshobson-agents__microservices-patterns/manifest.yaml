@@ -1,0 +1,31 @@
+name: wshobson-agents__microservices-patterns
+version: 1.0.0
+description: 'Microservice architecture: service boundaries, event-driven communication and resilience
+  patterns.'
+delivery: search_result
+triggers:
+  intents:
+  - 微服务拆分与服务边界
+  - 服务间通信 API 与事件
+  - 分布式系统弹性模式
+  - 单体拆分为微服务策略
+  aliases:
+  - microservices-patterns
+  - 微服务架构
+  - service boundaries
+  capabilities:
+  - service decomposition
+  - inter-service communication
+  - resilience patterns
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/details.md
+excludes:
+- cloud-architect
+- architecture-designer
+- saga-orchestration
+notes: wshobson-agents MIT upstream; install review only, not runtime-verified.

@@ -1,0 +1,32 @@
+name: wshobson-agents__protect-mcp-setup
+version: 1.0.0
+description: Configure Cedar policy enforcement and Ed25519 signed receipts for agent tool calls, with
+  offline verification.
+delivery: search_result
+triggers:
+  intents:
+  - cedar 策略门禁配置
+  - 工具调用 Ed25519 签名回执
+  - agent 操作审计留痕方案
+  - 离线校验签名回执
+  - 合规场景工具调用可证明性
+  aliases:
+  - protect-mcp-setup
+  - protect-mcp
+  - cedar policy receipts
+  capabilities:
+  - Cedar policy design
+  - signed receipt setup
+  - offline verification
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/receipt-format.md
+- LOCAL_NOTES.md
+excludes:
+- signed audit trails 教学说明
+- PR 评审人工审批门禁
+- 普通日志配置

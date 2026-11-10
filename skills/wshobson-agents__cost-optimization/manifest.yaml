@@ -1,0 +1,32 @@
+name: wshobson-agents__cost-optimization
+version: 1.0.0
+description: Reduce AWS, Azure, GCP and OCI spending through rightsizing, tagging strategies, pricing
+  models and cost governance.
+delivery: search_result
+triggers:
+  intents:
+  - 云成本优化与预算控制
+  - resource rightsizing 降配
+  - cost allocation tagging 规范
+  - reserved instance 与 spot 策略选型
+  - 云账单分析与降本方案
+  - 成本治理策略落地
+  aliases:
+  - cost-optimization
+  - 云成本优化
+  - cloud cost optimization
+  capabilities:
+  - rightsizing analysis
+  - cost tagging standards
+  - pricing model selection
+allowed_tools:
+- read_file
+entrypoint: SKILL.md
+references:
+- SKILL.md
+- UPSTREAM_LICENSE
+- references/tagging-standards.md
+excludes:
+- 多云架构选型决策
+- 混合云专线组网
+- k8s 部署清单
