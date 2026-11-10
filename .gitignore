@@ -35,3 +35,7 @@ htmlcov/
 
 # Host-specific deployment Skill: keep local, do not publish.
 /skills/linux_environment/
+
+# Host-specific desktop automation: keep local, not in portable deployments.
+/skills/desktop_locator/
+/tests/test_desktop_locator.py
