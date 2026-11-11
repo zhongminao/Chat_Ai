@@ -32,7 +32,8 @@ interface Props {
 
 export function Composer(props: Props) {
   const [text, setText] = useState(() => readTextDraft(props.sessionId));
-  function updateText(value: string) { writeTextDraft(props.sessionId, value); setText(value); }
+  const [waitingToSend, setWaitingToSend] = useState(false);
+  function updateText(value: string) { writeTextDraft(props.sessionId, value); setText(value); setWaitingToSend(false); }
   const textarea = useRef<HTMLTextAreaElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -65,21 +66,42 @@ export function Composer(props: Props) {
   const canEditImages = canEditFiles;
   const hasInput = Boolean(text.trim() || draft.ids.length || fileDraft.files.length);
   const stopAction = props.busy && !hasInput;
-  const disabled = (props.readOnly && !stopAction) || !props.ready || !props.connected ||
-    Boolean(props.pending) || (!stopAction && (draft.uploading || fileDraft.uploading || !hasInput));
-  async function submit() {
-    if (disabled) return;
-    if (stopAction) { await props.onStop(); return; }
+  const disabled = (props.readOnly && !stopAction) || Boolean(props.pending) || waitingToSend ||
+    (stopAction && (!props.ready || !props.connected)) ||
+    (!stopAction && (draft.uploading || fileDraft.uploading || !hasInput));
+  useEffect(() => {
+    if (!waitingToSend || !props.ready || !props.connected || props.pending) return;
+    setWaitingToSend(false);
+    // A send requested while loading must not silently become guidance or
+    // a stop action when the execution state changes in the meantime.
+    if (!props.busy && !props.readOnly && !draft.uploading && !fileDraft.uploading && hasInput) {
+      void send();
+    }
+  }, [waitingToSend, props.ready, props.connected, props.pending, props.busy, props.readOnly]);
+  async function send() {
     const content = text;
     const images = [...draft.ids];
     const files = [...fileDraft.files];
-    if (props.busy) {
-      guidance.add(content, images, files);
-      updateText(''); draft.remove(images); fileDraft.remove(files.map(file => file.id));
-    } else if (await props.onSend(content, images, files.map(file => file.id))) {
+    if (await props.onSend(content, images, files.map(file => file.id))) {
       if (clearTextDraftIfUnchanged(props.sessionId, content) && textRef.current === content) setText('');
       draft.remove(images); fileDraft.remove(files.map(file => file.id));
       textarea.current?.focus();
+    }
+  }
+
+  async function submit() {
+    if (disabled) return;
+    if (!props.ready || !props.connected) { setWaitingToSend(true); return; }
+    if (waitingToSend) setWaitingToSend(false);
+    if (stopAction) { await props.onStop(); return; }
+    if (props.busy) {
+      const content = text;
+      const images = [...draft.ids];
+      const files = [...fileDraft.files];
+      guidance.add(content, images, files);
+      updateText(''); draft.remove(images); fileDraft.remove(files.map(file => file.id));
+    } else {
+      await send();
     }
   }
 
@@ -122,7 +144,7 @@ export function Composer(props: Props) {
           const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
           if (files.length && canEditImages) { event.preventDefault(); void draft.upload(files); }
         }}
-        disabled={!props.ready || props.readOnly} onChange={event => updateText(event.target.value)} onKeyDown={event => {
+        disabled={props.readOnly} onChange={event => updateText(event.target.value)} onKeyDown={event => {
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
             event.preventDefault(); if (hasInput) void submit();
           }
@@ -175,7 +197,7 @@ export function Composer(props: Props) {
     <div className="composer-hint connection-status" role="status">
       <ContextMeter usage={props.contextUsage} />
       <span className={`connection-dot ${props.connected ? 'connected' : ''}`} />
-      {props.pending === 'stop' ? '正在停止…' : props.status}
+      {props.pending === 'stop' ? '正在停止…' : waitingToSend ? '等待会话就绪后提交…' : props.status}
     </div>
   </div>;
 }

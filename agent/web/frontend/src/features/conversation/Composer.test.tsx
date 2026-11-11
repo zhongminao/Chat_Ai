@@ -59,3 +59,17 @@ describe('single composer action', () => {
     });
   }
 });
+
+describe('editing while reconnecting', () => {
+  it('allows typing before the session is ready but does not send until readiness', () => {
+    const html = renderToStaticMarkup(<Composer busy={false} ready={false} connected={false} readOnly={false}
+      status="正在连接" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      onAccessChange={() => {}} model={null} models={[]}
+      modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="pending-session" images={[]}
+      onUploaded={() => {}} onSend={async () => true}
+      onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
+    expect(html).toMatch(/<textarea[^>]*aria-label="消息"[^>]*>/);
+    expect(html.match(/<textarea[^>]*>/)?.[0]).not.toContain('disabled');
+    expect(html).toContain('正在连接');
+  });
+});
