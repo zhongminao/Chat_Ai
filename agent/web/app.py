@@ -141,8 +141,13 @@ def sessions():
 
 @app.get("/api/sessions/{session_id}/watch")
 async def watch(session_id: str, cursor: int | None = None, timeout: float = Query(0, ge=0, le=30)):
-    directory_for(session_id)
-    return await asyncio.to_thread(registry.monitor(session_id).watch, cursor, timeout)
+    def poll():
+        # Lookup can wait for database/registry locks too; keep all of it off
+        # the event loop so one busy session cannot freeze HTTP and shutdown.
+        directory_for(session_id)
+        return registry.monitor(session_id).watch(cursor, timeout)
+
+    return await asyncio.to_thread(poll)
 
 
 @app.get("/api/sessions/{session_id}/approvals")

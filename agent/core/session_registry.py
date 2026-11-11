@@ -109,16 +109,20 @@ class SessionRegistry:
             raise ValueError("cc must be a sequence of session IDs")
         cc = tuple(cc)
         # Lock all target runtimes in stable order against concurrent submit/stop.
-        with self.lock, ExitStack() as locks:
-            targets = sorted(set((recipient_id, *cc)))
-            for target in targets:
-                runtime = self.get(target)
-                locks.enter_context(runtime.lock)
-                if runtime.parent_session_id and (runtime.closed or runtime.submitting or
-                                                  not runtime.busy or not runtime.steering.accepting or
-                                                  runtime.control.stopped):
-                    raise SessionBusy('子 agent 正在提交或停止，无法投递留言')
-            result = self.mailbox.send(sender_id, recipient_id, content, cc=cc, kind=kind)
+        with self.lock:
+            with ExitStack() as locks:
+                targets = sorted(set((recipient_id, *cc)))
+                for target in targets:
+                    runtime = self.get(target)
+                    locks.enter_context(runtime.lock)
+                    if runtime.parent_session_id and (runtime.closed or runtime.submitting or
+                                                      not runtime.busy or not runtime.steering.accepting or
+                                                      runtime.control.stopped):
+                        raise SessionBusy('子 agent 正在提交或停止，无法投递留言')
+                result = self.mailbox.send(sender_id, recipient_id, content, cc=cc, kind=kind)
+            # watch() holds the monitor condition while checking runtime input.
+            # Release every runtime lock before acquiring that condition.
+            # Keep registry serialization so mailbox snapshots stay ordered.
             for target in targets:
                 self._mailbox_resource(target)
             return result
