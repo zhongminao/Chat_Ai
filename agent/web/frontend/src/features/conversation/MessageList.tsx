@@ -67,17 +67,10 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
 
   const renderExecution = (item: ExecutionItem) => item.kind === 'tool'
     ? <ToolCallCard key={item.id} item={item} onInspect={pauseFollowing} sessionId={sessionId} images={images} waiting={waitingCallIds.some(id => item.id === `tool:${id}`)} />
-    : <article key={item.id} className={`message ${item.role}${item.guidance ? ` guidance-${item.guidance}` : ''}`}
+    : <article key={item.id} className={`message ${item.role}`}
       aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId} /> : null}
       {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && !loading && item.id === assistantId} />}
-      {item.guidance && <div className={`guidance-status ${item.guidance}`} role="status">
-        {item.guidance === 'queued' ? <><strong>{busy ? '等待交付助手' : '待下次执行交付'}</strong>
-          <span>已接收，助手尚未看到。{!busy && '停止后可发送新消息继续，届时将尝试交付。'}</span></>
-          : item.guidance === 'undelivered' ? <><strong>未送达助手</strong>
-            <span>助手没有看到这条引导。如仍需处理，请在新消息中重新说明。</span></>
-            : <strong>已交付助手</strong>}
-      </div>}
     </article>;
   const renderExecutionAt = (source: Item[], index: number) => {
     const item = source[index];

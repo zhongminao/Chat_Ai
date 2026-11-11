@@ -42,7 +42,7 @@ mcp:
   web:
     url: http://127.0.0.1:8766/mcp
     search:
-      context_chars: 200  # 每个命中前后的原文字符数，仅控制本地展示，不传给 MCP。
+      context_chars: 500  # 每个命中前后的原文字符数，仅控制本地展示，不传给 MCP。
   # AKShare 由 skills/akshare 按需启动；MCP 地址使用启动脚本返回值，不在此配置。
 
 
