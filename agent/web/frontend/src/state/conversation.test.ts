@@ -119,12 +119,23 @@ describe('existing event protocol -> conversation', () => {
       { role: 'user', content: 'new requirements', guidance: 'applied' }, { kind: 'report', content: 'revised report' }]);
   });
 
-  it('marks accepted but unapplied guidance undelivered after cancellation or restart', () => {
+  it('preserves queued guidance after cancellation or restart until explicitly applied or undelivered', () => {
     const queued: AgentEvent = { seq: 3, type: 'guidance.queued', messageId: 'g', content: 'not yet delivered' };
-    expect(replay([start, modelStart, queued], initialState(3, false)).items[1]).toMatchObject({ guidance: 'undelivered' });
+    expect(replay([start, modelStart, queued], initialState(3, false)).items[1]).toMatchObject({ guidance: 'queued' });
+    expect(replay([start, modelStart, queued, { seq: 4, type: 'turn.cancelled' }]).items[1])
+      .toMatchObject({ guidance: 'queued' });
     const view = replay([start, modelStart, queued, { seq: 4, type: 'guidance.undelivered', messageId: 'g' },
       { seq: 5, type: 'turn.cancelled' }]);
     expect(view.items[1]).toMatchObject({ role: 'user', content: 'not yet delivered', guidance: 'undelivered' });
+    const resumed = reduce(replay([start, modelStart, queued, { seq: 4, type: 'turn.cancelled' }]),
+      { type: 'events', events: [
+        { seq: 5, type: 'turn.started', prompt: 'continue' },
+        { seq: 6, type: 'guidance.applied', messageId: 'g', content: 'not yet delivered' },
+      ] });
+    expect(resumed.items[1]).toMatchObject({ guidance: 'applied' });
+    const reported = reduce(resumed, { type: 'events', events: [{ seq: 7, type: 'report.submitted', content: 'done' }] });
+    expect(reported.items[1]).toMatchObject({ guidance: 'applied' });
+    expect(reported.items.at(-1)).toMatchObject({ kind: 'report', process: [] });
   });
   it('keeps rejected operations distinct from executed tools on replay', () => {
     const view = replay([start, requested, { ...completed, result: '[tool denied] 用户拒绝本次操作' }]);

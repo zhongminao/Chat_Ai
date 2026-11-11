@@ -55,6 +55,34 @@ class MonitorTests(unittest.TestCase):
             with self.assertRaises(RunCancelled):
                 waiting.result(2)
 
+    def test_pending_guidance_wakes_watch_without_changing_monitor_cursor(self):
+        token = CancellationToken()
+        pending = threading.Event()
+        cursor = self.monitor.watch()['cursor']
+        with ThreadPoolExecutor(1) as pool:
+            waiting = pool.submit(self.monitor.watch, cursor, 86400, ExecutionContext(token), wake_if=pending.is_set)
+            self.assertFalse(waiting.done())
+            pending.set()
+            self.monitor._wake()
+            self.assertEqual(waiting.result(2), {
+                'cursor': cursor, 'changes': [], 'interrupted_by_guidance': True,
+            })
+            self.assertFalse(token.is_cancelled())
+            pending.clear()
+            self.assertEqual(self.monitor.watch(cursor), {'cursor': cursor, 'changes': []})
+
+    def test_resource_change_and_guidance_both_survive_watch_wakeup(self):
+        pending = threading.Event()
+        cursor = self.monitor.watch()['cursor']
+        with ThreadPoolExecutor(1) as pool:
+            waiting = pool.submit(self.monitor.watch, cursor, 86400, wake_if=pending.is_set)
+            pending.set()
+            self.monitor.update('agent:child', kind='agent', status='completed')
+            result = waiting.result(2)
+            self.assertTrue(result['interrupted_by_guidance'])
+            self.assertEqual(result['changes'] or self.monitor.watch(result['cursor'])['changes'], [
+                {'id': 'agent:child', 'kind': 'agent', 'status': 'completed', 'version': cursor + 1}])
+
     def test_invalid_cursors_and_timeouts(self):
         for cursor in [-1, True, '1', 10]:
             with self.assertRaises(ValueError):

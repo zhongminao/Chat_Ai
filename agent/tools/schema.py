@@ -44,7 +44,7 @@ ENABLE_MCP_SCHEMA = {"type": "function", "function": {
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error and read events_path to review work already performed before deciding how to proceed. Do not poll for mail or wait when no relevant task remains.",
+    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. User guidance wakes a waiting watch without cancelling the turn; interrupted_by_guidance indicates pending input that is delivered after the tool batch. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error and read events_path to review work already performed before deciding how to proceed. Do not poll for mail or wait when no relevant task remains.",
     "parameters": {"type": "object", "properties": {
         "cursor": {"type": ["integer", "null"], "minimum": 0,
                    "description": "Latest watch cursor; omit/null for a full snapshot."},
@@ -104,9 +104,12 @@ TOOL_SCHEMAS = [SEARCH_SCHEMA,
             "required": ["path", "old", "new"]}}},
     {"type": "function", "function": {
         "name": "run_bash",
-        "description": "Run a bash command in the workspace.",
+        "description": "Run a bash command in the workspace. Timeout is in seconds (default 30, max 86400); cancellation still stops the process.",
         "parameters": {"type": "object", "properties": {
-            "command": {"type": "string"}}, "required": ["command"]}}},
+            "command": {"type": "string"},
+            "timeout": {"type": "integer", "minimum": 1, "maximum": 86400, "default": 30,
+                        "description": "Maximum execution time in seconds (up to 1 day)."}},
+            "required": ["command"]}}},
 ]
 
 

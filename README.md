@@ -235,6 +235,21 @@ npm run build
 
 本开发副本默认修改 `chat_ai_test`；不自动发布至其他副本。
 
+### Skill 的发现、使用与权限
+
+Skill 是项目 `skills/<目录>/` 下的说明与可选脚本，不是自动获得权限的插件。`search_resources` 只扫描当前实例 `workspace` 同级的 `skills/*/manifest.yaml`，按 `name`、`description` 和 `triggers`（如 `intents`、`aliases`、`capabilities`、文件扩展名）检索并排序；**不会搜索 `SKILL.md` 或 `references/` 全文，也不会因为安装 Skill 就自动读取或执行它**。查询默认最多返回 5 个候选（`top_k` 上限 10），结果含匹配依据及说明文件路径；选择合适的 Skill 后，按需读完 `SKILL.md` 和相关参考资料，核实实际脚本路径。当前 `knowledge` 检索入口尚无索引。中文触发短语可匹配词间空格，但零散通用词的弱重合仍会被过滤；宜用任务原话或具体项目/服务关键词查询。已有信息足够时不需要检索。
+
+`chat_ai_framework` 是供 Git 管理的通用框架说明，指导查当前实例的 README、配置和运行入口，不保存某台机器的即时状态；提交、合并和部署后才能随项目分发。`linux_environment` 是本机单独维护的服务器环境说明；只在安装它的机器上能检索到，不随 Git 部署。涉及框架部署和当前主机服务时，分别核对项目文档、当前配置和实际运行状态。`skills/<目录>/manifest.yaml` 中的 `allowed_tools` 是技能说明元数据，**当前运行时不据此为 Skill 单独发放或收回工具权限**；不能把它当作隔离或安全策略。
+
+工具权限由会话的 `approval.mode`、工具自身校验以及操作系统账户权限共同决定，不由检索结果改变。主、子 Agent 共用会话审批模式：
+
+| 模式 | 实际行为 |
+| --- | --- |
+| `audit`（审计） | `write_file`、`edit_file`、`run_bash`、`enable_mcp` 和已接入的 MCP 工具每次调用需人工批准；拒绝后该调用不执行。`search_resources`、`read_file`、`read_image` 等不走此审批，但仍受对应工具自身条件约束。 |
+| `full_access`（完全访问） | 跳过上述框架审批；**不**意味着 Skill 获得 sudo、绕过操作系统权限，或被允许超出用户任务范围操作。 |
+
+`run_bash` 以 workspace 为当前目录运行，但命令本身并非只读或受 workspace 文件沙箱限制，审计时批准前应检查命令和所涉路径；完全访问时尤其不要将不可信 Skill 中的脚本直接执行。`read_file` 可读绝对路径；`write_file` 在完全访问下可写绝对的工作区外路径（审计模式下只允许写工作区内），`edit_file` 仍限工作区。`read_image` 还要求模型声明视觉能力。动态 `enable_mcp(url)` 仅用于用户明确给出的 HTTP(S) 地址，或已安装 Skill 为当前任务启动并返回的本机回环地址；找到 Skill 本身不授权连接任意远端服务。配置中声明的 MCP 另按配置自动接入，其工具调用仍遵循会话审批模式。对第三方 Skill 的说明、脚本和权限边界应像对其他外部代码一样先核查。
+
 ### Skill 的 Git 管理
 
 Skill 仍统一放在项目 `skills/`，检索扫描目录和匹配逻辑不变，不依赖 Git 跟踪状态，不增加 profile 或额外本地目录。
@@ -248,8 +263,5 @@ Skill 仍统一放在项目 `skills/`，检索扫描目录和匹配逻辑不变�
 网页搜索和本地 Skill 搜索使用统一 spill：搜索模块提供匹配词附近的原文摘录（本地 Skill 固定默认 200 字符，网页由 `mcp.web.search.context_chars` 控制），超限预览前最多 10 条详细展示、其余紧凑列出，标题和 URL 不截断，放不下的条目留在完整索引。超限时由 spill 保存原始结果、完整索引和按行读取的正文视图；未超限时摘要在前、完整段落在后。普通工具继续使用有界头尾预览，见 [搜索与 spill 说明](docs/spill_and_search_plan.md)。
 
 仅在认为有必要时使用 `search_resources`，例如用户指引或缺少资源；已有上下文足够则直接继续，不重复查询。搜索摘录不能代替选用 Skill 后的完整规则。
-
-更进一步的技能渐进加载、独立知识检索模块及 LangGraph 接入仍为待评估方向，尚未实现。
-LangGraph 优先评估模型/工具循环与状态更新的接入边界，复用现有停止、审批、引导、事件与历史恢复契约；不与外部推理服务优化混在一起。
 
 AKShare Skill 与 Agent 共用项目 Python 环境（64 位 Python 3.11+）；部署时统一安装 `requirements.txt`。Skill 启动阶段只检查依赖并启动 MCP，不创建 venv 或联网安装软件。本地 Skill 使用说明中的 `{{python}}`、`{{skill_dir}}` 会在 `search_resources` 返回时替换为当前 Python 和 Skill 目录的 shell 引用，脚本路径无需模型推断。

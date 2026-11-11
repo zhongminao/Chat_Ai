@@ -1,0 +1,23 @@
+name: chat_ai_framework
+version: 0.1.0
+description: chat_ai Agent 框架本身的项目结构、配置、运行、部署和测试入口；项目通用资料，适用于部署 chat_ai 的任何主机，不包含特定服务器的 systemd、Conda 绝对路径或私有运行状态。
+delivery: search_result
+triggers:
+  intents:
+    - Agent 框架部署
+    - chat_ai 部署
+    - chat_ai 项目配置
+    - Agent 框架环境
+  aliases:
+    - chat_ai 框架
+    - 当前 agent 框架
+    - agent framework deployment
+    - 部署环境
+    - 部署 环境
+    - 项目运行环境
+  capabilities:
+    - chat_ai README、config.yaml、安装与运行说明定位
+allowed_tools:
+  - read_file
+  - run_bash
+entrypoint: SKILL.md

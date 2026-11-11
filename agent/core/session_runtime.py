@@ -97,10 +97,16 @@ class SessionRuntime:
                     raise SessionBusy('正在停止或结束，请稍后重试')
                 assets = [self.agent.images.get(image) for image in value.images]
                 self.steering.add(message_id or uuid.uuid4().hex, value, assets)
+                monitor = self.registry.monitors.get(self.session.id)
             else:
                 self.start(value)
                 if message_id:
                     self.steering.received[message_id] = value
+                monitor = None
+        # Never acquire the monitor condition while holding the steering lock:
+        # watch checks the pending predicate under the opposite lock order.
+        if monitor:
+            monitor._wake()
 
     def start(self, content):
         with self.lock:

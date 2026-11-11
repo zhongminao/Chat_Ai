@@ -17,12 +17,12 @@ class DeliverablePromptPolicyTests(unittest.TestCase):
                 prompt = build_state(config, metadata, [])['messages'][0]['content']
                 self.assertIn(str(config.workspace.resolve()), prompt)
                 if metadata:
-                    self.assertIn('resolved path stays within the current', prompt)
-                    self.assertIn('Directory paths are not browsable file URLs', prompt)
-                    self.assertIn('Report paths outside this workspace as plain text', prompt)
-                    self.assertIn('task authorizes the copy', prompt)
+                    for rule in ('resolved paths remain inside this workspace',
+                                 'A directory is not a file link', 'outside paths are plain text',
+                                 'only authorized, reviewed, shareable files',
+                                 'do not link a dependent index.html alone'):
+                        self.assertIn(rule, prompt)
                 else:
-                    self.assertIn('解析后的路径仍在当前', prompt)
-                    self.assertIn('目录本身没有文件浏览路由', prompt)
-                    self.assertIn('工作区外路径只作为纯文本路径说明', prompt)
-                    self.assertIn('任务授权复制', prompt)
+                    for rule in ('解析后在当前工作区', '目录无浏览路由', '工作区外路径只作纯文本说明',
+                                 '仅在授权且适合分享时', '不能只给 index.html'):
+                        self.assertIn(rule, prompt)

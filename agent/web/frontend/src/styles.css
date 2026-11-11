@@ -74,6 +74,14 @@ button { -webkit-tap-highlight-color: transparent; }
 .message { font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
 .message-content { white-space: pre-wrap; }
 .message.user { align-self: flex-end; max-width: 80%; background: #edf2fb; border-radius: 18px; padding: 10px 16px; line-height: 1.65; }
+/* Guidance acceptance is not delivery; distinguish pending and explicitly undelivered text. */
+.message.user.guidance-queued { border: 1px solid #c7d6f1; background: #f5f8ff; }
+.message.user.guidance-undelivered { border: 1px solid #e6c8c2; background: #fdf7f5; }
+.guidance-status { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 6px; padding-top: 6px;
+  border-top: 1px solid #dce3ed; color: #637089; font-size: 12px; line-height: 1.5; }
+.guidance-status strong { font-weight: 600; }
+.guidance-status.undelivered { border-color: #e8d8d5; color: #a0443d; }
+.guidance-status.applied { border-color: #e3e8ee; color: #69778a; }
 .message.assistant { align-self: flex-start; width: 100%; padding: 0 2px; }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; flex: 1; padding: 40px 24px; color: #8c9097; font-size: 13px; text-align: center; }
 .empty-state h1 { color: #35383e; font-size: 22px; font-weight: 550; margin: 8px 0 0; }
@@ -198,6 +206,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .agent-tabs button span { font-size: 11px; color: #858990; }
 .agent-children { position: relative; flex: 0 1 auto; min-width: 88px; }
 .agent-child-tabs { display: flex; gap: 8px; overflow: hidden; }
+.agent-children.collapsed { flex: 0 1 200px; min-width: 120px; }
 .agent-children.collapsed .agent-child-tabs { visibility: hidden; }
 .agent-child-picker { position: absolute; inset: 0; width: 100%; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #f5f6f8; color: #7a7e86; font: inherit; font-size: 13px; }
 .agent-child-picker.active { background: #edf1f8; color: #35445d; }

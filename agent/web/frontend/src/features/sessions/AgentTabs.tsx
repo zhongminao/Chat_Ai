@@ -10,11 +10,14 @@ export function AgentTabs({ sessions, selected, onSelect, children: status }: {
   const current = sessions.find(item => item.id === selected);
   const mainId = current?.parent_session_id ?? selected;
   const main = sessions.find(item => item.id === mainId);
+  // Keep the original creation numbers while showing the newest tasks first.
   const children = sessions.filter(item => item.parent_session_id === mainId)
-    .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+    .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.id.localeCompare(b.id))
+    .map((child, index) => ({ child, ordinal: index + 1 })).reverse();
+  const usePicker = collapsed || children.length > 8;
   const labels: Record<string, string> = { running: '执行中', submitted: '已提交', failed: '失败', cancelled: '已停止' };
-  const label = (child: SessionSummary, index: number) =>
-    `子 agent ${index + 1}${labels[child.status ?? ''] ? ` · ${labels[child.status!]}` : ''}`;
+  const label = (child: SessionSummary, ordinal: number) =>
+    `子 agent ${ordinal}${labels[child.status ?? ''] ? ` · ${labels[child.status!]}` : ''}`;
   useLayoutEffect(() => {
     const tabs = childTabs.current;
     if (!tabs) { setCollapsed(false); return; }
@@ -23,22 +26,22 @@ export function AgentTabs({ sessions, selected, onSelect, children: status }: {
     observer.observe(tabs);
     measure();
     return () => observer.disconnect();
-  }, [mainId, children.length, children.map(child => child.status).join(',')]);
+  }, [mainId, children.length, children.map(({ child }) => `${child.id}:${child.status}`).join(',')]);
   return <nav className="agent-tabs" aria-label="主子 agent 导航">
     {main && <button className={selected === main.id ? 'active' : ''} aria-current={selected === main.id ? 'page' : undefined}
       title={main.title} onClick={() => onSelect(main.id)}>主 agent</button>}
-    {children.length > 0 && <div className={`agent-children${collapsed ? ' collapsed' : ''}`}>
-      <div className="agent-child-tabs" ref={childTabs} aria-hidden={collapsed} inert={collapsed}>
-        {children.map((child, index) => <button key={child.id} className={selected === child.id ? 'active' : ''}
+    {children.length > 0 && <div className={`agent-children${usePicker ? ' collapsed' : ''}`}>
+      <div className="agent-child-tabs" ref={childTabs} aria-hidden={usePicker} inert={usePicker}>
+        {children.map(({ child, ordinal }) => <button key={child.id} className={selected === child.id ? 'active' : ''}
           aria-current={selected === child.id ? 'page' : undefined} title={child.title} onClick={() => onSelect(child.id)}>
-          {label(child, index)}
+          {label(child, ordinal)}
         </button>)}
       </div>
-      {collapsed && <select className={`agent-child-picker${selected !== mainId ? ' active' : ''}`}
+      {usePicker && <select className={`agent-child-picker${selected !== mainId ? ' active' : ''}`}
         aria-label="选择子 agent" value={selected === mainId ? '' : selected ?? ''}
         onChange={event => onSelect(event.target.value)}>
         <option value="" disabled>子 agent（{children.length}）</option>
-        {children.map((child, index) => <option key={child.id} value={child.id}>{label(child, index)} — {child.title}</option>)}
+        {children.map(({ child, ordinal }) => <option key={child.id} value={child.id}>{label(child, ordinal)} — {child.title}</option>)}
       </select>}
     </div>}
     {status}

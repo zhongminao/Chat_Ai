@@ -149,6 +149,9 @@ class AgentRuntime:
         value = self.prepare_input(prompt)
         assets = [self.images.get(image) for image in value.images]
         current_time = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
+        # Guidance accepted during a stopped turn precedes this new prompt.
+        # Do not make a later one-character nudge outrank the earlier request.
+        self._deliver_inputs(context)
         self.apply(message_updates.receive_user(self.state, value.text, value.images,
                                                 current_time=current_time))
         self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets,

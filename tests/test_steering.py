@@ -93,24 +93,105 @@ class SteeringTests(unittest.TestCase):
                             min(e['seq'] for e in records if e['type'] == 'guidance.applied'))
             self.assertEqual(restore_model_messages(records, self.main.state['messages'][0]), self.main.state['messages'])
 
-    def test_stop_leaves_accepted_guidance_undelivered_and_not_in_model_history(self):
+    def test_stop_keeps_accepted_guidance_until_next_turn_and_replays_in_order(self):
         with self.patched():
             self.main.enqueue('initial')
             self.assertTrue(self.entered.wait(3))
-            self.main.send('must not execute', 'stop-guide')
+            self.main.send('important first request', 'stop-guide')
             self.main.stop()
             self.registry.wait()
             records = self.main.session.events.read()
-            self.assertTrue(any(e['type'] == 'guidance.undelivered' for e in records))
-            self.assertFalse(any(e['type'] == 'guidance.applied' for e in records))
-            self.assertFalse(any(m.get('content') == 'must not execute' for m in restore_model_messages(records, self.main.state['messages'][0])))
+            self.assertFalse(any(e['type'] in ('guidance.undelivered', 'guidance.applied') for e in records))
+            self.assertFalse(any(m.get('content') == 'important first request' for m in restore_model_messages(records, self.main.state['messages'][0])))
             reopened = SessionRegistry(self.registry.config).get(self.main.session.id)
             try:
-                self.assertEqual(reopened.steering.pending, [])
+                self.assertEqual([item['content'] for item in reopened.steering.pending], ['important first request'])
                 self.assertFalse(reopened.busy)
             finally:
                 reopened.queue.put(None)
                 reopened.worker.join(3)
+            self.main.enqueue('?')
+            self.registry.wait()
+            self.assertEqual(len(self.requests), 2)
+            last = [m['content'] for m in self.requests[-1] if m['role'] == 'user']
+            self.assertEqual(last[-2:], ['important first request', '?'])
+            records = self.main.session.events.read()
+            self.assertEqual(sum(e['type'] == 'guidance.applied' for e in records), 1)
+            self.assertEqual(sum(e['type'] == 'guidance.queued' for e in records), 1)
+            self.assertFalse(any(e['type'] == 'guidance.undelivered' for e in records))
+            self.assertLess(next(e['seq'] for e in records if e['type'] == 'guidance.applied'),
+                            [e['seq'] for e in records if e['type'] == 'turn.started'][-1])
+            self.assertEqual(restore_model_messages(records, self.main.state['messages'][0]), self.main.state['messages'])
+
+    def test_stopping_with_multiple_guidance_preserves_order_and_images(self):
+        records, emitted = [], []
+        def emit(kind, **fields):
+            event = {'type': kind, **fields}
+            records.append(event)
+            emitted.append(event)
+        delivery = InputDelivery(threading.RLock(), emit, records)
+        delivery.begin()
+        delivery.add('a', UserInput('first', ('img',)), [{'id': 'img'}])
+        delivery.add('b', UserInput('second'), [])
+        delivery.close()
+        self.assertEqual([item['content'] for item in delivery.pending], ['first', 'second'])
+        restored = InputDelivery(threading.RLock(), emit, records)
+        restored.begin()
+        self.assertEqual(restored.take('next'), [
+            {'role': 'user', 'content': 'first', 'images': ['img']},
+            {'role': 'user', 'content': 'second'},
+        ])
+        self.assertEqual([e['messageId'] for e in records if e['type'] == 'guidance.applied'], ['a', 'b'])
+
+    def test_recreated_runtime_delivers_pending_guidance_once(self):
+        records = [{'type': 'guidance.queued', 'messageId': 'guide', 'content': 'keep this', 'images': []}]
+        emitted = []
+        delivery = InputDelivery(threading.RLock(), lambda typ, **e: emitted.append({'type': typ, **e}), records)
+        self.assertEqual([item['content'] for item in delivery.pending], ['keep this'])
+        delivery.begin()
+        delivery.close()
+        restored = InputDelivery(threading.RLock(), lambda typ, **e: emitted.append({'type': typ, **e}), records + emitted)
+        self.assertEqual([item['content'] for item in restored.pending], ['keep this'])
+        restored.begin()
+        self.assertEqual(restored.take('run'), [{'role': 'user', 'content': 'keep this'}])
+        self.assertEqual(restored.take('run'), [])
+        restored_again = InputDelivery(threading.RLock(), lambda typ, **e: None, records + emitted)
+        self.assertEqual(restored_again.pending, [])
+        # Pre-fix sessions that explicitly recorded undelivered must not revive it.
+        legacy = InputDelivery(threading.RLock(), lambda typ, **e: None,
+                               records + [{'type': 'guidance.undelivered', 'messageId': 'guide'}])
+        self.assertEqual(legacy.pending, [])
+
+    def test_guidance_wakes_watch_and_is_delivered_after_complete_tool_batch(self):
+        def stream(client, model, messages, *args, **kwargs):
+            self.requests.append(copy.deepcopy(messages))
+            if len(self.requests) == 1:
+                yield ModelChunk(tool_deltas=(
+                    ToolCallDelta(0, 'watch', 'watch', '{"cursor":0,"timeout":86400}'),
+                    ToolCallDelta(1, 'other', 'read_file', '{"path":"file-1"}'),
+                ), finish_reason='tool_calls')
+            else:
+                yield ModelChunk(content='responded to guidance', finish_reason='stop')
+        with self.patched(stream):
+            self.main.enqueue('initial')
+            deadline = time.monotonic() + 3
+            while not any(e['type'] == 'tool.requested' and e['tool'] == 'watch'
+                          for e in self.main.session.events.read()):
+                self.assertLess(time.monotonic(), deadline)
+                time.sleep(.01)
+            self.main.send('user instruction during watch', 'wakeup')
+            self.registry.wait()
+        records = self.main.session.events.read()
+        self.assertEqual(len(self.requests), 2)
+        tool_results = [e for e in records if e['type'] == 'tool.completed']
+        self.assertEqual([e['tool'] for e in tool_results], ['watch', 'read_file'])
+        self.assertTrue(json.loads(tool_results[0]['result'])['interrupted_by_guidance'])
+        self.assertEqual(json.loads(tool_results[0]['result'])['changes'], [])
+        self.assertEqual(tool_results[1]['result'], 'actual result file-1')
+        self.assertLess(tool_results[1]['seq'], next(e['seq'] for e in records if e['type'] == 'guidance.applied'))
+        self.assertEqual(self.requests[1][-1], {'role': 'user', 'content': 'user instruction during watch'})
+        self.assertFalse(any(e['type'] == 'turn.cancelled' for e in records))
+        self.assertEqual(restore_model_messages(records, self.main.state['messages'][0]), self.main.state['messages'])
 
     def test_guidance_does_not_bypass_a_pending_tool_approval(self):
         self.main.approvals.set_mode('audit')

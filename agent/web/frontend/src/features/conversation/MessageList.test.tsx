@@ -4,28 +4,48 @@ import { MessageList } from './MessageList';
 import type { TextItem } from '../../state/conversation';
 
 describe('guidance delivery position', () => {
-  const render = (guidance: TextItem['guidance']) => renderToStaticMarkup(<MessageList
+  const render = (guidance: TextItem['guidance'], busy = true) => renderToStaticMarkup(<MessageList
     items={[{ id: 'old', kind: 'text', role: 'assistant', content: 'original response' },
       { id: 'guide', kind: 'text', role: 'user', content: 'new direction', guidance }]}
-    busy loading={false} assistantId="old" sessionId="test" images={[]} />);
+    busy={busy} loading={false} assistantId="old" sessionId="test" images={[]} />);
 
-  it('keeps progress before a submitted but unapplied user message without badges', () => {
+  it('keeps progress before queued guidance and labels it not yet seen by the assistant', () => {
     const html = render('queued');
     expect(html.indexOf('run-indicator')).toBeLessThan(html.indexOf('new direction'));
-    expect(html).not.toContain('guidance-status');
-    expect(html).not.toContain('等待交付');
+    expect(html).toContain('guidance-status queued');
+    expect(html).toContain('等待交付助手');
+    expect(html).toContain('助手尚未看到');
     expect(html.match(/run-indicator/g)).toHaveLength(1);
   });
 
   it('moves progress after the user message only after delivery', () => {
     const html = render('applied');
     expect(html.indexOf('run-indicator')).toBeGreaterThan(html.indexOf('new direction'));
+    expect(html).toContain('已交付助手');
+    expect(html).not.toContain('助手尚未看到');
   });
 
-  it('renders an undelivered message as an ordinary user message', () => {
-    const html = render('undelivered');
-    expect(html).not.toContain('未送达');
+  it('explains how pending guidance continues after the turn stops without implying delivery', () => {
+    const html = render('queued', false);
+    expect(html).toContain('待下次执行交付');
+    expect(html).toContain('助手尚未看到');
+    expect(html).toContain('停止后可发送新消息继续');
+    expect(html).not.toContain('已交付助手');
+    expect(html).not.toContain('run-indicator');
+  });
+
+  it('does not add guidance status to normal user messages', () => {
+    const html = render(undefined, false);
     expect(html).toContain('class="message user"');
+    expect(html).not.toContain('guidance-status');
+  });
+
+  it('labels undelivered guidance as unseen and explains how to recover', () => {
+    const html = render('undelivered');
+    expect(html).toContain('guidance-status undelivered');
+    expect(html).toContain('未送达助手');
+    expect(html).toContain('助手没有看到');
+    expect(html).toContain('在新消息中重新说明');
   });
 });
 

@@ -12,6 +12,7 @@ from .spill import preview_lines
 
 
 DEFAULT_TIMEOUT = 30
+MAX_TIMEOUT = 86400
 
 
 def _path(root: Path, value: str, *, allow_external: bool = False) -> Path:
@@ -123,7 +124,10 @@ def run_bash(
     root: Path,
     command: str,
     context: ExecutionContext | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= MAX_TIMEOUT:
+        raise ValueError(f"timeout must be an integer between 1 and {MAX_TIMEOUT} seconds")
     _check(context)
     process = subprocess.Popen(
         command,
@@ -139,7 +143,7 @@ def run_bash(
     )
     selector = selectors.DefaultSelector()
     output = bytearray()
-    deadline = time.monotonic() + DEFAULT_TIMEOUT
+    deadline = time.monotonic() + timeout
     try:
         assert process.stdout is not None
         selector.register(process.stdout, selectors.EVENT_READ)
@@ -147,7 +151,7 @@ def run_bash(
             _check(context)
             if time.monotonic() >= deadline:
                 _terminate(process)
-                raise subprocess.TimeoutExpired(command, DEFAULT_TIMEOUT)
+                raise subprocess.TimeoutExpired(command, timeout)
             ready = selector.select(timeout=0.2)
             if ready:
                 chunk = os.read(process.stdout.fileno(), 65536)

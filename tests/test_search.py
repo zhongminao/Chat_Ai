@@ -69,6 +69,17 @@ class SearchResourcesTests(unittest.TestCase):
         self.assertNotIn("environment", value)
         self.assertNotIn("unavailable", value)
 
+    def test_chinese_phrase_with_spaces_matches_explicit_trigger_not_weak_terms(self):
+        skill = self.project / "skills" / "host"
+        skill.mkdir()
+        (skill / "manifest.yaml").write_text(
+            "name: host\ntriggers:\n  intents: [部署环境]\n", encoding="utf-8")
+        (skill / "SKILL.md").write_text("Host setup", encoding="utf-8")
+        rows = json.loads(search_resources(self.workspace, "部署 环境 配置 系统信息"))["results"]
+        self.assertEqual([row["skill_id"] for row in rows], ["host"])
+        self.assertIn("intent:部署环境", rows[0]["match_reasons"])
+        self.assertEqual(json.loads(search_resources(self.workspace, "部署 软件环境"))["results"], [])
+
     def test_knowledge_scope_is_reserved_without_affecting_skill_search(self):
         value = json.loads(search_resources(self.workspace, "产品知识", "knowledge"))
         self.assertEqual(value["results"], [])

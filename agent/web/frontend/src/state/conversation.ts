@@ -64,7 +64,7 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       const index = state.items.findIndex(item => item.id === `guidance:${event.messageId}`);
       next.items = state.items.map(item => item.id === `guidance:${event.messageId}` && item.kind === 'text'
         ? { ...item, guidance: 'applied' } : item);
-      if (index >= 0) next.execution = { startIndex: index + 1, startedAt: event.time };
+      if (index >= 0) next.execution = { startIndex: Math.max(state.execution?.startIndex ?? 0, index + 1), startedAt: event.time };
       next.assistantId = null;
       break;
     }
@@ -164,8 +164,10 @@ function appendExecution(items: Item[], item: Item): Item[] {
 }
 
 function interruptPending(items: Item[]): Item[] {
-  return items.map(item => item.kind === 'text' && item.guidance === 'queued' ? { ...item, guidance: 'undelivered' }
-    : (item.kind === 'tool' || item.kind === 'context') && item.status === 'running' ? { ...item, status: 'interrupted' } : item);
+  // An idle runtime or a stopped turn does not mean accepted guidance was lost.
+  // Only guidance.undelivered can declare it undelivered; the server may carry it into the next turn.
+  return items.map(item => (item.kind === 'tool' || item.kind === 'context') && item.status === 'running'
+    ? { ...item, status: 'interrupted' } : item);
 }
 
 // Older pages are only rebuilt on a button click, never for each streaming delta.

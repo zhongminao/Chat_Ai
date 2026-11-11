@@ -38,7 +38,7 @@ class Monitor:
             self.condition.notify_all()
 
     def watch(self, cursor: int | None = None, timeout: float = 0,
-              context: ExecutionContext | None = None) -> dict:
+              context: ExecutionContext | None = None, *, wake_if=None) -> dict:
         if cursor is not None and (type(cursor) is not int or cursor < 0):
             raise ValueError("cursor must be a non-negative integer or null")
         if not isinstance(timeout, (int, float)) or not 0 <= timeout <= 86400:
@@ -58,9 +58,14 @@ class Monitor:
                         context.cancellation.raise_if_cancelled()
                     if cursor is None or self.version > cursor or time.monotonic() >= deadline:
                         break
+                    if wake_if and wake_if():
+                        break
                     self.condition.wait(min(1, max(0, deadline - time.monotonic())))
                 changes = [dict(value) for value in self.resources.values()
                            if (not value.get("deleted") if cursor is None else value["version"] > cursor)]
-                return {"cursor": self.version, "changes": changes}
+                result = {"cursor": self.version, "changes": changes}
+                if cursor is not None and wake_if and wake_if():
+                    result["interrupted_by_guidance"] = True
+                return result
         finally:
             remove_callback()

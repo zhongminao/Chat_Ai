@@ -35,6 +35,9 @@ def _tokens(text: str) -> tuple[str, ...]:
 
 def _match(query: str, raw: dict[str, Any]) -> tuple[int, list[str]]:
     text = query.casefold()
+    # Ignore only whitespace between adjacent Chinese characters for phrase triggers;
+    # keep the weak-overlap filter, so isolated generic terms do not qualify.
+    phrase_text = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "", text)
     name = str(raw.get("name", "")).casefold()
     description = str(raw.get("description", "")).casefold()
     triggers = raw.get("triggers") or {}
@@ -67,17 +70,17 @@ def _match(query: str, raw: dict[str, Any]) -> tuple[int, list[str]]:
             reasons.append(f"mime_type:{mime_type}")
     for alias in aliases:
         value = alias.casefold()
-        if value and value in text:
+        if value and value in phrase_text:
             score += 45
             reasons.append(f"alias:{alias}")
     for capability in capabilities:
         value = capability.casefold()
-        if value and value in text:
+        if value and value in phrase_text:
             score += 35
             reasons.append(f"capability:{capability}")
     for intent in intents:
         value = intent.casefold()
-        if value and value in text:
+        if value and value in phrase_text:
             score += 30
             reasons.append(f"intent:{intent}")
 

@@ -10,10 +10,19 @@ class InputDelivery:
         self.inbox = inbox
         self.notified = {identifier for e in records if e["type"] == "mailbox.notified"
                          for identifier in e["messageIds"]}
-        self.pending: list[dict] = []
+        # Accepted guidance survives cancellation and process recreation until a
+        # model boundary consumes it. Explicitly undelivered historical guidance
+        # is terminal and must not silently reappear.
+        queued = {e['messageId']: e for e in records if e['type'] == 'guidance.queued'}
+        finished = {e['messageId'] for e in records
+                    if e['type'] in ('guidance.applied', 'guidance.undelivered')}
+        self.pending: list[dict] = [
+            {key: item[key] for key in ('messageId', 'content', 'images')}
+            for identifier, item in queued.items() if identifier not in finished
+        ]
         self.accepting = False
-        self.received = {e['messageId']: UserInput(e['content'], tuple(i['id'] for i in e.get('images', [])))
-                         for e in records if e['type'] == 'guidance.queued'}
+        self.received = {identifier: UserInput(item['content'], tuple(i['id'] for i in item.get('images', [])))
+                         for identifier, item in queued.items()}
 
     def begin(self):
         with self.lock:
@@ -59,6 +68,5 @@ class InputDelivery:
     def close(self):
         with self.lock:
             self.accepting = False
-            for item in self.pending:
-                self.emit('guidance.undelivered', messageId=item['messageId'])
-            self.pending.clear()
+            # Closing a turn stops execution, not the user's already accepted
+            # messages. A later turn delivers them before its first model call.

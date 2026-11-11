@@ -45,7 +45,8 @@ def build_agent(runtime) -> AgentRuntime:
                        read_file_config=config.read_file,
                        web_search_config=config.mcp.get("web", {}).get("search", {}),
                        delegate=partial(registry.delegate, runtime.session.id) if main else None,
-                       watch=registry.monitor(runtime.session.id).watch,
+                       watch=partial(registry.monitor(runtime.session.id).watch,
+                                     wake_if=runtime.steering.has_pending),
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,
                                         workspace=str(config.workspace)),
                        registry=registry, session_id=runtime.session.id)
