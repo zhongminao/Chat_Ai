@@ -146,3 +146,73 @@ class SpillTests(unittest.TestCase):
         path, = (self.workspace / ".spill/session").glob("*.index.txt")
         self.assertIn("excerpt-12", path.read_text())
         self.assertLessEqual(len(result), 24000)
+
+    def test_web_details_and_remaining_briefs_with_complete_persistence(self):
+        sections = [TextSection(f"[R{i}] title\nURL：https://example.com/{i}",
+                                f"DETAIL-{i}", f"FULL-BODY-{i}", f"BRIEF-{i}")
+                    for i in range(1, 51)]
+        raw = "all original 50 results"
+        result = spill_tool_output(
+            raw, enabled=True, max_inline_lines=500, head_lines=1, tail_lines=1,
+            max_line_chars=3000, workspace=self.workspace, session_id="session",
+            preview="search", sections=sections, detail_limit=6)
+        for i in range(1, 7):
+            self.assertIn(f"DETAIL-{i}\n", result)
+            self.assertNotIn(f"BRIEF-{i}\n", result)
+        for i in range(7, 51):
+            self.assertNotIn(f"DETAIL-{i}\n", result)
+            self.assertIn(f"BRIEF-{i}\n", result)
+        self.assertNotIn("FULL-BODY", result)
+        saved, = (self.workspace / ".spill/session").glob("*.log")
+        self.assertEqual(saved.read_text(), raw)
+        view, = saved.parent.glob("*.view.txt")
+        index, = saved.parent.glob("*.index.txt")
+        self.assertIn("FULL-BODY-50", view.read_text())
+        self.assertIn("DETAIL-50", index.read_text())
+        self.assertLessEqual(len(result), 24000)
+
+    def test_briefs_reserve_space_before_detailed_windows(self):
+        cards = [(f"[R{i}] title\nURL：https://example.com/{i}",
+                  "detail-" * 1000, f"正文视图行：{i}–{i}") for i in range(1, 51)]
+        briefs = [f"brief-{i}" for i in range(1, 51)]
+        result = _search_preview("search", cards, 24000, detail_limit=6, briefs=briefs)
+        self.assertIn("[R50]", result)
+        self.assertIn("brief-50", result)
+        self.assertEqual(result.count("…[预览省略]"), 6)
+        self.assertLessEqual(len(result), 24000)
+
+    def test_web_preview_disabled_or_save_failure_still_does_not_expose_bodies(self):
+        sections = [TextSection("[R1] title\nURL：https://example.com", "detail", "PRIVATE FULL BODY", "brief")]
+        options = dict(max_inline_lines=500, head_lines=1, tail_lines=1, max_line_chars=3000,
+                       workspace=self.workspace, session_id="session", preview="search",
+                       sections=sections, detail_limit=1, max_preview_chars=512)
+        disabled = spill_tool_output("raw", enabled=False, **options)
+        self.assertNotIn("PRIVATE FULL BODY", disabled)
+        self.assertIn("已关闭落盘", disabled)
+        self.assertEqual(list(self.workspace.iterdir()), [])
+        with patch.object(Path, "write_text", side_effect=OSError("disk full")):
+            failed = spill_tool_output("raw", enabled=True, **options)
+        self.assertIn("保存失败", failed)
+        self.assertNotIn("PRIVATE FULL BODY", failed)
+        self.assertNotIn("下方完整索引", failed)
+        self.assertLessEqual(len(failed), 512)
+
+    def test_web_briefs_are_redacted(self):
+        result = spill_tool_output("raw", enabled=True, max_inline_lines=500,
+                                  head_lines=1, tail_lines=1, max_line_chars=3000,
+                                  workspace=self.workspace, session_id="session", preview="search",
+                                  sections=[TextSection("[R1]", "detail", "body", "password=hidden")],
+                                  detail_limit=1, max_preview_chars=512)
+        self.assertNotIn("hidden", result)
+
+    def test_web_preview_small_budgets_and_oversized_headers(self):
+        cards = [("[R1] " + "x" * 1000, "detail", "location")]
+        for budget in range(100):
+            result = _search_preview("long introduction" * 30, cards, budget,
+                                     detail_limit=1, briefs=["brief"])
+            self.assertLessEqual(len(result), budget)
+        cards = [(f"[R{i}] " + "title" * 20, "detail" * 500, "location") for i in range(50)]
+        for budget in [512, 600, 900, 1000, 2000, 24000]:
+            result = _search_preview("search", cards, budget, detail_limit=50,
+                                     briefs=["brief" * 40] * 50)
+            self.assertLessEqual(len(result), budget)

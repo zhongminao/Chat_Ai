@@ -8,6 +8,7 @@ class TextSection:
     header: str
     summary: str
     body: str
+    brief: str | None = None
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class ToolResult:
     model_images: list[dict[str, Any]] = field(default_factory=list)
     preview: str | None = None
     sections: list[TextSection] = field(default_factory=list)
+    detail_limit: int | None = None
 
 
 def normalize_result(value: str | ToolResult) -> ToolResult:

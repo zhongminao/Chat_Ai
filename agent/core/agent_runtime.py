@@ -287,6 +287,7 @@ class AgentRuntime:
                         output.text,
                         preview=output.preview,
                         sections=output.sections,
+                        detail_limit=output.detail_limit,
                         max_inline_chars=int(self.spill.get("max_inline_chars", 20000)),
                         max_preview_chars=int(self.spill.get("max_preview_chars", 24000)),
                         enabled=bool(self.spill.get("enabled", True)),

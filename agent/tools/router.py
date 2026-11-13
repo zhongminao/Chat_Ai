@@ -31,11 +31,20 @@ class ToolRouter:
         self.submit = None
         self.images = images
         self.vision = False
-        self.schemas = deepcopy(TOOL_SCHEMAS) + (mcp.schemas if mcp else [])
+        self.schemas = deepcopy(TOOL_SCHEMAS + (mcp.schemas if mcp else []))
         for schema in self.schemas:
             if schema["function"]["name"] == "read_file":
                 schema["function"]["parameters"]["properties"]["limit"]["default"] = self.read_file_config.get("limit", 50)
-                break
+            fn = schema["function"]
+            if mcp and mcp.tools.get(fn["name"]) == ("web", "search"):
+                fn["description"] = (
+                    "搜索网页。默认 SearXNG；enhanced=true 使用付费 DeepSeek Search 并请求正文。"
+                    "两种模式均获取最多 50 条并完整落盘；limit 只控制前多少条展示详细摘录，"
+                    "剩余条目给出无模型的相关原文短句简览。预览仍受总字符预算限制。"
+                )
+                limit_schema = fn.get("parameters", {}).get("properties", {}).get("limit")
+                if limit_schema is not None:
+                    limit_schema["description"] = "详细展示条数；其余返回短句简览，不裁掉落盘结果。"
         self.pending_tools: dict[str, tuple[str, dict, list[dict]]] = {}
         self.schemas.append(ENABLE_MCP_SCHEMA)
         if delegate:
@@ -127,14 +136,22 @@ class ToolRouter:
                     return json.dumps(handler(context=context, **arguments), ensure_ascii=False)
                 return handler(context=context, **arguments) if name == "submit" else handler(**arguments)
             if is_mcp:
-                result = self.mcp.call(name, arguments, context)
+                web_search = self.mcp.tools[name] == ("web", "search")
+                detail_limit = arguments.get("limit", 5) if web_search else None
+                remote_arguments = arguments
+                if web_search:
+                    if type(detail_limit) is not int or not 1 <= detail_limit <= 50:
+                        raise ValueError("网页搜索 limit 必须为 1–50 的整数（详细展示条数）")
+                    remote_arguments = {**arguments, "limit": 50}
+                result = self.mcp.call(name, remote_arguments, context)
                 output = convert_result(result, self.images, vision=self.vision)
                 # Adapt the configured web search only, not unrelated MCP JSON/images.
-                if (self.mcp.tools[name] == ("web", "search") and not result.is_error
+                if (web_search and not result.is_error
                         and isinstance(output, str)):
                     return web_search_output(
                         output, arguments.get("query", ""),
                         context_chars=self.web_search_config.get("context_chars", DEFAULT_CONTEXT_CHARS),
+                        detail_limit=detail_limit,
                     )
                 return output
             return execute(self.workspace, name, arguments, context, read_file_config=self.read_file_config,

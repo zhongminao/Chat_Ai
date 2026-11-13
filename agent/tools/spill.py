@@ -64,22 +64,44 @@ def _search_views(intro: str, sections: list[TextSection], width: int):
     return cards, index, body
 
 
-def _search_preview(intro: str, cards: list[tuple[str, str, str]], budget: int) -> str:
+def _search_preview(
+    intro: str, cards: list[tuple[str, str, str]], budget: int,
+    *, detail_limit: int | None = None, briefs: list[str] | None = None,
+    notice: str = "\n\n其余候选未在预览中展示；请读取下方完整索引文件。",
+) -> str:
     # Keep complete cards in source order; never slice a title, URL or locator.
-    notice = "\n\n其余候选未在预览中展示；请读取下方完整索引文件。"
     if budget < len(notice):
         return ""
-    intro = _bounded(intro, min(1600, budget // 4))
+    intro = _bounded(intro, min(1600, budget // 4, budget - len(notice)))
     remaining = max(0, budget - len(intro) - len(notice))
     rendered = []
     for index, (header, summary, location) in enumerate(cards):
         compact = header + "\n" + location
-        detail = header + "\n" + summary + "\n" + location
-        card = detail if index < 10 and len(detail) + 2 <= remaining else compact
+        if detail_limit is not None:
+            summary = briefs[index] if briefs is not None else summary
+        elif index >= 10:
+            summary = ""
+        card = header + "\n" + summary + "\n" + location if summary else compact
+        if len(card) + 2 > remaining:
+            card = compact
         if len(card) + 2 > remaining:
             break
         rendered.append(card)
         remaining -= len(card) + 2
+
+    if detail_limit is not None:
+        # Reserve brief entries first, then fairly share the detail budget.
+        count = min(detail_limit, len(rendered))
+        summary_budget = remaining + sum(
+            len(rendered[i]) - len(cards[i][0]) - len(cards[i][2]) - 1
+            for i in range(count)
+        )
+        for index in range(count):
+            header, summary, location = cards[index]
+            allowance = summary_budget // (count - index)
+            selected = _bounded(summary, max(0, allowance - 1))
+            summary_budget -= len(selected) + bool(selected)
+            rendered[index] = header + ("\n" + selected if selected else "") + "\n" + location
     result = intro + "".join("\n\n" + card for card in rendered)
     return result + notice if len(rendered) < len(cards) else result
 
@@ -99,24 +121,37 @@ def spill_tool_output(
     max_preview_chars: int = 24000,
     preview: str | None = None,
     sections: list[TextSection] | None = None,
+    detail_limit: int | None = None,
 ) -> str:
     if (max_inline_lines < 0 or head_lines < 0 or tail_lines < 0 or max_line_chars < 12
             or max_inline_chars < 512 or max_preview_chars < 512):
         raise ValueError("invalid spill preview limits")
+    if detail_limit is not None and (type(detail_limit) is not int or not 1 <= detail_limit <= 50):
+        raise ValueError("detail_limit must be between 1 and 50")
     search = preview is not None
     width = min(1000, max_line_chars)
     cards, index, body = [], "", ""
+    briefs = []
     if search:
-        safe_sections = [TextSection(_redact(s.header), _redact(s.summary), _redact(s.body))
+        safe_sections = [TextSection(_redact(s.header), _redact(s.summary), _redact(s.body),
+                                     _redact(s.brief) if s.brief is not None else None)
                          for s in sections or []]
         cards, index, body = _search_views(_redact(preview), safe_sections, width)
+        briefs = [s.brief if s.brief is not None else s.summary for s in safe_sections]
         inline = index + ("\n\n[完整段落]\n" + body if body else "")
     else:
         inline = text
     if not enabled:
+        if search and detail_limit is not None:
+            receipt = "\n[spill] 已关闭落盘；仅提供有界预览，完整结果文件不可用。"
+            return _search_preview(
+                _redact(preview), cards, max(0, max_preview_chars - len(receipt)),
+                detail_limit=detail_limit, briefs=briefs,
+                notice="\n\n其余候选未在预览中展示。",
+            ) + receipt
         return inline
     lines = inline.splitlines()
-    if (len(lines) <= max_inline_lines and len(inline) <= max_inline_chars
+    if (detail_limit is None and len(lines) <= max_inline_lines and len(inline) <= max_inline_chars
             and len(text) <= max_inline_chars
             and all(len(line) <= max_line_chars for line in lines)):
         return inline
@@ -156,7 +191,8 @@ def spill_tool_output(
                        f"完整原始结果（脱敏）：{relative}（{total} 行，{len(saved)} 字符）\n"
                        "使用 read_file(path=索引或正文视图路径, offset=行号, limit=10) 按需读取。")
             excerpt = _search_preview(_redact(preview), cards,
-                                      max(0, max_preview_chars - len(receipt)))
+                                      max(0, max_preview_chars - len(receipt)),
+                                      detail_limit=detail_limit, briefs=briefs)
             return excerpt + receipt
         receipt = f"\n[spill] Full output: {relative} ({total} lines). Use read_file with offset/limit."
         return _bounded(excerpt, max(0, max_preview_chars - len(receipt))) + receipt
@@ -164,5 +200,7 @@ def spill_tool_output(
         receipt = "\n[spill] 保存失败，以上为截断内容；完整内容定位不可用。"
         budget = max(0, max_preview_chars - len(receipt))
         if search:
-            return _search_preview(_redact(preview), cards, budget) + receipt
+            return _search_preview(_redact(preview), cards, budget,
+                                   detail_limit=detail_limit, briefs=briefs,
+                                   notice="\n\n其余候选未在预览中展示。") + receipt
         return _bounded(excerpt, budget) + receipt

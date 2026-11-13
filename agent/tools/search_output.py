@@ -5,6 +5,7 @@ import json
 import re
 
 from .result import TextSection, ToolResult
+from .extractive import extract_brief
 
 
 DEFAULT_CONTEXT_CHARS = 200
@@ -67,7 +68,7 @@ def _string(value) -> str:
 
 
 def web_search_output(
-    text: str, query: str, *, context_chars: int = DEFAULT_CONTEXT_CHARS,
+    text: str, query: str, *, context_chars: int = DEFAULT_CONTEXT_CHARS, detail_limit: int = 5,
 ) -> str | ToolResult:
     """Adapt only recognized web-search JSON; unknown MCP outputs stay untouched."""
     try:
@@ -102,12 +103,17 @@ def web_search_output(
             "[上游摘要，非原文摘录]\n" + upstream_summary if upstream_summary else "",
         ) if part)
         summary = "原文摘录：\n" + excerpt + "\n正文/片段命中：" + ("、".join(matched) or "无")
-        sections.append(TextSection(header, summary, body))
+        brief_matched, brief = extract_brief(source, terms)
+        brief_label = "简览（原文抽取，非模型总结）" if brief_matched else "简览（无字面命中，仅来源原文）"
+        brief = brief_label + "：\n" + (brief or "上游未提供可用正文/片段。")
+        sections.append(TextSection(header, summary, body, brief))
     intro = (f"网页搜索：{query}\n后端：{data.get('backend', 'unknown')}；实际返回 {len(rows)} 条。\n"
-             "以下为查询相关的来源原文摘录，不是全文或模型总结；保留上游结果顺序。")
+             f"前 {min(detail_limit, len(rows))} 条优先详细摘录，其余为短句简览；保留上游顺序。\n"
+             "总预览预算不足时详细摘录会标注省略；简览放不下则仅列标题/URL及定位或省略。\n"
+             "简览通过关键词评分抽取原文，不是模型总结；完整结果见落盘索引和正文。")
     if data.get("unresponsive_engines"):
         intro += "\n部分引擎不可用：" + json.dumps(data["unresponsive_engines"], ensure_ascii=False)
-    return ToolResult(text, preview=intro, sections=sections)
+    return ToolResult(text, preview=intro, sections=sections, detail_limit=detail_limit)
 
 
 def resource_search_output(text: str, query: str) -> ToolResult:
