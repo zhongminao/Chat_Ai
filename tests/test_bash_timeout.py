@@ -28,6 +28,12 @@ class BashTimeoutTests(unittest.TestCase):
             self.assertEqual(bash(root, 'printf hello'), 'hello')
             self.assertEqual(execute(root, 'bash', {'command': 'printf custom', 'timeout': 86400}), 'custom')
 
+    def test_bash_syntax_and_execution_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            command = 'items=(alpha beta); [[ ${items[1]} == beta ]] && printf "%s\\n" {one,two}; pwd'
+            self.assertEqual(bash(root, command), f"one\ntwo\n{root}\n")
+
     def test_process_metadata_and_nonzero_exit(self):
         with tempfile.TemporaryDirectory() as directory:
             for code in (0, 7):

@@ -131,8 +131,7 @@ def bash(
         raise ValueError(f"timeout must be an integer between 1 and {MAX_TIMEOUT} seconds")
     _check(context)
     process = subprocess.Popen(
-        command,
-        shell=True,
+        ["/bin/bash", "--noprofile", "--norc", "-c", command],
         cwd=root,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
