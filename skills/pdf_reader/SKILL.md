@@ -5,7 +5,7 @@ This is a sidecar package returned by `search_resources`, not a system prompt. I
 ## Quick read
 
 1. Create a unique directory under workspace `.skill-cache/pdf_reader/<run-id>/`.
-2. Use `run_bash` with `<pdf_read.sh absolute path> "<input.pdf>" "<run-dir>" [auto|layout|raw|tsv]`. Read `<run-dir>/probe.txt`, `<run-dir>/read.meta` and the text path reported by `read.meta` using bounded `read_file` calls.
+2. Use `bash` with `<pdf_read.sh absolute path> "<input.pdf>" "<run-dir>" [auto|layout|raw|tsv]`. Read `<run-dir>/probe.txt`, `<run-dir>/read.meta` and the text path reported by `read.meta` using bounded `read_file` calls.
 3. In auto mode, `pdf_probe.sh` recommends `raw` for probable two-column pages and `layout` otherwise. This is a heuristic, not a guaranteed reading order; verify headings, tables, captions and references against original pages. For mixed layouts, extract specific pages separately with `pdftotext -f/-l` if necessary. If auto reports OCR required, use `pdf_ocr.sh` as below.
 4. If a page has no meaningful native text, use `<pdf_ocr.sh absolute path> "<input.pdf>" "<run-dir>/ocr.txt" "chi_sim+eng" 200` (or `eng` if Chinese data unavailable). OCR is an explicit fallback and not done silently.
 5. Use `<pdf_render.sh absolute path>` only for page image inspection. Never modify the source PDF or write generated output next to it.

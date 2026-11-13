@@ -65,7 +65,8 @@ class VideoSkillSearchTests(unittest.TestCase):
                 self.assertIn("name: " + package_id + "\n", text)
                 self.assertIn("entrypoint: SKILL.md\n", text)
                 self.assertIn("allowed_tools:\n- read_file\n", text)
-                self.assertNotIn("- run_bash\n", text)
+                for shell_tool in ("bash", "run_bash"):
+                    self.assertNotIn("- " + shell_tool + "\n", text)
                 self.assertTrue((directory / "SKILL.md").is_file())
                 refs = text.split("references:\n", 1)[1].splitlines()
                 self.assertTrue(refs)

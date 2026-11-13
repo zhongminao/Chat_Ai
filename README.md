@@ -245,10 +245,10 @@ Skill 是项目 `skills/<目录>/` 下的说明与可选脚本，不是自动获
 
 | 模式 | 实际行为 |
 | --- | --- |
-| `audit`（审计） | `write_file`、`edit_file`、`run_bash`、`enable_mcp` 和已接入的 MCP 工具每次调用需人工批准；拒绝后该调用不执行。`search_resources`、`read_file`、`read_image` 等不走此审批，但仍受对应工具自身条件约束。 |
+| `audit`（审计） | `write_file`、`edit_file`、`bash`、`enable_mcp` 和已接入的 MCP 工具每次调用需人工批准；拒绝后该调用不执行。`search_resources`、`read_file`、`read_image` 等不走此审批，但仍受对应工具自身条件约束。 |
 | `full_access`（完全访问） | 跳过上述框架审批；**不**意味着 Skill 获得 sudo、绕过操作系统权限，或被允许超出用户任务范围操作。 |
 
-`run_bash` 以 workspace 为当前目录运行，但命令本身并非只读或受 workspace 文件沙箱限制，审计时批准前应检查命令和所涉路径；完全访问时尤其不要将不可信 Skill 中的脚本直接执行。`read_file` 可读绝对路径；`write_file` 在完全访问下可写绝对的工作区外路径（审计模式下只允许写工作区内），`edit_file` 仍限工作区。`read_image` 还要求模型声明视觉能力。动态 `enable_mcp(url)` 仅用于用户明确给出的 HTTP(S) 地址，或已安装 Skill 为当前任务启动并返回的本机回环地址；找到 Skill 本身不授权连接任意远端服务。配置中声明的 MCP 另按配置自动接入，其工具调用仍遵循会话审批模式。对第三方 Skill 的说明、脚本和权限边界应像对其他外部代码一样先核查。
+`bash` 以 workspace 为当前目录运行，但命令本身并非只读或受 workspace 文件沙箱限制，审计时批准前应检查命令和所涉路径；完全访问时尤其不要将不可信 Skill 中的脚本直接执行。`read_file` 可读绝对路径；`write_file` 在完全访问下可写绝对的工作区外路径（审计模式下只允许写工作区内），`edit_file` 仍限工作区。`read_image` 还要求模型声明视觉能力。动态 `enable_mcp(url)` 仅用于用户明确给出的 HTTP(S) 地址，或已安装 Skill 为当前任务启动并返回的本机回环地址；找到 Skill 本身不授权连接任意远端服务。配置中声明的 MCP 另按配置自动接入，其工具调用仍遵循会话审批模式。对第三方 Skill 的说明、脚本和权限边界应像对其他外部代码一样先核查。
 
 ### Skill 的 Git 管理
 

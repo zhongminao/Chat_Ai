@@ -27,7 +27,7 @@ excludes:
 - Google Docs
 - Excel 工作簿
 allowed_tools:
-- run_bash
+- bash
 - read_file
 - read_image
 entrypoint: SKILL.md

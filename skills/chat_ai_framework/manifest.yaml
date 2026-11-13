@@ -19,5 +19,5 @@ triggers:
     - chat_ai README、config.yaml、安装与运行说明定位
 allowed_tools:
   - read_file
-  - run_bash
+  - bash
 entrypoint: SKILL.md

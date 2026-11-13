@@ -267,7 +267,7 @@ class AgentStateTests(unittest.TestCase):
 
         def stream(client, model, messages, schemas, **kwargs):
             if messages[-1]["role"] == "user":
-                yield ModelChunk(tool_deltas=(ToolCallDelta(id="large-output", name="run_bash",
+                yield ModelChunk(tool_deltas=(ToolCallDelta(id="large-output", name="bash",
                     arguments=json.dumps({"command": command})),))
             else:
                 self.assertEqual(messages[-1]["role"], "tool")

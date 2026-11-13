@@ -120,7 +120,7 @@ def _terminate(process: subprocess.Popen) -> None:
             pass
 
 
-def run_bash(
+def bash(
     root: Path,
     command: str,
     context: ExecutionContext | None = None,
@@ -187,7 +187,7 @@ def execute(
         "read_file": read_file,
         "write_file": write_file,
         "edit_file": edit_file,
-        "run_bash": run_bash,
+        "bash": bash,
     }
     if name not in functions:
         raise ValueError(f"unknown tool: {name}")

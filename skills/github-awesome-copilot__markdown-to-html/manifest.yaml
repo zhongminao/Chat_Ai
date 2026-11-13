@@ -23,7 +23,7 @@ excludes:
   - 产品需求文档
 allowed_tools:
 - read_file
-- run_bash
+- bash
 entrypoint: SKILL.md
 references:
 - references/basic-markdown.md

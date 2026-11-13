@@ -1,7 +1,7 @@
 # 本地接入说明（未修改上游文件）
 
 - `SKILL.md`、`references/`、`UPSTREAM_LICENSE` 为上游原文；本文件与 `manifest.yaml` 为本地新增。未修改、未执行上游文件。
-- 上游附带两个 Python 脚本，本 manifest **未授予 `run_bash`，也不会运行它们**：
+- 上游附带两个 Python 脚本，本 manifest **未授予 `bash`，也不会运行它们**：
   - `scripts/validate_tour.py` — 校验 `.tour` 文件的路径/行号/pattern 等；
   - `scripts/generate_from_docs.py` — 从 README/docs 抽取 tour 骨架。
   替代做法：手工核对——首步锚定 `file`/`directory`、所有路径与行号在仓库中真实存在、`nextTour` 与已有 tour 标题一致、`uri` 以 `https://` 开头；字段名以 `references/codetour-schema.json` 为准。

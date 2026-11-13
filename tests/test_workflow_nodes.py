@@ -48,7 +48,7 @@ class WorkflowNodeTests(unittest.TestCase):
         self.assertEqual(self.state['execution']['status'], 'cancelled')
         self.apply(transitions.start, 'tool-run')
         self.apply(transitions.append_answer, 'run tool')
-        self.apply(message_updates.complete_model, 'run tool', [ToolCall('call', 'run_bash', {'command': 'pwd'})])
+        self.apply(message_updates.complete_model, 'run tool', [ToolCall('call', 'bash', {'command': 'pwd'})])
         self.apply(message_updates.cancel)
         self.assertEqual(len(self.state['messages']), 2)
         self.assertEqual(self.state['messages'][-1]['tool_calls'][0]['id'], 'call')

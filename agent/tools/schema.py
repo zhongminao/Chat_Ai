@@ -103,7 +103,7 @@ TOOL_SCHEMAS = [SEARCH_SCHEMA,
             "new": {"type": "string"}},
             "required": ["path", "old", "new"]}}},
     {"type": "function", "function": {
-        "name": "run_bash",
+        "name": "bash",
         "description": "Run a bash command in the workspace. Timeout is in seconds (default 30, max 86400); cancellation still stops the process.",
         "parameters": {"type": "object", "properties": {
             "command": {"type": "string"},

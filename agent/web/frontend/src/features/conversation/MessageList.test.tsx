@@ -62,13 +62,29 @@ describe('context feedback', () => {
 });
 
 describe('tool expansion', () => {
+  it('renders command and MCP tools with readable titles and their primary target', () => {
+    const html = renderToStaticMarkup(<MessageList items={[
+      { id: 'tool:command', kind: 'tool', name: 'bash', status: 'completed',
+        arguments: { command: 'npm run build', timeout: 30 }, result: 'built' },
+      { id: 'tool:search', kind: 'tool', name: 'mcp_web_search', status: 'running',
+        arguments: { query: 'robot control' } },
+    ]} busy loading={false} assistantId={null} sessionId="test" images={[]} />);
+    expect(html).toContain('Run command');
+    expect(html).toContain('command-source');
+    expect(html).toContain('command-output');
+    expect(html).toContain('npm run build');
+    expect(html).toContain('timeout');
+    expect(html).toContain('MCP · Search web');
+    expect(html).toContain('robot control');
+  });
+
   it('renders tool parameters and result underneath the clickable title in a details element', () => {
     const html = renderToStaticMarkup(<MessageList
       items={[{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'done' }]}
       busy={false} loading={false} assistantId={null} sessionId="test" images={[]} />);
     expect(html).toMatch(/<details class="tool-card"><summary[^>]*>/);
-    expect(html).not.toContain('execution-steps');
-    expect(html.indexOf('read_file')).toBeLessThan(html.indexOf('调用参数'));
+    expect(html.match(/class="execution-steps"/g)).toHaveLength(1);
+    expect(html.indexOf('Read file')).toBeLessThan(html.indexOf('调用参数'));
     expect(html.indexOf('调用参数')).toBeLessThan(html.indexOf('工具结果'));
   });
 
@@ -77,18 +93,18 @@ describe('tool expansion', () => {
       items={[
         { id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed', arguments: { path: 'a' }, result: 'one' },
         { id: 'tool:2', kind: 'tool', name: 'edit_file', status: 'completed', arguments: { path: 'a' }, result: 'two' },
-        { id: 'tool:3', kind: 'tool', name: 'run_bash', status: 'running', arguments: { command: 'npm test' } },
+        { id: 'tool:3', kind: 'tool', name: 'bash', status: 'running', arguments: { command: 'npm test' } },
       ]}
       busy loading={false} assistantId={null} sessionId="test" images={[]} />);
     expect(html.match(/class="execution-steps"/g)).toHaveLength(1);
     expect(html.match(/class="tool-status-dot/g)).toHaveLength(3);
     expect(html).toContain('执行步骤 · 3 个工具');
-    expect(html).toContain('run_bash · 执行中');
+    expect(html).toContain('Run command · 执行中');
     expect(html).not.toMatch(/<details class="execution-steps" open/);
     expect(html.match(/class="tool-card"/g)).toHaveLength(3);
     expect(html).toContain('read_file');
     expect(html).toContain('edit_file');
-    expect(html).toContain('run_bash');
+    expect(html).toContain('bash');
   });
 
   it('starts a new execution step after non-tool content', () => {
@@ -96,10 +112,10 @@ describe('tool expansion', () => {
       items={[
         { id: 'tool:1', kind: 'tool', name: 'read_file', status: 'completed' },
         { id: 'assistant:1', kind: 'text', role: 'assistant', content: '继续处理' },
-        { id: 'tool:2', kind: 'tool', name: 'run_bash', status: 'completed' },
+        { id: 'tool:2', kind: 'tool', name: 'bash', status: 'completed' },
       ]}
       busy={false} loading={false} assistantId={null} sessionId="test" images={[]} />);
-    expect(html.match(/class="execution-steps"/g)).toBeNull();
+    expect(html.match(/class="execution-steps"/g)).toHaveLength(2);
     expect(html.match(/class="tool-card"/g)).toHaveLength(2);
   });
 });

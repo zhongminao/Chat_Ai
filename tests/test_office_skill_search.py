@@ -32,7 +32,7 @@ class OfficeSkillSearchTests(unittest.TestCase):
                 self.assertEqual(raw["name"], name)
                 self.assertEqual(raw["entrypoint"], "SKILL.md")
                 self.assertTrue(raw["allowed_tools"])
-                self.assertTrue(set(raw["allowed_tools"]).issubset({"run_bash", "read_file", "read_image"}))
+                self.assertTrue(set(raw["allowed_tools"]).issubset({"bash", "read_file", "read_image"}))
                 self.assertTrue((package / raw["entrypoint"]).is_file())
                 self.assertTrue((package / "LOCAL_NOTES.md").is_file())
                 self.assertIn("LOCAL_NOTES.md", raw["references"])

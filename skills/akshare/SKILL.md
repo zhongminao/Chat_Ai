@@ -7,7 +7,7 @@ description: 查询股票和 ETF 的行情、行业、资金流、财务及公�
 
 ## 第一步：启动服务
 
-调用 `run_bash`，将下面命令原样作为 `command`：
+调用 `bash`，将下面命令原样作为 `command`：
 
 ```bash
 {{python}} {{skill_dir}}/scripts/service.py start

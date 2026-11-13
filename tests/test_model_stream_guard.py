@@ -134,7 +134,7 @@ class ModelStreamGuardTests(unittest.TestCase):
                     try:
                         for argument in arguments:
                             emitted += 1
-                            yield ModelChunk(tool_deltas=(ToolCallDelta(name='run_bash' if emitted == 1 else '',
+                            yield ModelChunk(tool_deltas=(ToolCallDelta(name='bash' if emitted == 1 else '',
                                                                        arguments=argument),))
                     finally:
                         closed = True

@@ -78,9 +78,38 @@ class ApprovalTests(unittest.TestCase):
         decisions = [e['decision'] for e in self.events.read() if e['type'] == 'approval.resolved']
         self.assertEqual(decisions, ['approved', 'rejected'])
 
+    def test_bash_requires_approval_before_execution_and_rejection_does_not_start_it(self):
+        for approved in (False, True):
+            with self.subTest(approved=approved), patch('agent.tools.router.execute', return_value='executed') as execute:
+                thread, result, item = self.start_call('bash', {'command': 'printf reviewed'})
+                self.assertEqual(item['tool'], 'bash')
+                self.assertEqual(item['arguments'], {'command': 'printf reviewed'})
+                execute.assert_not_called()
+                self.gate.resolve(item['id'], approved)
+                thread.join(3)
+                self.assertFalse(thread.is_alive())
+                if approved:
+                    execute.assert_called_once_with(self.root, 'bash', {'command': 'printf reviewed'},
+                        self.context, read_file_config={}, allow_external_write=False)
+                    self.assertEqual(result, ['executed'])
+                else:
+                    execute.assert_not_called()
+                    self.assertIn('[tool denied]', result[0])
+        requested = [event for event in self.events.read() if event['type'] == 'approval.requested']
+        self.assertEqual([event['tool'] for event in requested], ['bash', 'bash'])
+
+    def test_unavailable_bash_does_not_request_approval_or_execute(self):
+        self.router.schemas = [schema for schema in self.router.schemas
+                               if schema['function']['name'] != 'bash']
+        with patch('agent.tools.router.execute') as execute:
+            self.assertIn('当前工具不可用', self.router.call('bash', {'command': 'printf unavailable'}))
+            execute.assert_not_called()
+        self.assertEqual(self.events.read(), [])
+        self.assertEqual(self.gate.snapshot()['pending'], [])
+
     def test_wait_is_cancelled_and_bash_is_never_started(self):
         with patch('agent.tools.executor.subprocess.Popen') as process:
-            thread, result, item = self.start_call('run_bash', {'command': 'touch must-not-exist'})
+            thread, result, item = self.start_call('bash', {'command': 'touch must-not-exist'})
             self.context.cancellation.cancel()
             thread.join(1)
             self.assertFalse(thread.is_alive())

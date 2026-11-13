@@ -1,7 +1,7 @@
 # 本地使用说明（anthropics-skills__pdf）
 
 ## 与已装 `pdf_reader` 的分工（重要）
-- `pdf_reader`（自带 run_bash + 固定脚本）：**读取/总结已有 PDF 正文、布局、OCR 兜底**。
+- `pdf_reader`（自带 bash + 固定脚本）：**读取/总结已有 PDF 正文、布局、OCR 兜底**。
   查询如"读取 PDF""提取 PDF 文字""总结 PDF""扫描件 OCR"都应由 pdf_reader 优先处理，
   本技能 manifest 已把这几类写入 `excludes`，不会抢占。
 - 本技能：**制作与修改 PDF**——用 pypdf / pdfplumber / reportlab / qpdf / pdftk /
@@ -9,7 +9,7 @@
   以及 forms.md 描述的 **PDF 表单填写**流程（fillable 与 non-fillable 两条路径）。
 
 ## 运行限制
-- 本技能只读：`allowed_tools` 仅 `read_file`。**不授予 run_bash/write_file**，因此
+- 本技能只读：`allowed_tools` 仅 `read_file`。**不授予 bash/write_file**，因此
   SKILL.md/reference.md 中的代码与 `scripts/*.py` 不会被自动执行，也不会写盘。
 - `scripts/` 下 8 个 Python 脚本（依赖 pypdf、pdfplumber、reportlab、pdf2image 等）
   **未安装依赖、未运行、未验证**。需要真正执行时，请由用户自行安装依赖并授权运行。

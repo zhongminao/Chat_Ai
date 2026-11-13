@@ -2,5 +2,5 @@
 
 - `SKILL.md`、`references/`、`UPSTREAM_LICENSE` 为上游原始文件逐字节复制；`manifest.yaml` 与本文件为本地新增。
 - 用途：FastAPI + Pydantic V2 异步接口实现指导。纯指导性技能，只授予 `read_file`。
-- 上游工作流含 `pytest`/`httpx` 测试与 `/docs` 验证，需要安装 fastapi、sqlalchemy 等依赖并启动服务；本地未安装、未授予 `run_bash`。
+- 上游工作流含 `pytest`/`httpx` 测试与 `/docs` 验证，需要安装 fastapi、sqlalchemy 等依赖并启动服务；本地未安装、未授予 `bash`。
 - 未验证：未运行过任何 FastAPI 应用或测试。

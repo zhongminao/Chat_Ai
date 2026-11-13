@@ -24,7 +24,7 @@ triggers:
 excludes:
 - Google Slides API
 allowed_tools:
-- run_bash
+- bash
 - read_file
 - read_image
 entrypoint: SKILL.md

@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { ExecutionItem, Item, ToolItem } from '../../state/conversation';
+import type { Item, ToolItem } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
-import { ToolCallCard } from './ToolCallCard';
 import { ExecutionSteps } from './ExecutionSteps';
 import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
+import type { DisclosureState } from './toolPresentation';
 
 export function MessageList({ footer, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
   footer?: ReactNode;
@@ -20,6 +20,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   const footerBox = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const [away, setAway] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const anchor = useRef<{ height: number; top: number } | null>(null);
   const moreWasLoading = useRef(false);
   const lastRevision = useRef(revision);
@@ -72,24 +73,27 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
     return () => observer.disconnect();
   }, [loading, hasItems]);
 
-  const renderExecution = (item: ExecutionItem) => item.kind === 'tool'
-    ? <ToolCallCard key={item.id} item={item} onInspect={pauseFollowing} sessionId={sessionId} images={images} waiting={waitingCallIds.some(id => item.id === `tool:${id}`)} />
-    : <article key={item.id} className={`message ${item.role}`}
+  const disclosures: DisclosureState = {
+    isOpen: (id, fallback = false) => expanded[id] ?? fallback,
+    toggle: (id, fallback = false) => {
+      if (!(expanded[id] ?? fallback)) pauseFollowing();
+      setExpanded(previous => ({ ...previous, [id]: !(previous[id] ?? fallback) }));
+    },
+  };
+  const renderExecutionAt = (source: Item[], index: number) => {
+    const item = source[index];
+    if (item.kind === 'context' || item.kind === 'report') return null;
+    if (item.kind === 'text') return <article key={item.id} className={`message ${item.role}`}
       aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId} /> : null}
       {item.content && <MessageContent content={item.content} role={item.role} streaming={busy && !loading && item.id === assistantId} />}
     </article>;
-  const renderExecutionAt = (source: Item[], index: number) => {
-    const item = source[index];
-    if (item.kind === 'context' || item.kind === 'report') return null;
-    if (item.kind !== 'tool') return renderExecution(item);
     if (index > 0 && source[index - 1].kind === 'tool') return null;
     const tools: ToolItem[] = [];
     for (let cursor = index; cursor < source.length && source[cursor].kind === 'tool'; cursor++) {
       tools.push(source[cursor] as ToolItem);
     }
-    if (tools.length === 1) return renderExecution(tools[0]);
-    return <ExecutionSteps key={`steps:${item.id}`} items={tools} onInspect={pauseFollowing}
+    return <ExecutionSteps key={`steps:${item.id}`} items={tools} disclosures={disclosures}
       sessionId={sessionId} images={images} waitingCallIds={waitingCallIds} />;
   };
 
@@ -117,7 +121,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
           : <div className="message-list">{items.map((item, index) => <Fragment key={item.id}>
             {index === progressIndex && progress}
             {item.kind === 'report'
-            ? <ReportCard key={item.id} item={item} onInspect={pauseFollowing}>
+            ? <ReportCard key={item.id} item={item} disclosures={disclosures}>
               {item.process.map((_, index) => renderExecutionAt(item.process, index))}
             </ReportCard>
             : item.kind === 'context'

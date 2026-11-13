@@ -14,4 +14,4 @@
 - 不产生任何网络请求、不上传数据；只读 SKILL.md 文本即可。
 
 ## 权限
-- `allowed_tools` 仅 `read_file`。无 run_bash / 无 write_file / 无联网工具。
+- `allowed_tools` 仅 `read_file`。无 bash / 无 write_file / 无联网工具。

@@ -1,5 +1,5 @@
 {
-  "run_bash": {
+  "bash": {
     "allowed_commands": [
       "skills/pdf_reader/scripts/pdf_probe.sh",
       "skills/pdf_reader/scripts/pdf_extract.sh",

@@ -1,4 +1,5 @@
 import type { ApprovalRequest } from '../../api/types';
+import { toolPresentation } from '../conversation/toolPresentation';
 
 export function ApprovalPanel({ requests, sessionId, disabled, onDecide, onStop }: {
   requests: ApprovalRequest[]; sessionId: string | null; disabled: boolean;
@@ -10,7 +11,7 @@ export function ApprovalPanel({ requests, sessionId, disabled, onDecide, onStop 
     {requests.map(item => <article className="approval-card" key={item.id}>
       <div className="approval-heading"><strong>等待批准本次操作</strong>
         <span>{item.sessionId === sessionId ? '当前 Agent' : `其他 Agent · ${item.sessionId.slice(0, 8)}`}</span></div>
-      <div className="approval-tool">{item.tool}</div>
+      <div className="approval-tool">{toolPresentation({ name: item.tool }).label} <small>({item.tool})</small></div>
       {item.workspace && <div className="approval-field">工作目录：{item.workspace}</div>}
       <details open><summary>查看完整操作内容</summary>
         {Object.entries(item.arguments).map(([name, value]) => <div key={name}>

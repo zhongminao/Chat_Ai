@@ -35,7 +35,7 @@ excludes:
   - PDF 表单填写
 
 allowed_tools:
-  - run_bash
+  - bash
   - read_file
 entrypoint: SKILL.md
 references:

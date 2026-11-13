@@ -19,7 +19,7 @@ triggers:
 excludes:
 - Word 转 Markdown
 allowed_tools:
-- run_bash
+- bash
 - read_file
 entrypoint: SKILL.md
 references:

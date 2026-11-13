@@ -198,7 +198,7 @@ class SteeringTests(unittest.TestCase):
         def stream(client, model, messages, *args, **kwargs):
             self.requests.append(copy.deepcopy(messages))
             if len(self.requests) == 1:
-                yield ModelChunk(tool_deltas=(ToolCallDelta(0, 'bash', 'run_bash', '{"command":"echo test"}'),), finish_reason='tool_calls')
+                yield ModelChunk(tool_deltas=(ToolCallDelta(0, 'bash', 'bash', '{"command":"echo test"}'),), finish_reason='tool_calls')
             else:
                 yield ModelChunk(content='continued', finish_reason='stop')
         with self.patched(stream):
