@@ -21,6 +21,18 @@ export function toolPresentation(item: Pick<ToolItem, 'name' | 'arguments'>) {
   };
 }
 
+export function toolFailed(item: ToolItem): boolean {
+  const process = item.process;
+  return item.status === 'interrupted' || item.status === 'rejected'
+    || (typeof item.result === 'string' && /^\[(?:tool|mcp) error\]/.test(item.result))
+    || Boolean(process && ((process.exitCode !== null && process.exitCode !== 0)
+      || (process.reason !== 'running' && process.reason !== 'exited')));
+}
+
+export const processStatus = {
+  running: '执行中', exited: '已退出', timeout: '超时', cancelled: '取消', error: '执行异常',
+};
+
 export const toolStatus = { running: '执行中', completed: '已完成', interrupted: '已中断', rejected: '已拒绝' };
 
 export interface DisclosureState {

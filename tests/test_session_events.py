@@ -89,7 +89,7 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         usage = {'usedTokens': 25, 'limitTokens': 100, 'estimated': False}
         log.append('context.measured', **old)
         measured = log.append('context.measured', **usage)
-        for index in range(205):
+        for index in range(1005):
             log.append('turn.completed', answer=str(index))
         page = history_page(log)
         self.assertGreater(page['min_seq'], measured['seq'])

@@ -4,7 +4,7 @@ The first request captures an immutable high-water sequence. Earlier pages use
 that same sequence and never include events written after it.
 """
 
-PAGE_EVENTS = 200
+PAGE_EVENTS = 1000
 TERMINAL = {'turn.completed', 'turn.cancelled', 'turn.failed'}
 
 
@@ -37,18 +37,8 @@ def history_page(log, *, before: int | None = None, through: int | None = None) 
         if not older:
             return {'events': [], 'snapshot_seq': snapshot, 'min_seq': 0,
                     'has_more': False}
-        # Find the nearest successful compaction before the current page.
-        # Keep a compaction inside a turn together with that turn; a standalone
-        # compaction belongs to the newer segment starting at that marker.
-        boundary = 0
-        for index in range(len(older) - 1, -1, -1):
-            if older[index]['type'] != 'context.compacted':
-                continue
-            candidate = _start_of_interaction(older, index)
-            if candidate > 0:
-                boundary = candidate
-                break
-        page = older[boundary:]
+        start = _start_of_interaction(older, max(0, len(older) - PAGE_EVENTS))
+        page = older[start:]
     return {'events': page, 'snapshot_seq': snapshot,
             'min_seq': page[0]['seq'] if page else 0,
             'has_more': bool(page and page[0]['seq'] > 1)}

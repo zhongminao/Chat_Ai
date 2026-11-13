@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import replace
 from contextlib import closing
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -277,11 +278,14 @@ class AgentRuntime:
                     callId=call.id,
                     arguments=call.arguments,
                 )
+                tool_context = replace(context, on_process=lambda process, call=call: self.log.append(
+                    "tool.process", runId=run_id, tool=call.name, callId=call.id, process=process,
+                )) if call.name == "bash" else context
                 try:
                     output = normalize_result(
                         "[tool skipped] Report already submitted."
                         if transitions.after_tools(self.state) == "submit"
-                        else self.tools.call(call.name, call.arguments, context, run_id=run_id, call_id=call.id)
+                        else self.tools.call(call.name, call.arguments, tool_context, run_id=run_id, call_id=call.id)
                     )
                     result = spill_tool_output(
                         output.text,

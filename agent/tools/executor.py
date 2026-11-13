@@ -105,8 +105,7 @@ def edit_file(
 
 
 def _terminate(process: subprocess.Popen) -> None:
-    if process.poll() is not None:
-        return
+    # The shell may already have exited while its children still hold stdout.
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -114,10 +113,12 @@ def _terminate(process: subprocess.Popen) -> None:
     try:
         process.wait(timeout=2)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        pass
+    # Do not leave children behind just because the shell exited first.
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def bash(
@@ -144,13 +145,20 @@ def bash(
     selector = selectors.DefaultSelector()
     output = bytearray()
     deadline = time.monotonic() + timeout
+    reason = "error"
+
+    def report(reason: str) -> None:
+        if context and context.on_process:
+            context.on_process({"pid": process.pid, "pgid": process.pid,
+                                "exitCode": process.returncode, "reason": reason})
+
     try:
+        report("running")
         assert process.stdout is not None
         selector.register(process.stdout, selectors.EVENT_READ)
         while True:
             _check(context)
             if time.monotonic() >= deadline:
-                _terminate(process)
                 raise subprocess.TimeoutExpired(command, timeout)
             ready = selector.select(timeout=0.2)
             if ready:
@@ -162,16 +170,26 @@ def bash(
             if process.poll() is not None and not selector.get_map():
                 break
         _check(context)
-        return output.decode(errors="replace") or f"exit code: {process.returncode}"
+        reason = "exited"
+        text = output.decode(errors="replace")
+        if process.returncode:
+            return f"[tool error] exit code: {process.returncode}\n{text}".rstrip()
+        return text or f"exit code: {process.returncode}"
+    except subprocess.TimeoutExpired:
+        reason = "timeout"
+        raise
     except RunCancelled:
-        _terminate(process)
+        reason = "cancelled"
         raise
     finally:
         selector.close()
         remove_callback()
-        if process.poll() is None:
+        if reason != "exited":
             _terminate(process)
         process.wait()
+        if process.stdout:
+            process.stdout.close()
+        report(reason)
 
 
 def execute(

@@ -24,6 +24,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   const anchor = useRef<{ height: number; top: number } | null>(null);
   const moreWasLoading = useRef(false);
   const lastRevision = useRef(revision);
+  const autoHistory = useRef({ pages: 0, revision: -1 });
   useLayoutEffect(() => {
     const element = viewport.current;
     const finished = moreWasLoading.current && !loadingMore;
@@ -39,6 +40,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   // Expanding details pauses following, but must not pin the clicked title:
   // overflow-anchor: none keeps the viewport stable while new content arrives.
   const pauseFollowing = () => {
+    autoHistory.current.pages = 3;
     follow.current = false;
     setAway(true);
   };
@@ -57,7 +59,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   useEffect(() => {
     const content = contentBox.current;
     if (!content) return;
-    const observer = new ResizeObserver(() => {
+    const measure = () => {
       const element = viewport.current;
       const footerElement = footerBox.current;
       if (element && footerElement) {
@@ -65,13 +67,23 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
         footerElement.style.setProperty('--composer-height-limit', `${limit}px`);
         footerElement.classList.toggle('is-tall', Boolean(footerElement.firstElementChild && footerElement.firstElementChild.scrollHeight > limit));
       }
-      if (element && follow.current && !anchor.current) element.scrollTop = element.scrollHeight;
-    });
+      if (element && follow.current && !anchor.current) {
+        element.scrollTop = element.scrollHeight;
+        if (!loading && !loadingMore && !historyError && hasMore && onLoadMore
+            && autoHistory.current.pages < 3 && autoHistory.current.revision !== revision
+            && element.scrollHeight <= element.clientHeight + 2) {
+          autoHistory.current = { pages: autoHistory.current.pages + 1, revision };
+          onLoadMore();
+        }
+      }
+    };
+    const observer = new ResizeObserver(measure);
     observer.observe(content);
     if (viewport.current) observer.observe(viewport.current);
     if (footerBox.current?.firstElementChild) observer.observe(footerBox.current.firstElementChild);
+    measure();
     return () => observer.disconnect();
-  }, [loading, hasItems]);
+  }, [loading, hasItems, loadingMore, historyError, hasMore, revision, onLoadMore]);
 
   const disclosures: DisclosureState = {
     isOpen: (id, fallback = false) => expanded[id] ?? fallback,
@@ -103,12 +115,14 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
         const element = viewport.current;
         if (!element) return;
         follow.current = element.scrollHeight - element.scrollTop - element.clientHeight <= 2;
+        if (!follow.current) autoHistory.current.pages = 3;
         setAway(!follow.current);
       }}>
       <div ref={contentBox} className="message-body">
       <div className="message-thread" role="log" aria-label="对话" aria-busy={loading}>
         {(hasMore || historyError) && !loading && <div className="load-more-history">
           {hasMore && <button disabled={loadingMore} onClick={() => {
+            autoHistory.current.pages = 3;
             const element = viewport.current;
             if (element) { anchor.current = { height: element.scrollHeight, top: element.scrollTop }; follow.current = false; }
             onLoadMore?.();
@@ -125,8 +139,8 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
               {item.process.map((_, index) => renderExecutionAt(item.process, index))}
             </ReportCard>
             : item.kind === 'context'
-              ? <div key={item.id} className="context-marker" role="status" title={item.reason}>
-                {item.status === 'running' ? <span className="loading-dot" /> : <Icon name="compact" size={16} />}
+              ? <div key={item.id} className={`context-marker ${item.status}`} role="status" title={item.reason}>
+                <Icon name="compact" size={16} />
                 {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
                   cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
               </div>

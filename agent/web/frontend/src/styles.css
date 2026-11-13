@@ -79,7 +79,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .empty-state p { margin: 0; line-height: 1.7; }
 .welcome-mark { display: grid; place-items: center; width: 56px; height: 56px; color: #6c778e; background: #f3f5f9; border-radius: 18px; }
 .tool-card { width: 100%; color: #626770; font-size: 13px; }
-.tool-card > summary { display: flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; padding: 7px 2px 8px; border-bottom: 1px solid #edf0f3; }
+.tool-card > summary { display: flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; padding: 7px 2px 8px; }
 .tool-card > summary::-webkit-details-marker { display: none; }
 .tool-name { flex: none; max-width: 65%; overflow-wrap: anywhere; }
 .tool-target { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
@@ -94,9 +94,15 @@ button { -webkit-tap-highlight-color: transparent; }
 .tool-result-error { color: #a34d4d; }
 .tool-label { margin-top: 10px; color: var(--muted); font-size: 11px; }
 .tool-body pre { margin: 6px 0 0; font: 12px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.command-transcript { padding: 12px 14px; border-radius: 6px; background: #f7f8fa; }
+.command-transcript { padding: 12px 14px; }
 .tool-body .command-source { margin: 0; color: #343a43; }
 .tool-body .command-output { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #e6e9ed; }
+.tool-body .tool-result-text { max-height: min(250px, 50vh); overflow: auto; }
+.tool-body .tool-result-text:not(.command-output) { padding: 10px 12px; }
+.tool-body .tool-result-text.is-scrollable { border-radius: 6px; background: #f7f8fa; }
+.tool-body .tool-result-text.is-expanded { max-height: none; }
+.tool-output-toggle { display: block; margin-top: 6px; padding: 2px 0; border: 0; background: transparent; color: var(--muted); font-size: 11px; }
+.tool-output-toggle:hover { color: #343a43; }
 .tool-metadata { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; color: var(--muted); font: 11px/1.6 ui-monospace, monospace; }
 .execution-steps { width: 100%; color: var(--muted); font-size: 12px; }
 .execution-steps > summary { display: flex; align-items: center; gap: 8px; padding: 5px 2px 8px; border-bottom: 1px solid #eceef1; list-style: none; cursor: pointer; }
@@ -107,7 +113,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .execution-steps > summary > span:first-of-type { color: var(--muted); }
 .execution-steps-status { min-width: 0; margin-left: auto; overflow: hidden; color: #89918a; text-overflow: ellipsis; white-space: nowrap; }
 .execution-steps-status.running { color: #8c7a53; }
-.execution-steps-status.interrupted, .execution-steps-status.rejected { color: #a57575; }
+.execution-steps-status.error, .execution-steps-status.interrupted, .execution-steps-status.rejected { color: #a57575; }
 .execution-steps[open] > summary { color: #4e5969; }
 .execution-steps[open] > summary > svg:last-child { transform: rotate(180deg); }
 .execution-step-list { display: flex; flex-direction: column; gap: 3px; padding: 8px 0 0 14px; border-left: 1px solid #e6e9ee; }
@@ -196,7 +202,7 @@ button { -webkit-tap-highlight-color: transparent; }
   .composer-actions { gap: 4px; }
   .error-banner { padding: 10px 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .loading-dot { animation: none; } .sidebar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .loading-dot, .context-marker.running > svg { animation: none; } .sidebar { transition: none; } }
 
 .agent-tabs { display: flex; align-items: center; flex: 1; gap: 8px; min-width: 0; }
 .agent-tabs button { flex: none; padding: 8px 12px; border: 0; border-radius: 8px; background: transparent; color: #7a7e86; font-size: 13px; }
@@ -220,6 +226,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .watch-panel { display: flex; align-items: center; flex: none; gap: 6px; margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .watch-panel button { padding: 4px 6px; font-size: inherit; }
+.context-marker.running > svg { animation: pulse 1.5s ease-in-out infinite; }
 .context-marker { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: var(--muted); font-size: 12px; }
 @media (max-width: 640px) {
   .agent-tabs { gap: 6px; }

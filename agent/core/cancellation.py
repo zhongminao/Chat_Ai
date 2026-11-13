@@ -63,3 +63,4 @@ class CancellationToken:
 @dataclass(frozen=True)
 class ExecutionContext:
     cancellation: CancellationToken
+    on_process: Callable[[dict], None] | None = None

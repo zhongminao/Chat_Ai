@@ -1,4 +1,4 @@
-"""Historical snapshot and backwards segment paging over JSONL."""
+"""Historical snapshot and turn-aligned event paging over JSONL."""
 import tempfile
 import unittest
 from dataclasses import replace
@@ -48,22 +48,22 @@ class HistoryAPITests(unittest.TestCase):
     def test_latest_aligns_to_started_and_frozen_older_page(self):
         for index in range(4):
             self.log.append('turn.started', prompt=str(index))
-            for _ in range(105):
+            for _ in range(505):
                 self.log.append('message.delta', durable=False, text='x')
             self.log.append('turn.completed')
         recent = self.page()
         self.assertEqual(recent['events'][0]['type'], 'turn.started')
-        self.assertEqual(recent['min_seq'], 215)
-        self.assertEqual(recent['snapshot_seq'], 428)
+        self.assertEqual(recent['min_seq'], 1015)
+        self.assertEqual(recent['snapshot_seq'], 2028)
         self.assertTrue(recent['has_more'])
         self.log.append('turn.started', prompt='new')
         older = self.page(before=recent['min_seq'], through=recent['snapshot_seq'])
-        self.assertEqual(older['snapshot_seq'], 428)
+        self.assertEqual(older['snapshot_seq'], 2028)
         self.assertEqual(older['events'][0]['seq'], 1)
-        self.assertEqual(older['events'][-1]['seq'], 214)
+        self.assertEqual(older['events'][-1]['seq'], 1014)
         self.assertFalse(older['has_more'])
 
-    def test_compaction_stays_with_newer_segment_and_not_inside_turn(self):
+    def test_older_page_uses_event_budget_and_keeps_turn_complete(self):
         for prompt in ('old', 'second'):
             self.log.append('turn.started', prompt=prompt)
             self.log.append('turn.completed')
@@ -72,7 +72,8 @@ class HistoryAPITests(unittest.TestCase):
         self.log.append('turn.completed')
         self.log.append('turn.started', prompt='fourth')
         self.log.append('turn.completed')
-        page = self.page(before=8, through=8)
+        with patch('agent.web.history.PAGE_EVENTS', 2):
+            page = self.page(before=8, through=8)
         self.assertEqual([e['seq'] for e in page['events']], [5, 6, 7])
         self.assertEqual(page['min_seq'], 5)
         old = self.page(before=5, through=8)
@@ -84,7 +85,8 @@ class HistoryAPITests(unittest.TestCase):
         self.log.append('context.compacted', messages=[])
         self.log.append('turn.started', prompt='new')
         self.log.append('turn.completed')
-        self.assertEqual([e['seq'] for e in self.page(before=4, through=5)['events']], [3])
+        with patch('agent.web.history.PAGE_EVENTS', 1):
+            self.assertEqual([e['seq'] for e in self.page(before=4, through=5)['events']], [3])
         self.assertEqual([e['seq'] for e in self.page(before=3, through=5)['events']], [1, 2])
 
     def test_running_turn_in_latest_page(self):

@@ -282,6 +282,10 @@ class AgentStateTests(unittest.TestCase):
             self.registry.wait()
         records = self.session.session.events.read()
         self.assertTrue(any(event["type"] == "tool.completed" for event in records))
+        processes = [event for event in records if event["type"] == "tool.process"]
+        self.assertEqual([event["process"]["reason"] for event in processes], ["running", "exited"])
+        self.assertTrue(all(event["callId"] == "large-output" and event["tool"] == "bash" for event in processes))
+        self.assertEqual(processes[-1]["process"]["exitCode"], 0)
         self.assertEqual(records[-1]["type"], "turn.completed")
         self.assertEqual(self.agent.state["execution"]["status"], "completed")
 

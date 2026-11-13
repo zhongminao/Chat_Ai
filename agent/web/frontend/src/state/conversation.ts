@@ -1,8 +1,8 @@
-import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionState } from '../api/types';
+import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionState, ToolProcess } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
-export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
+export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
@@ -105,6 +105,22 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       next.items = appendExecution(state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
         arguments: event.arguments, status: 'running' });
       break;
+    case 'tool.process': {
+      const id = `tool:${event.callId}`;
+      let found = false;
+      const update = (item: ExecutionItem): ExecutionItem => {
+        if (item.kind !== 'tool' || item.id !== id) return item;
+        found = true;
+        return { ...item, process: event.process };
+      };
+      next.items = state.items.map(item => item.kind === 'report'
+        ? { ...item, process: item.process.map(update) }
+        : item.kind === 'context' ? item : update(item));
+      // A history page can begin after tool.requested; only use metadata actually received.
+      if (!found) next.items = appendExecution(next.items, { id, kind: 'tool', name: event.tool,
+        process: event.process, status: event.process.reason === 'running' ? 'running' : 'completed' });
+      break;
+    }
     case 'tool.completed': {
       if (event.tool === 'submit') break;
       const id = `tool:${event.callId}`;

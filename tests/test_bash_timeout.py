@@ -1,3 +1,4 @@
+import os
 import tempfile
 import threading
 import time
@@ -27,6 +28,34 @@ class BashTimeoutTests(unittest.TestCase):
             self.assertEqual(bash(root, 'printf hello'), 'hello')
             self.assertEqual(execute(root, 'bash', {'command': 'printf custom', 'timeout': 86400}), 'custom')
 
+    def test_process_metadata_and_nonzero_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for code in (0, 7):
+                with self.subTest(code=code):
+                    events = []
+                    context = ExecutionContext(CancellationToken(), events.append)
+                    result = bash(Path(directory), f'printf output; exit {code}', context)
+                    self.assertEqual(len(events), 2)
+                    started, ended = events
+                    self.assertEqual(started['reason'], 'running')
+                    self.assertIsNone(started['exitCode'])
+                    self.assertGreater(started['pid'], 0)
+                    self.assertEqual(started['pid'], started['pgid'])
+                    self.assertEqual(ended, {**started, 'reason': 'exited', 'exitCode': code})
+                    self.assertIn('output', result)
+                    self.assertEqual(result.startswith('[tool error]'), code != 0)
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(started['pid'], 0)
+
+    def test_timeout_records_metadata_even_when_shell_exits_before_child(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events = []
+            context = ExecutionContext(CancellationToken(), events.append)
+            result = execute(Path(directory), 'bash', {'command': 'sleep 60 &', 'timeout': 1}, context)
+            self.assertIn('[tool error] TimeoutExpired:', result)
+            self.assertEqual([event['reason'] for event in events], ['running', 'timeout'])
+            self.assertEqual(events[-1]['exitCode'], 0)  # Only the shell has exited successfully.
+
     def test_invalid_timeout_is_rejected_before_starting_command(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -51,9 +80,10 @@ class BashTimeoutTests(unittest.TestCase):
             started = root / 'started'
             token = CancellationToken()
             caught = []
+            events = []
             def call():
                 try:
-                    bash(root, 'touch started; sleep 60', ExecutionContext(token), timeout=86400)
+                    bash(root, 'touch started; sleep 60', ExecutionContext(token, events.append), timeout=86400)
                 except RunCancelled:
                     caught.append(True)
             thread = threading.Thread(target=call)
@@ -67,6 +97,8 @@ class BashTimeoutTests(unittest.TestCase):
                 thread.join(4)
                 self.assertFalse(thread.is_alive())
                 self.assertEqual(caught, [True])
+                self.assertEqual([event['reason'] for event in events], ['running', 'cancelled'])
+                self.assertIsInstance(events[-1]['exitCode'], int)
             finally:
                 token.cancel()
                 thread.join(4)

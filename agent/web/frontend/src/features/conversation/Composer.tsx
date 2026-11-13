@@ -139,7 +139,7 @@ export function Composer(props: Props) {
         </span>)}</div>}
       {(draft.uploading || fileDraft.uploading) && <div className="image-draft-status" role="status">正在上传附件…</div>}
       {(draft.error || fileDraft.error) && <div className="image-draft-status image-draft-error" role="alert">{draft.error || fileDraft.error}</div>}
-      <textarea ref={textarea} rows={2} aria-label="消息" placeholder={props.readOnly ? '子 agent 会话仅供查看' : '输入消息…'} value={text}
+      <textarea ref={textarea} rows={2} aria-label="消息" placeholder={props.readOnly ? '子助手 会话仅供查看' : '输入消息…'} value={text}
         onPaste={event => {
           const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
           if (files.length && canEditImages) { event.preventDefault(); void draft.upload(files); }

@@ -392,3 +392,48 @@ describe('context usage snapshot and live updates', () => {
     expect(loaded.contextUsage).toEqual(usage);
   });
 });
+
+
+describe('bash process metadata', () => {
+  const request: AgentEvent = { seq: 1, type: 'tool.requested', tool: 'bash', callId: 'bash', arguments: { command: 'echo hello' } };
+  const running: AgentEvent = { seq: 2, type: 'tool.process', tool: 'bash', callId: 'bash',
+    process: { pid: 123, pgid: 123, exitCode: null, reason: 'running' } };
+  const exited: AgentEvent = { ...running, seq: 3, process: { ...running.process, exitCode: 7, reason: 'exited' } };
+  const complete: AgentEvent = { seq: 4, type: 'tool.completed', tool: 'bash', callId: 'bash', result: 'hello' };
+
+  it('updates process without losing arguments, result or images, and completion preserves it', () => {
+    let view = reduce(emptyConversation(), { type: 'events', events: [request, running] });
+    expect(view.items[0]).toMatchObject({ arguments: request.arguments, status: 'running', process: running.process });
+    view = reduce(view, { type: 'events', events: [exited, complete] });
+    expect(view.items[0]).toMatchObject({ arguments: request.arguments, result: 'hello', status: 'completed', process: exited.process });
+    const withImage = { ...complete, seq: 5, images: [{ id: 'image', name: 'image', ordinal: 1, filename: 'x.png', mime: 'image/png', width: 1, height: 1, size: 1 }] };
+    view = reduce(view, { type: 'events', events: [withImage, { ...exited, seq: 6 }] });
+    expect(view.items[0]).toMatchObject({ arguments: request.arguments, result: 'hello', images: ['image'], process: exited.process });
+  });
+
+  it('replays process metadata through HTTP history and report execution items', () => {
+    const events: AgentEvent[] = [start, { ...request, seq: 2 }, { ...running, seq: 3 }, { ...exited, seq: 4 },
+      { ...complete, seq: 5 }, { seq: 6, type: 'report.submitted', content: 'done' }];
+    const live = reduce(emptyConversation(), { type: 'events', events });
+    const restored = reduce(emptyConversation(), { type: 'history', page: {
+      events, snapshot_seq: 6, min_seq: 1, has_more: false,
+    } });
+    expect(restored.items).toEqual(live.items);
+    expect(restored.items[1]).toMatchObject({ kind: 'report', process: [{ process: exited.process }] });
+    const updated = reduce(restored, { type: 'events', events: [{ ...exited, seq: 7, process: { ...exited.process, reason: 'timeout' } }] });
+    expect(updated.items[1]).toMatchObject({ kind: 'report', process: [{ process: { reason: 'timeout' } }] });
+  });
+
+  it('supports a page beginning at tool.process without inventing arguments or an exit code', () => {
+    const view = reduce(emptyConversation(), { type: 'history', page: {
+      events: [running], snapshot_seq: 2, min_seq: 2, has_more: true,
+    } });
+    expect(view.items[0]).toEqual({ id: 'tool:bash', kind: 'tool', name: 'bash', status: 'running', process: running.process });
+  });
+
+  it('does not invent metadata for old bash records or unknown tools', () => {
+    const view = reduce(emptyConversation(), { type: 'events', events: [request, complete,
+      { ...requested, seq: 5 }, { ...completed, seq: 6 }] });
+    for (const item of view.items) expect(item).not.toHaveProperty('process');
+  });
+});
