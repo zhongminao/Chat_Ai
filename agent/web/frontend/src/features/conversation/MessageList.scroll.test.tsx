@@ -39,7 +39,7 @@ function render() {
     items: [{ id: 'tool:1', kind: 'tool', name: 'read_file', status: 'running' }],
     busy: true, loading: false, assistantId: null, sessionId: 'test', images: [],
   }) as Node;
-  const log = find(tree, node => node.props?.role === 'log')!;
+  const log = find(tree, node => node.props?.className === 'message-viewport')!;
   log.props.ref.current = viewport;
   find(tree, node => node.props?.className === 'message-body')!.props.ref.current = {};
   hooks.layouts.forEach(effect => effect());

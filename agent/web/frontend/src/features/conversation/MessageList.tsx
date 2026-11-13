@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { ExecutionItem, Item, ToolItem } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
@@ -8,16 +8,16 @@ import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
 
-export function MessageList({ scrollRef, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
-  scrollRef?: RefObject<HTMLDivElement | null>;
+export function MessageList({ footer, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
+  footer?: ReactNode;
   items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
   sessionId: string | null; images: ImageAsset[];
   waitingCallIds?: string[]; hasMore?: boolean; loadingMore?: boolean; historyError?: string | null;
   onLoadMore?: () => void; revision?: number;
 }) {
-  const localViewport = useRef<HTMLDivElement>(null);
-  const viewport = scrollRef ?? localViewport;
+  const viewport = useRef<HTMLDivElement>(null);
   const contentBox = useRef<HTMLDivElement>(null);
+  const footerBox = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const [away, setAway] = useState(false);
   const anchor = useRef<{ height: number; top: number } | null>(null);
@@ -58,10 +58,17 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
     if (!content) return;
     const observer = new ResizeObserver(() => {
       const element = viewport.current;
+      const footerElement = footerBox.current;
+      if (element && footerElement) {
+        const limit = element.clientHeight * 0.65;
+        footerElement.style.setProperty('--composer-height-limit', `${limit}px`);
+        footerElement.classList.toggle('is-tall', Boolean(footerElement.firstElementChild && footerElement.firstElementChild.scrollHeight > limit));
+      }
       if (element && follow.current && !anchor.current) element.scrollTop = element.scrollHeight;
     });
     observer.observe(content);
     if (viewport.current) observer.observe(viewport.current);
+    if (footerBox.current?.firstElementChild) observer.observe(footerBox.current.firstElementChild);
     return () => observer.disconnect();
   }, [loading, hasItems]);
 
@@ -87,7 +94,7 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
   };
 
   return <div className="conversation-area">
-    <div ref={viewport} className="message-viewport" role="log" aria-label="对话" aria-busy={loading}
+    <div ref={viewport} className="message-viewport"
       onScroll={() => {
         const element = viewport.current;
         if (!element) return;
@@ -95,35 +102,40 @@ export function MessageList({ scrollRef, items, busy, loading, assistantId, sess
         setAway(!follow.current);
       }}>
       <div ref={contentBox} className="message-body">
-      {(hasMore || historyError) && !loading && <div className="load-more-history">
-        {hasMore && <button disabled={loadingMore} onClick={() => {
-          const element = viewport.current;
-          if (element) { anchor.current = { height: element.scrollHeight, top: element.scrollTop }; follow.current = false; }
-          onLoadMore?.();
-        }}>{loadingMore ? '正在加载…' : '加载更多历史'}</button>}
-        {historyError && <span role="alert">{historyError}</span>}
-      </div>}
-      {loading && !hasItems ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
-        : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
-          <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
-        : <div className="message-list">{items.map((item, index) => <Fragment key={item.id}>
-          {index === progressIndex && progress}
-          {item.kind === 'report'
-          ? <ReportCard key={item.id} item={item} onInspect={pauseFollowing}>
-            {item.process.map((_, index) => renderExecutionAt(item.process, index))}
-          </ReportCard>
-          : item.kind === 'context'
-            ? <div key={item.id} className="context-marker" role="status" title={item.reason}>
-              {item.status === 'running' ? <span className="loading-dot" /> : <Icon name="compact" size={16} />}
-              {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
-                cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
-            </div>
-            : renderExecutionAt(items, index)}
-        </Fragment>)}
-          {progressIndex === items.length && progress}
+      <div className="message-thread" role="log" aria-label="对话" aria-busy={loading}>
+        {(hasMore || historyError) && !loading && <div className="load-more-history">
+          {hasMore && <button disabled={loadingMore} onClick={() => {
+            const element = viewport.current;
+            if (element) { anchor.current = { height: element.scrollHeight, top: element.scrollTop }; follow.current = false; }
+            onLoadMore?.();
+          }}>{loadingMore ? '正在加载…' : '加载更多历史'}</button>}
+          {historyError && <span role="alert">{historyError}</span>}
         </div>}
+        {loading && !hasItems ? <div className="empty-state"><span className="loading-dot" />加载会话…</div>
+          : !items.length ? <div className="empty-state"><div className="welcome-mark"><Icon name="chat" size={26} /></div>
+            <h1>开始一段对话</h1><p>发送消息，与 agent 一起处理任务。</p></div>
+          : <div className="message-list">{items.map((item, index) => <Fragment key={item.id}>
+            {index === progressIndex && progress}
+            {item.kind === 'report'
+            ? <ReportCard key={item.id} item={item} onInspect={pauseFollowing}>
+              {item.process.map((_, index) => renderExecutionAt(item.process, index))}
+            </ReportCard>
+            : item.kind === 'context'
+              ? <div key={item.id} className="context-marker" role="status" title={item.reason}>
+                {item.status === 'running' ? <span className="loading-dot" /> : <Icon name="compact" size={16} />}
+                {({ running: '正在自动压缩上下文', completed: '上下文已自动压缩', failed: '上下文自动压缩失败',
+                  cancelled: '上下文自动压缩已取消', interrupted: '上下文自动压缩已中断' })[item.status]}
+              </div>
+              : renderExecutionAt(items, index)}
+          </Fragment>)}
+            {progressIndex === items.length && progress}
+          </div>}
+      </div>
+      <div ref={footerBox} className="workspace-bottom">
+        {footer}
+        {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}
+      </div>
       </div>
     </div>
-    {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}
   </div>;
 }
