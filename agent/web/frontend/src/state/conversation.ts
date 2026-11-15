@@ -224,17 +224,12 @@ function rebuild(state: Conversation, history: AgentEvent[], live: AgentEvent[],
   }, seed);
   // Keep the server's current metadata; historical model/image events can be stale.
   const snapshot = session?.seq ?? page.snapshot_seq;
-  // Initialization metadata describes the journal at its own seq; preserve
-  // model and image changes replayed after it, even when older pages arrive.
+  // Images were merged during replay; only the selected model needs snapshot precedence.
   const later = live.filter(event => event.seq > snapshot);
   const changedModel = later.filter(event => event.type === 'model.changed').at(-1);
-  const images = later.reduce((assets, event) => {
-    for (const image of eventImages(event)) assets = upsertImage(assets, image);
-    return assets;
-  }, state.images.reduce((assets, image) => upsertImage(assets, image), result.images));
   result = { ...result,
     model: changedModel?.type === 'model.changed' ? changedModel.new : state.model,
-    images, contextUsage: state.contextUsage,
+    contextUsage: state.contextUsage,
     busy: state.busy,
     ready: state.ready, error: state.error };
   if (state.ready && !state.busy) result.items = interruptPending(result.items);

@@ -16,17 +16,17 @@ def save(session: Session, run_id: str, content: str, workspace: Path) -> tuple[
         elif event["type"] == "tool.completed":
             for image in event.get("model_images", []):
                 url = images.url(image)
-                sources = {str(images.path(image["id"])), images.path(image["id"]).as_posix()}
+                sources = {str(images.root / f"{image['id']}.{image['extension']}")}
                 if source := requests.get(event["callId"], {}).get("path"):
                     sources.update({source, str((workspace / source).resolve())})
                 for source in sources:
                     content = content.replace(f"]({source})", f"]({url})").replace(f"](<{source}>)", f"]({url})")
-    # Saved MCP images remain referenceable even for non-visual models.
+    # Only explicit Markdown references opt an image into the report.
+    references = set(re.findall(r"!\[[^\n]*?\]\(([^)]+)\)", content))
     for image in images.list():
-        referenced = re.search(r"!\[[^\n]*?\]\(" + re.escape(images.url(image)) + r"\)", content)
-        if not referenced:
-            continue  # Only explicit Markdown references opt an image into the report.
-        content += f"\n\n<!-- image_file: {images.path(image['id']).resolve()} -->"
+        if images.url(image) in references:
+            path = (images.root / f"{image['id']}.{image['extension']}").resolve()
+            content += f"\n\n<!-- image_file: {path} -->"
     path = session.directory / "reports" / f"{run_id}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
