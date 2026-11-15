@@ -287,7 +287,7 @@ class SubagentTests(unittest.TestCase):
         store = session.images
         image = store.add_file(image_path)
         session.events.append('tool.requested', runId='run', callId='read', arguments={'path': str(image_path)})
-        session.events.append('tool.completed', runId='run', callId='read', images=[], model_images=[image])
+        session.events.append('tool.completed', runId='run', callId='read', model_images=[image])
         from agent.storage.reports import save
         for reference in (f'![plot]({image_path})', store.markdown(image)):
             with self.subTest(reference=reference):
@@ -299,14 +299,27 @@ class SubagentTests(unittest.TestCase):
         _, content = save(session, 'run', 'Only inspected, no image requested.', self.root)
         self.assertEqual(content, 'Only inspected, no image requested.')
 
-    def test_report_preserves_automatic_mcp_image_inclusion(self):
+    def test_report_mcp_images_require_explicit_markdown(self):
         session = self.registry.store.create()
         image_path = self.root / 'image.png'
         Image.new('RGB', (20, 20)).save(image_path)
         image = session.images.add_file(image_path)
-        session.events.append('tool.completed', runId='run', callId='mcp', images=[image], model_images=[image])
+        session.events.append('tool.completed', runId='run', callId='mcp', model_images=[image])
         from agent.storage.reports import save
         _, content = save(session, 'run', 'MCP result', self.root)
+        self.assertEqual(content, 'MCP result')
+        _, content = save(session, 'run', session.images.markdown(image), self.root)
+        self.assertEqual(content.count(session.images.markdown(image)), 1)
+        self.assertEqual(content.count('<!-- image_file:'), 1)
+
+    def test_report_nonvision_mcp_markdown_keeps_image_file_reference(self):
+        session = self.registry.store.create()
+        image_path = self.root / 'image.png'
+        Image.new('RGB', (20, 20)).save(image_path)
+        image = session.images.add_file(image_path)
+        session.events.append('tool.completed', runId='run', callId='mcp', model_images=[])
+        from agent.storage.reports import save
+        _, content = save(session, 'run', session.images.markdown(image), self.root)
         self.assertEqual(content.count(session.images.markdown(image)), 1)
         self.assertEqual(content.count('<!-- image_file:'), 1)
 

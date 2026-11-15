@@ -8,7 +8,7 @@ from ..model.discovery import refresh_catalog
 from ..agentsessionstate.config import load
 from ..agentsessionstate.commands import SwitchModel
 from .images import ImageCommands
-from .output import render_context_event, render_tool_result
+from .output import render_context_event
 from .approval import handle_approval_command, render_approval_event, wait_for_execution
 
 
@@ -33,7 +33,6 @@ def main() -> None:
     session = runtime.session
     agent = runtime.agent
     agent.output = lambda text: print(text, end="", flush=True)
-    agent.on_tool_result = render_tool_result
 
     def on_event(event):
         runtime.bus.publish(event)

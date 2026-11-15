@@ -39,13 +39,16 @@ class ImageTests(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def test_image_reaches_model_and_display_and_deduplicates(self):
+    def test_image_reaches_model_with_markdown_and_deduplicates(self):
         response = types.CallToolResult(content=[types.TextContent(type="text", text="四视图"), picture()])
         result = convert_result(response, self.images, vision=True)
         self.assertIsInstance(result, ToolResult)
-        self.assertEqual(result.images, result.model_images)
+        self.assertFalse(hasattr(result, "images"))
+        self.assertEqual(len(result.model_images), 1)
         self.assertIn("四视图", result.text)
         identifier = result.model_images[0]["id"]
+        self.assertIn(self.images.markdown(result.model_images[0]), result.text)
+        self.assertNotIn("已展示", result.text)
         messages = [{"role": "assistant", "content": "", "tool_calls": [
             {"id": "call1", "type": "function", "function": {"name": "mcp_local_read_image", "arguments": "{}"}}]},
             build_tool_message("call1", result.text, [identifier])]
@@ -62,7 +65,7 @@ class ImageTests(unittest.TestCase):
         router = ToolRouter(self.root, images=self.images)
         router.vision = True
         read = router.call('read_image', {'path': str(source)})
-        self.assertFalse(read.images)
+        self.assertFalse(hasattr(read, "images"))
         image = read.model_images[0]
         path = self.images.path(image['id']).resolve()
         self.assertEqual(read.text, f"session_path: {path}\nmarkdown: {self.images.markdown(image)}")
@@ -109,9 +112,13 @@ class ImageTests(unittest.TestCase):
         self.assertIn('此前已附图', repeated[-1]['content'][-1]['text'])
         self.assertIn('无需调用 read_image 再次读取', labels[1])
 
-    def test_nonvision_model_displays_without_image_input(self):
+    def test_nonvision_model_gets_markdown_without_image_input(self):
         result = convert_result(types.CallToolResult(content=[picture()]), self.images)
-        self.assertEqual(len(result.images), 1)
+        self.assertFalse(hasattr(result, "images"))
+        image = self.images.list()[0]
+        self.assertIn(self.images.markdown(image), result.text)
+        self.assertIn(str(self.images.path(image["id"]).resolve()), result.text)
+        self.assertNotIn("已展示", result.text)
         self.assertEqual(result.model_images, [])
         self.assertIn("未启用视觉", result.text)
 

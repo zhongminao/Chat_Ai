@@ -97,7 +97,7 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'question.answered'; questionId: string; callId: string; answer: QuestionAnswer }
   | { type: 'question.cancelled'; questionId: string; callId: string }
   | { type: 'tool.process'; callId: string; tool: 'bash'; process: ToolProcess }
-  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[]; model_images?: ImageAsset[] }
+  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; model_images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }

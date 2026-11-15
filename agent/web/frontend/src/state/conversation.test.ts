@@ -401,14 +401,14 @@ describe('bash process metadata', () => {
   const exited: AgentEvent = { ...running, seq: 3, process: { ...running.process, exitCode: 7, reason: 'exited' } };
   const complete: AgentEvent = { seq: 4, type: 'tool.completed', tool: 'bash', callId: 'bash', result: 'hello' };
 
-  it('updates process without losing arguments, result or images, and completion preserves it', () => {
+  it('updates process without losing arguments or result and ignores legacy display images', () => {
     let view = reduce(emptyConversation(), { type: 'events', events: [request, running] });
     expect(view.items[0]).toMatchObject({ arguments: request.arguments, status: 'running', process: running.process });
     view = reduce(view, { type: 'events', events: [exited, complete] });
     expect(view.items[0]).toMatchObject({ arguments: request.arguments, result: 'hello', status: 'completed', process: exited.process });
     const withImage = { ...complete, seq: 5, images: [{ id: 'image', name: 'image', ordinal: 1, filename: 'x.png', mime: 'image/png', width: 1, height: 1, size: 1 }] };
     view = reduce(view, { type: 'events', events: [withImage, { ...exited, seq: 6 }] });
-    expect(view.items[0]).toMatchObject({ arguments: request.arguments, result: 'hello', images: ['image'], process: exited.process });
+    expect(view.items[0]).toMatchObject({ arguments: request.arguments, result: 'hello', readImageIds: [], process: exited.process });
   });
 
   it('replays process metadata through HTTP history and report execution items', () => {

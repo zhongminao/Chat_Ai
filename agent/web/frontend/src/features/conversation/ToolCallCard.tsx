@@ -3,7 +3,7 @@ import { DisclosureSummary } from './DisclosureSummary';
 import type { ToolItem } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import type { ImageAsset } from '../../api/types';
-import { ImageOutput } from '../images/ImageOutput';
+import { ToolImagePreview } from '../images/ToolImagePreview';
 import { processStatus, toolFailed, toolPresentation, toolStatus, type DisclosureState } from './toolPresentation';
 
 const format = (value: unknown) => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -22,9 +22,8 @@ export function ToolCallCard({ item, sessionId, images = [], waiting = false, di
     ? Object.fromEntries(Object.entries(item.arguments && typeof item.arguments === 'object' ? item.arguments : {}).filter(([key]) => key !== 'command'))
     : item.arguments;
   const hasParameters = parameters !== undefined && (!view.command || Object.keys(parameters as object).length > 0);
-  const imagePreview = item.name === 'read_image';
-  const imageOutput = sessionId && item.images?.length
-    ? <ImageOutput ids={item.images} assets={images} sessionId={sessionId} thumbnail={imagePreview} /> : null;
+  const imageOutput = item.name === 'read_image' && sessionId && item.readImageIds?.length
+    ? <ToolImagePreview ids={item.readImageIds} assets={images} sessionId={sessionId} /> : null;
   const failed = toolFailed(item);
   const indicator = failed ? 'error' : item.status === 'running' ? 'running' : 'completed';
   useEffect(() => {
@@ -81,9 +80,8 @@ export function ToolCallCard({ item, sessionId, images = [], waiting = false, di
           <div className="tool-label">工具结果</div>{output}
         </div>}
       </>}
-      {imagePreview && imageOutput}
+      {imageOutput}
     </div>
   </details>
-    {!imagePreview && imageOutput}
   </div>;
 }

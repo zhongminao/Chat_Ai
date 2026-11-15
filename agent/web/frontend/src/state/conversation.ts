@@ -2,7 +2,7 @@ import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionS
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
-export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; images?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
+export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; readImageIds?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
@@ -49,9 +49,10 @@ export type Action =
   | { type: 'error'; error: string | null };
 
 function eventImages(event: AgentEvent): ImageAsset[] {
-  const images = 'images' in event ? event.images ?? [] : [];
-  return event.type === 'tool.completed' && event.tool === 'read_image'
-    ? [...images, ...event.model_images ?? []] : images;
+  if (event.type === 'tool.completed') {
+    return event.tool === 'read_image' ? event.model_images ?? [] : [];
+  }
+  return 'images' in event ? event.images ?? [] : [];
 }
 
 function applyEvent(state: Conversation, event: AgentEvent): Conversation {
@@ -149,10 +150,10 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       const exists = state.items.some(item => item.id === id);
       const result = String(event.result);
       const status = result.startsWith('[tool cancelled]') ? 'interrupted' : result.startsWith('[tool denied]') ? 'rejected' : 'completed';
-      const images = [...new Set(eventImages(event).map(image => image.id))];
+      const readImageIds = [...new Set(eventImages(event).map(image => image.id))];
       next.items = exists
-        ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, images: images ?? item.images, status } : item)
-        : appendExecution(state.items, { id, kind: 'tool', name: event.tool, result: event.result, images, status });
+        ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, readImageIds, status } : item)
+        : appendExecution(state.items, { id, kind: 'tool', name: event.tool, result: event.result, readImageIds, status });
       break;
     }
     case 'report.submitted': {

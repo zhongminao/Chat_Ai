@@ -1,5 +1,4 @@
-"""Terminal presentation of shared tool resources."""
-from ..tools.result import ToolResult
+"""Terminal presentation of context events."""
 
 
 def render_context_event(event: dict) -> None:
@@ -12,8 +11,3 @@ def render_context_event(event: dict) -> None:
     if label := labels.get(event["type"]):
         detail = f"：{event['reason']}" if event.get("reason") else ""
         print(f"\n[{label}{detail}]", flush=True)
-
-
-def render_tool_result(result: ToolResult) -> None:
-    if result.images:
-        print(f"\n{result.text}", flush=True)

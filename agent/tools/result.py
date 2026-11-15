@@ -14,7 +14,6 @@ class TextSection:
 @dataclass(frozen=True)
 class ToolResult:
     text: str
-    images: list[dict[str, Any]] = field(default_factory=list)
     model_images: list[dict[str, Any]] = field(default_factory=list)
     preview: str | None = None
     sections: list[TextSection] = field(default_factory=list)

@@ -21,7 +21,7 @@ from ..model.openai_compatible import stream
 from ..model.stream_guard import ModelStreamGuard
 from ..storage.event_log import EventLog
 from ..tools.router import ToolRouter
-from ..tools.result import ToolResult, normalize_result
+from ..tools.result import normalize_result
 from ..tools.spill import spill_tool_output
 from ..tools.schema import SUBMIT_SCHEMA, ToolCallAssembler
 
@@ -48,7 +48,6 @@ class AgentRuntime:
         steering,
         begin_submit,
         release_submit,
-        on_tool_result: Callable[[ToolResult], None] | None = None,
     ):
         self.state = state
         self.control = control
@@ -69,7 +68,6 @@ class AgentRuntime:
         self.log = log
         self.images = images
         self.tools.images = self.images
-        self.on_tool_result = on_tool_result
         self.output = output
 
     def close(self) -> None:
@@ -317,11 +315,8 @@ class AgentRuntime:
                     tool=call.name,
                     callId=call.id,
                     result=result,
-                    images=output.images,
                     model_images=output.model_images,
                 )
-                if output.images and self.on_tool_result:
-                    self.on_tool_result(output)
                 self.apply(message_updates.receive_tool(self.state, call.id, result, [image["id"] for image in output.model_images]))
                 completed_call_ids.add(call.id)
                 if transitions.after_tools(self.state) == "model":

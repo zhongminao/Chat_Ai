@@ -50,7 +50,9 @@ def convert_result(result: types.CallToolResult, images: ImageStore | None, *,
         extension = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}[mime]
         asset = saved.get(digest) or images.add(data, f"mcp-{digest[:12]}.{extension}")
         assets.append(asset)
-    receipts = "\n\n".join(images.describe(asset) for asset in assets)
-    note = "MCP 图片已展示并提供给模型。" if vision else "MCP 图片已展示；当前模型未启用视觉，未附加图像内容。"
+    receipts = "\n\n".join(
+        f"session_path: {images.path(asset['id']).resolve()}\nmarkdown: {images.markdown(asset)}"
+        for asset in assets)
+    note = "MCP 图片已保存并提供给模型；向用户展示时请引用 Markdown。" if vision else "MCP 图片已保存；当前模型未启用视觉，未附加图像内容。向用户展示时请引用 Markdown。"
     return ToolResult("\n\n".join(part for part in (text, note, receipts) if part),
-                      images=assets, model_images=assets if vision else [])
+                      model_images=assets if vision else [])
