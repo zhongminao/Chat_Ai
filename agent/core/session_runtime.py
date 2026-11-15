@@ -12,6 +12,7 @@ from ..agentsessionstate.commands import SwitchModel
 from ..agentsessionstate.state import AgentState, StateUpdate
 from ..agentsessionstate import transitions
 from ..tools.approval import ApprovalGate
+from ..tools.questions import QuestionGate
 
 
 class SessionBusy(ValueError):
@@ -32,6 +33,7 @@ class SessionRuntime:
             mode = next((e["mode"] for e in reversed(records)
                          if e["type"] == "approval.mode.changed"), registry.config.approval_mode)
             self.approvals = ApprovalGate(mode, self.session.events.append)
+        self.questions = QuestionGate(self.session.events.append, records)
         self.control = ExecutionControl()
         self.lock = threading.RLock()
         self.steering = InputDelivery(

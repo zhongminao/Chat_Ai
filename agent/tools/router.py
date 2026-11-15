@@ -11,20 +11,21 @@ from .images import read_image
 from .result import ToolResult
 from .mcp.client import McpClient
 from .mcp.results import convert_result
-from .schema import DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
+from .schema import ASK_USER_SCHEMA, DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
 from .search import search_resources
 from .search_output import DEFAULT_CONTEXT_CHARS, resource_search_output, web_search_output
 from . import mailbox
 
 
 class ToolRouter:
-    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None, read_file_config=None, web_search_config=None):
+    def __init__(self, workspace, mcp: McpClient | None = None, delegate=None, watch=None, images: ImageStore | None = None, approval=None, registry=None, session_id=None, read_file_config=None, web_search_config=None, ask_user=None):
         self.workspace = workspace
         self.read_file_config = read_file_config or {}
         self.web_search_config = web_search_config or {}
         self.registry = registry
         self.session_id = session_id
         self.approval = approval
+        self.ask_user = ask_user
         self.mcp = mcp
         self.delegate = delegate
         self.watch = watch
@@ -47,6 +48,8 @@ class ToolRouter:
                     limit_schema["description"] = "详细展示条数；其余返回短句简览，不裁掉落盘结果。"
         self.pending_tools: dict[str, tuple[str, dict, list[dict]]] = {}
         self.schemas.append(ENABLE_MCP_SCHEMA)
+        if ask_user:
+            self.schemas.append(deepcopy(ASK_USER_SCHEMA))
         if delegate:
             self.schemas.append(DELEGATE_SCHEMA)
         if watch:
@@ -108,6 +111,8 @@ class ToolRouter:
             context.cancellation.raise_if_cancelled()
         is_mcp = bool(self.mcp and name in self.mcp.tools)
         try:
+            if name == "ask_user":
+                return json.dumps(self.ask_user(context=context, run_id=run_id, call_id=call_id, **arguments), ensure_ascii=False)
             if name in {"notify_agent", "agent_inbox", "read_agent_message"}:
                 if not self.registry or not self.session_id:
                     raise ValueError("agent mailbox is unavailable")

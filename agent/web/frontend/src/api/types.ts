@@ -81,6 +81,9 @@ export interface ToolProcess {
   reason: 'running' | 'exited' | 'timeout' | 'cancelled' | 'error';
 }
 
+export interface QuestionOption { title: string; description: string }
+export interface QuestionAnswer { option_index: number | null; text: string }
+
 interface EventEnvelope { seq: number; runId?: string; time?: number }
 export type AgentEvent = EventEnvelope & (
   | { type: 'turn.started'; prompt: string; images?: ImageAsset[]; currentTime?: string }
@@ -90,8 +93,11 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'model.started'; round: number }
   | { type: 'message.delta'; text: string; round: number }
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
+  | { type: 'question.requested'; questionId: string; callId: string; question: string; options: QuestionOption[] }
+  | { type: 'question.answered'; questionId: string; callId: string; answer: QuestionAnswer }
+  | { type: 'question.cancelled'; questionId: string; callId: string }
   | { type: 'tool.process'; callId: string; tool: 'bash'; process: ToolProcess }
-  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[] }
+  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; images?: ImageAsset[]; model_images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }

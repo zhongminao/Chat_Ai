@@ -437,3 +437,38 @@ describe('bash process metadata', () => {
     for (const item of view.items) expect(item).not.toHaveProperty('process');
   });
 });
+
+describe('interactive questions', () => {
+  const asked: AgentEvent = { seq: 3, type: 'question.requested', questionId: 'q1', callId: 'ask1',
+    question: '选择一个方向', options: [
+      { title: '方向甲', description: '先验证接口' }, { title: '方向乙', description: '先验证布局' },
+    ] };
+  const events: AgentEvent[] = [start,
+    { seq: 2, type: 'tool.requested', callId: 'ask1', tool: 'ask_user', arguments: {} }, asked];
+  it('replaces the generic tool card with a pending question and keeps the full answer', () => {
+    let view = reduce(emptyConversation(), { type: 'events', events });
+    expect(view.items).toHaveLength(2);
+    expect(view.items[1]).toMatchObject({ kind: 'question', status: 'pending', options: asked.options });
+    view = reduce(view, { type: 'events', events: [
+      { seq: 4, type: 'question.answered', questionId: 'q1', callId: 'ask1', answer: { option_index: 1, text: '方向乙\n先验证布局' } },
+      { seq: 5, type: 'tool.completed', callId: 'ask1', tool: 'ask_user', result: 'answered' },
+      { seq: 6, type: 'report.submitted', content: 'done' },
+    ] });
+    expect(view.items.filter(item => item.kind === 'question')).toEqual([
+      expect.objectContaining({ status: 'answered', answer: { option_index: 1, text: '方向乙\n先验证布局' } }),
+    ]);
+    expect(view.items.some(item => item.kind === 'tool')).toBe(false);
+  });
+  it('restores open questions from history and marks cancelled questions', () => {
+    const history: AgentEvent[] = [...events.slice(0, 2), { ...asked, options: [] },
+      { seq: 4, type: 'question.cancelled', questionId: 'q1', callId: 'ask1' }];
+    const view = reduce(emptyConversation(), { type: 'history', page: {
+      events: history, snapshot_seq: 4, min_seq: 1, has_more: false,
+    } });
+    expect(view.items[1]).toMatchObject({ kind: 'question', options: [], status: 'cancelled' });
+  });
+  it('does not leave unanswered questions interactive after a stopped turn', () => {
+    const view = reduce(emptyConversation(), { type: 'events', events: [...events, { seq: 4, type: 'turn.cancelled' }] });
+    expect(view.items[1]).toMatchObject({ kind: 'question', status: 'cancelled' });
+  });
+});

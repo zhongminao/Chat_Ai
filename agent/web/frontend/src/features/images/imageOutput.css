@@ -9,3 +9,12 @@
 .image-output-actions a { color: #5571a7; text-decoration: none; }
 .image-output-actions a:hover { text-decoration: underline; }
 .image-output-error { padding: 24px 12px; color: #a83737; font-size: 13px; }
+
+.image-outputs-thumbnails { flex-direction: row; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.image-outputs-thumbnails .image-output { width: auto; max-width: 100%; border-radius: 8px; }
+.image-outputs-thumbnails .image-output-preview { width: fit-content; max-width: 100%; margin: auto; padding: 6px; }
+.image-outputs-thumbnails img { width: auto; height: auto; max-width: 100%; max-height: 140px; }
+.image-outputs-thumbnails figcaption { flex-wrap: wrap; gap: 4px 10px; padding: 6px 8px; }
+.image-outputs-thumbnails .image-output-name { flex-basis: 100%; max-width: 220px; }
+.image-outputs-thumbnails .image-output-actions { gap: 10px; }
+.image-outputs-thumbnails .image-output-error { padding: 12px 8px; }

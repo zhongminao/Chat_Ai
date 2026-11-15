@@ -294,7 +294,9 @@ class AgentRuntime:
                         detail_limit=output.detail_limit,
                         max_inline_chars=int(self.spill.get("max_inline_chars", 20000)),
                         max_preview_chars=int(self.spill.get("max_preview_chars", 24000)),
-                        enabled=bool(self.spill.get("enabled", True)),
+                        # ask_user is already strictly bounded and its complete
+                        # answer must reach the next model step, not a spill preview.
+                        enabled=bool(self.spill.get("enabled", True)) and call.name != "ask_user",
                         max_inline_lines=int(self.spill.get("max_inline_lines", 100)),
                         head_lines=int(self.spill.get("head_lines", 10)),
                         tail_lines=int(self.spill.get("tail_lines", 10)),

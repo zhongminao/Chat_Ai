@@ -22,6 +22,9 @@ export function ToolCallCard({ item, sessionId, images = [], waiting = false, di
     ? Object.fromEntries(Object.entries(item.arguments && typeof item.arguments === 'object' ? item.arguments : {}).filter(([key]) => key !== 'command'))
     : item.arguments;
   const hasParameters = parameters !== undefined && (!view.command || Object.keys(parameters as object).length > 0);
+  const imagePreview = item.name === 'read_image';
+  const imageOutput = sessionId && item.images?.length
+    ? <ImageOutput ids={item.images} assets={images} sessionId={sessionId} thumbnail={imagePreview} /> : null;
   const failed = toolFailed(item);
   const indicator = failed ? 'error' : item.status === 'running' ? 'running' : 'completed';
   useEffect(() => {
@@ -78,8 +81,9 @@ export function ToolCallCard({ item, sessionId, images = [], waiting = false, di
           <div className="tool-label">工具结果</div>{output}
         </div>}
       </>}
+      {imagePreview && imageOutput}
     </div>
   </details>
-    {sessionId && item.images?.length ? <ImageOutput ids={item.images} assets={images} sessionId={sessionId} /> : null}
+    {!imagePreview && imageOutput}
   </div>;
 }

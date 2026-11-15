@@ -2,6 +2,7 @@ import type { ToolItem } from '../../state/conversation';
 
 // Presentation only: preserve protocol names in history, details and approvals.
 const tools: Record<string, [string, string]> = {
+  ask_user: ['向你提问', 'question'],
   bash: ['Run command', 'command'],
   read_file: ['Read file', 'path'], write_file: ['Write file', 'path'],
   edit_file: ['Edit file', 'path'], read_image: ['View image', 'path'],

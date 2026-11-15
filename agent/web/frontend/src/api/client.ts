@@ -1,5 +1,5 @@
 import type { HistoryPage, ImageAsset, FileAsset, Model, ModelGroup, SessionSummary, WatchResult } from './types';
-import type { AccessMode, ApprovalSnapshot } from './types';
+import type { AccessMode, ApprovalSnapshot, QuestionAnswer } from './types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -25,6 +25,8 @@ const post = (body?: unknown): RequestInit => ({
 });
 
 export const api = {
+  answerQuestion: (id: string, question: string, answer: QuestionAnswer) => request<{ accepted: boolean; answer: QuestionAnswer }>(
+    `${sessionPath(id)}/questions/${encodeURIComponent(question)}/answer`, post(answer)),
   approvals: (id: string, signal?: AbortSignal) => request<ApprovalSnapshot>(`${sessionPath(id)}/approvals`, { signal }),
   decideApproval: (id: string, approval: string, approved: boolean) => request<ApprovalSnapshot>(
     `${sessionPath(id)}/approvals/${encodeURIComponent(approval)}`, post({ approved })),

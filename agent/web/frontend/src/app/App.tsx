@@ -28,15 +28,17 @@ export function App() {
   const readOnly = Boolean(current?.parent_session_id || conversation.session?.parent_session_id);
   const error = sessions.error || (isDraft ? newConversation.error : conversation.error || approvals.error);
   const waitingCallIds = (approvals.snapshot?.pending ?? []).filter(item => item.sessionId === sessions.selected).map(item => item.callId);
+  const waitingQuestion = conversation.items.some(item => item.kind === 'question' && item.status === 'pending');
   useTabTitle({
     selected: sessions.selected, title: current?.title, loading: sessions.loading,
     connected: conversation.connected, ready: conversation.ready, busy: conversation.busy,
-    sending: isDraft ? draftSending : conversation.pending === 'send', waitingApproval: waitingCallIds.length > 0,
+    sending: isDraft ? draftSending : conversation.pending === 'send', waitingApproval: waitingCallIds.length > 0, waitingQuestion,
     error, history: conversation.history, live: conversation.live,
   });
   const status = sessions.loading ? '正在加载' : isDraft ? draftSending ? '正在发送…' : '新会话草稿'
     : !conversation.connected ? '正在连接' : !conversation.ready ? '正在恢复会话'
-    : waitingCallIds.length ? '等待审批' : '已连接';
+    : waitingCallIds.length ? '等待审批'
+    : waitingQuestion ? '等待回答' : '已连接';
 
   return <div className="app-layout">
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
@@ -66,7 +68,7 @@ export function App() {
       <MessageList key={`messages:${sessions.selected ?? 'empty'}`} items={conversation.items} busy={conversation.busy} assistantId={conversation.assistantId}
         waitingCallIds={waitingCallIds} hasMore={conversation.hasMore} loadingMore={conversation.loadingMore}
         historyError={conversation.historyError} onLoadMore={() => { void conversation.loadMore(); }} revision={conversation.revision}
-        sessionId={sessions.selected} images={conversation.images}
+        sessionId={sessions.selected} images={conversation.images} canAnswer={conversation.ready && conversation.connected}
         loading={sessions.loading || Boolean(sessions.selected && !conversation.ready && !conversation.error && !conversation.items.length)}
         footer={
           <Composer key={`composer:${sessions.selected ?? 'empty'}`} ready={isDraft ? !sessions.loading : conversation.ready} connected={isDraft || conversation.connected}

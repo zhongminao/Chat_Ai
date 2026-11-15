@@ -3,6 +3,20 @@ from dataclasses import dataclass
 from typing import Any
 
 
+ASK_USER_SCHEMA = {"type": "function", "function": {
+    "name": "ask_user",
+    "description": "Ask the user a question and wait for their answer. Provide 2–5 options with complete titles and descriptions, or omit options for an open-ended question (an empty array also means open-ended). Users may also give a custom answer. Do not generate option IDs. This is not approval for dangerous operations; their normal approval policy still applies.",
+    "parameters": {"type": "object", "properties": {
+        "question": {"type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S"},
+        "options": {"type": "array", "maxItems": 5,
+                    "anyOf": [{"maxItems": 0}, {"minItems": 2}],
+                    "items": {"type": "object", "properties": {
+                        "title": {"type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S"},
+                        "description": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"}},
+                        "required": ["title", "description"], "additionalProperties": False}}},
+        "required": ["question"], "additionalProperties": False}}}
+
+
 DELEGATE_SCHEMA = {"type": "function", "function": {
     "name": "delegate",
     "description": "Start an independent child task and return its session_id immediately. The child has its own history, configured system prompt and shared workspace, but cannot delegate. It keeps running after your reply ends. Results require watch and reading result_path.",

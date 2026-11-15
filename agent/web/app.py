@@ -7,10 +7,11 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
 
 from ..core.session_registry import SessionRegistry
 from ..core.session_runtime import SessionRuntime, SessionBusy
+from ..tools.questions import QuestionConflict, QuestionNotFound
 from ..model.discovery import refresh_catalog
 from ..agentsessionstate.commands import SwitchModel
 from ..agentsessionstate.input import UserInput
@@ -55,6 +56,12 @@ class GuidanceRequest(SendMessageRequest):
 
 class ApprovalDecisionRequest(BaseModel):
     approved: StrictBool
+
+
+class QuestionAnswerRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    option_index: StrictInt | None = None
+    text: StrictStr | None = Field(None, max_length=4000)
 
 
 class AccessModeRequest(BaseModel):
@@ -148,6 +155,22 @@ async def watch(session_id: str, cursor: int | None = None, timeout: float = Que
         return registry.monitor(session_id).watch(cursor, timeout)
 
     return await asyncio.to_thread(poll)
+
+
+@app.get("/api/sessions/{session_id}/questions")
+def pending_questions(session_id: str):
+    return runtime(session_id).questions.snapshot()
+
+
+@app.post("/api/sessions/{session_id}/questions/{question_id}/answer")
+def answer_question(session_id: str, question_id: str, request: QuestionAnswerRequest):
+    # Child sessions are read-only for general input, not for explicit answers.
+    try:
+        return runtime(session_id).questions.answer(question_id, **request.model_dump())
+    except QuestionNotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except QuestionConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @app.get("/api/sessions/{session_id}/approvals")

@@ -10,6 +10,7 @@ export interface TabTitleState {
   busy: boolean;
   sending: boolean;
   waitingApproval: boolean;
+  waitingQuestion: boolean;
   error: string | null;
   history: AgentEvent[];
   live: AgentEvent[];
@@ -22,6 +23,7 @@ export function getTabTitle(state: TabTitleState): string {
   else if (!state.connected) status = state.error ? '❌ 出错' : '⚠ 连接中 / 已断开';
   else if (!state.ready) status = state.error ? '❌ 出错' : '⏳ 正在恢复';
   else if (state.waitingApproval) status = '🔔 等待审批';
+  else if (state.waitingQuestion) status = '🔔 等待回答';
   else if (state.busy || state.sending) status = '⏳ 执行中';
   else if (state.error) status = '❌ 出错';
   else {

@@ -1,4 +1,4 @@
-import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionState, ToolProcess } from '../api/types';
+import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionState, ToolProcess, QuestionOption, QuestionAnswer } from '../api/types';
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
@@ -6,7 +6,9 @@ export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unk
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
-export type Item = ExecutionItem | ReportItem | ContextCompactionItem;
+export type QuestionItem = { id: string; kind: 'question'; questionId: string; callId: string;
+  question: string; options: QuestionOption[]; status: 'pending' | 'answered' | 'cancelled'; answer?: QuestionAnswer };
+export type Item = ExecutionItem | ReportItem | ContextCompactionItem | QuestionItem;
 export interface Conversation {
   contextUsage: ContextUsage | null;
   items: Item[];
@@ -45,6 +47,12 @@ export type Action =
   | { type: 'model'; model: Model }
   | { type: 'image'; image: ImageAsset }
   | { type: 'error'; error: string | null };
+
+function eventImages(event: AgentEvent): ImageAsset[] {
+  const images = 'images' in event ? event.images ?? [] : [];
+  return event.type === 'tool.completed' && event.tool === 'read_image'
+    ? [...images, ...event.model_images ?? []] : images;
+}
 
 function applyEvent(state: Conversation, event: AgentEvent): Conversation {
   if (event.seq <= state.seq) return state;
@@ -100,6 +108,19 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
         : appendExecution(state.items, { id, kind: 'text', role: 'assistant', content: event.text });
       break;
     }
+    case 'question.requested':
+      next.assistantId = null;
+      next.items = appendExecution(state.items.filter(item => item.id !== `tool:${event.callId}`), {
+        id: `question:${event.questionId}`, kind: 'question', questionId: event.questionId, callId: event.callId,
+        question: event.question, options: event.options, status: 'pending',
+      });
+      break;
+    case 'question.answered':
+    case 'question.cancelled':
+      next.items = state.items.map(item => item.kind === 'question' && item.questionId === event.questionId
+        ? { ...item, status: event.type === 'question.answered' ? 'answered' : 'cancelled',
+          answer: event.type === 'question.answered' ? event.answer : undefined } : item);
+      break;
     case 'tool.requested':
       if (event.tool === 'submit') break;
       next.items = appendExecution(state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
@@ -115,19 +136,20 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       };
       next.items = state.items.map(item => item.kind === 'report'
         ? { ...item, process: item.process.map(update) }
-        : item.kind === 'context' ? item : update(item));
+        : item.kind === 'context' || item.kind === 'question' ? item : update(item));
       // A history page can begin after tool.requested; only use metadata actually received.
       if (!found) next.items = appendExecution(next.items, { id, kind: 'tool', name: event.tool,
         process: event.process, status: event.process.reason === 'running' ? 'running' : 'completed' });
       break;
     }
     case 'tool.completed': {
-      if (event.tool === 'submit') break;
+      if (event.tool === 'submit' || (event.tool === 'ask_user' && state.items.some(
+        item => item.kind === 'question' && item.callId === event.callId))) break;
       const id = `tool:${event.callId}`;
       const exists = state.items.some(item => item.id === id);
       const result = String(event.result);
       const status = result.startsWith('[tool cancelled]') ? 'interrupted' : result.startsWith('[tool denied]') ? 'rejected' : 'completed';
-      const images = event.images?.map(image => image.id);
+      const images = [...new Set(eventImages(event).map(image => image.id))];
       next.items = exists
         ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, images: images ?? item.images, status } : item)
         : appendExecution(state.items, { id, kind: 'tool', name: event.tool, result: event.result, images, status });
@@ -137,7 +159,7 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       const startIndex = state.execution?.startIndex ?? state.items.length;
       const startedAt = state.execution?.startedAt;
       next.items = [...state.items.slice(0, startIndex),
-        ...state.items.slice(startIndex).filter(item => item.kind === 'context'), {
+        ...state.items.slice(startIndex).filter(item => item.kind === 'context' || item.kind === 'question'), {
         id: `report:${event.seq}`, kind: 'report', content: event.content,
         process: state.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind === 'text' || item.kind === 'tool'),
         durationSeconds: startedAt !== undefined && event.time !== undefined
@@ -164,11 +186,9 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       break;
     case 'turn.completed': next.busy = false; next.assistantId = null; break;
   }
-  if ('images' in event) {
-    for (const image of event.images ?? []) {
-      if (event.seq > (state.session?.seq ?? 0) || !next.images.some(entry => entry.id === image.id)) {
-        next.images = upsertImage(next.images, image);
-      }
+  for (const image of eventImages(event)) {
+    if (event.seq > (state.session?.seq ?? 0) || !next.images.some(entry => entry.id === image.id)) {
+      next.images = upsertImage(next.images, image);
     }
   }
   return next;
@@ -182,7 +202,8 @@ function appendExecution(items: Item[], item: Item): Item[] {
 function interruptPending(items: Item[]): Item[] {
   // An idle runtime or a stopped turn does not mean accepted guidance was lost.
   // Only guidance.undelivered can declare it undelivered; the server may carry it into the next turn.
-  return items.map(item => (item.kind === 'tool' || item.kind === 'context') && item.status === 'running'
+  return items.map(item => item.kind === 'question' && item.status === 'pending' ? { ...item, status: 'cancelled' }
+    : (item.kind === 'tool' || item.kind === 'context') && item.status === 'running'
     ? { ...item, status: 'interrupted' } : item);
 }
 
@@ -207,9 +228,9 @@ function rebuild(state: Conversation, history: AgentEvent[], live: AgentEvent[],
   const later = live.filter(event => event.seq > snapshot);
   const changedModel = later.filter(event => event.type === 'model.changed').at(-1);
   const images = later.reduce((assets, event) => {
-    if ('images' in event) for (const image of event.images ?? []) assets = upsertImage(assets, image);
+    for (const image of eventImages(event)) assets = upsertImage(assets, image);
     return assets;
-  }, state.images);
+  }, state.images.reduce((assets, image) => upsertImage(assets, image), result.images));
   result = { ...result,
     model: changedModel?.type === 'model.changed' ? changedModel.new : state.model,
     images, contextUsage: state.contextUsage,

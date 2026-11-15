@@ -245,3 +245,23 @@ button { -webkit-tap-highlight-color: transparent; }
 .guidance-draft-actions .icon-button { width: 26px; height: 26px; border-radius: 50%; background: #eceef1; color: #858b95; }
 .guidance-draft-actions .guidance-draft-send { width: auto; gap: 3px; padding: 0 9px; border-radius: 20px; font-size: 12px; white-space: nowrap; }
 .guidance-draft-actions .guidance-draft-remove:hover:not(:disabled) { color: #bd5555; background: #fbeeee; }
+
+.question-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.question-card h3 { margin: 0 0 8px; font-size: 14px; font-weight: 550; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.question-options { display: grid; gap: 4px; }
+.question-option { display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px; border: 1px solid transparent; border-radius: 6px; background: #f7f8fa; color: #35383d; text-align: left; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.question-option:hover:not(:disabled) { background: #f0f2f5; }
+.question-option[aria-pressed="true"] { border-color: #b8c8e7; background: #edf2fb; }
+.question-number { flex: none; width: 14px; padding-top: 2px; font-size: 11px; color: var(--muted); }
+.question-option > span:last-child { min-width: 0; }
+.question-option-title { display: block; font-weight: 500; }
+.question-option-description { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; white-space: pre-wrap; }
+.question-actions { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; }
+.question-card textarea { display: block; flex: 1; min-width: 0; width: 100%; min-height: 36px; max-height: 160px; resize: none; padding: 7px 10px; border: 1px solid #dfe2e7; border-radius: 6px; background: white; color: #202124; font-size: 13px; line-height: 20px; outline: none; }
+.question-card textarea:focus { border-color: #bbc5d7; }
+.question-card textarea::placeholder { color: #959aa2; }
+.question-actions button { flex: none; min-height: 36px; border: 0; border-radius: 6px; padding: 7px 12px; background: #333b49; color: white; font-size: 13px; line-height: 20px; }
+.question-actions button:hover:not(:disabled) { background: #202734; }
+.question-answer-label { margin-bottom: 4px; color: var(--muted); font-size: 12px; }
+.question-answer { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; }
+.question-error { color: #a83737; font-size: 12px; margin: 6px 0 0; }

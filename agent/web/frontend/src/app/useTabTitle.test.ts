@@ -5,7 +5,7 @@ vi.mock('react', () => ({ useEffect: (effect: () => void) => effect() }));
 afterEach(() => vi.unstubAllGlobals());
 const base: TabTitleState = {
   selected: 'session-1', title: '测试会话', loading: false, connected: true,
-  ready: true, busy: false, sending: false, waitingApproval: false,
+  ready: true, busy: false, sending: false, waitingApproval: false, waitingQuestion: false,
   error: null, history: [], live: [],
 };
 
@@ -35,6 +35,10 @@ describe('browser tab title', () => {
     expect(getTabTitle({ ...base, busy: true, connected: false })).toContain('⚠ 连接中 / 已断开');
     expect(getTabTitle({ ...base, ready: false })).toContain('正在恢复');
     expect(getTabTitle({ ...base, error: 'failed' })).toContain('❌ 出错');
+  });
+  it('shows waiting for an answer instead of running', () => {
+    expect(getTabTitle({ ...base, busy: true, waitingQuestion: true })).toContain('🔔 等待回答');
+    expect(getTabTitle({ ...base, waitingQuestion: true, connected: false })).toContain('⚠ 连接中 / 已断开');
   });
   it('handles initial loading and no selection', () => {
     expect(getTabTitle({ ...base, loading: true })).toContain('正在加载');

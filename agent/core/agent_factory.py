@@ -49,7 +49,8 @@ def build_agent(runtime) -> AgentRuntime:
                                      wake_if=runtime.steering.has_pending),
                        approval=partial(runtime.approvals.request, session_id=runtime.session.id,
                                         workspace=str(config.workspace)),
-                       registry=registry, session_id=runtime.session.id)
+                       registry=registry, session_id=runtime.session.id,
+                       ask_user=runtime.questions.request)
     return AgentRuntime(state=runtime.state, catalog=registry.catalog.fork(),
                         session_id=runtime.session.id, spill=config.spill,
                         workspace=config.workspace, log=runtime.session.events, images=runtime.session.images, max_rounds=config.max_rounds,

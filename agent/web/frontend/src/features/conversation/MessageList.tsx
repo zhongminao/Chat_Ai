@@ -3,13 +3,14 @@ import type { Item, ToolItem } from '../../state/conversation';
 import { Icon } from '../../ui/Icon';
 import { MessageContent } from './MessageContent';
 import { ExecutionSteps } from './ExecutionSteps';
+import { QuestionCard } from './QuestionCard';
 import { ReportCard } from './ReportCard';
 import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
 import type { DisclosureState } from './toolPresentation';
 
-export function MessageList({ footer, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0 }: {
-  footer?: ReactNode;
+export function MessageList({ footer, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0, canAnswer = true }: {
+  footer?: ReactNode; canAnswer?: boolean;
   items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
   sessionId: string | null; images: ImageAsset[];
   waitingCallIds?: string[]; hasMore?: boolean; loadingMore?: boolean; historyError?: string | null;
@@ -54,7 +55,8 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   const compacting = items.some(item => item.kind === 'context' && item.status === 'running');
   const pendingGuidance = items.findIndex(item => item.kind === 'text' && item.guidance === 'queued');
   const progressIndex = pendingGuidance < 0 ? items.length : pendingGuidance;
-  const progress = busy && !compacting
+  const questioning = items.some(item => item.kind === 'question' && item.status === 'pending');
+  const progress = busy && !compacting && !questioning
     ? <div className="run-indicator" role="status"><span className="loading-dot" />{waitingCallIds.length ? '等待审批…' : '正在执行…'}</div> : null;
   useEffect(() => {
     const content = contentBox.current;
@@ -95,6 +97,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   const renderExecutionAt = (source: Item[], index: number) => {
     const item = source[index];
     if (item.kind === 'context' || item.kind === 'report') return null;
+    if (item.kind === 'question') return <QuestionCard key={item.id} item={item} sessionId={sessionId} disabled={!canAnswer} />;
     if (item.kind === 'text') return <article key={item.id} className={`message ${item.role}`}
       aria-label={item.role === 'user' ? '你的消息' : '助手回复'}>
       {sessionId && item.images?.length ? <MessageImages ids={item.images} assets={images} sessionId={sessionId} /> : null}
