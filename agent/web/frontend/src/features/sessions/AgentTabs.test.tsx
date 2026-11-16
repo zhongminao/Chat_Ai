@@ -25,9 +25,12 @@ describe('subagent navigation', () => {
     const html = render(sessions, 'c4');
     expect(html).toContain('class="agent-children collapsed"');
     expect(html).toContain('aria-label="选择子助手"');
-    expect(html).toContain('<select');
-    expect(html.indexOf('value="c9"')).toBeLessThan(html.indexOf('value="c1"'));
-    expect(html).toContain('value="c4" selected=""');
-    expect(html).toContain('子助手（9）');
+    expect(html).toContain('<details class="agent-child-picker active">');
+    expect(html).not.toContain('<select');
+    expect(html).toContain('class="agent-child-options"');
+    expect(html.indexOf('子助手 9')).toBeLessThan(html.indexOf('子助手 1'));
+    expect(html).toContain('aria-current="page" class="active"');
+    expect(html).toContain('Task 4');
+    expect(render(sessions)).toContain('子助手（9）');
   });
 });

@@ -39,7 +39,7 @@ class ToolRouter:
             fn = schema["function"]
             if mcp and mcp.tools.get(fn["name"]) == ("web", "search"):
                 fn["description"] = (
-                    "搜索网页。默认 SearXNG；enhanced=true 使用付费 DeepSeek Search 并请求正文。"
+                    "搜索网页。默认 SearXNG；外网搜索请设置 enhanced=true，使用付费 DeepSeek Search 渠道并请求正文。"
                     "两种模式均获取最多 50 条并完整落盘；limit 只控制前多少条展示详细摘录，"
                     "剩余条目给出无模型的相关原文短句简览。预览仍受总字符预算限制。"
                 )

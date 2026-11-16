@@ -82,6 +82,8 @@ class SearchOutputTests(unittest.TestCase):
                 self.assertEqual(output.detail_limit, 6)
                 description = next(s["function"]["description"] for s in router.schemas
                                    if s["function"]["name"] == "mcp_web_search")
+                self.assertIn("外网搜索请设置 enhanced=true", description)
+                self.assertIn("付费 DeepSeek Search 渠道", description)
                 self.assertIn("limit 只控制", description)
                 self.assertEqual(schema["function"]["description"], "old")
 

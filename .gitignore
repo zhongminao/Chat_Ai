@@ -32,10 +32,13 @@ htmlcov/
 /tmp/
 
 /local/
-
+/supper_agent
 # Host-specific deployment Skill: keep local, do not publish.
 /skills/linux_environment/
 
 # Host-specific desktop automation: keep local, not in portable deployments.
 /skills/desktop_locator/
 /tests/test_desktop_locator.py
+
+# Host-local QQ email Skill; contains local operational configuration.
+/skills/qq_email/
