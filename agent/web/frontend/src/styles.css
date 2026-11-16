@@ -78,23 +78,25 @@ button { -webkit-tap-highlight-color: transparent; }
 .empty-state h1 { color: #35383e; font-size: 22px; font-weight: 550; margin: 8px 0 0; }
 .empty-state p { margin: 0; line-height: 1.7; }
 .welcome-mark { display: grid; place-items: center; width: 56px; height: 56px; color: #6c778e; background: #f3f5f9; border-radius: 18px; }
-.tool-card { width: 100%; color: #626770; font-size: 13px; }
-.tool-card > summary { display: flex; align-items: center; gap: 9px; list-style: none; cursor: pointer; padding: 7px 2px 8px; }
+.tool-card { width: 100%; color: #626770; font-size: 12px; }
+.tool-card > summary { display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; min-height: 37px; padding: 5px 7px; border-radius: 6px; }
 .tool-card > summary::-webkit-details-marker { display: none; }
+.tool-icon { display: flex; flex: none; color: #929aa5; }
+.tool-card > summary:hover { background: #f6f7f9; }
 .tool-name { flex: none; max-width: 65%; overflow-wrap: anywhere; }
 .tool-target { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
-.tool-status { margin-left: auto; flex: none; color: #89918a; font-size: 11px; }
+.tool-status { display: flex; align-items: center; gap: 5px; margin-left: auto; flex: none; color: #89918a; font-size: 11px; }
 .tool-status.running { color: #8c7a53; }
 .tool-status.error, .tool-status.interrupted, .tool-status.rejected { color: #a57575; }
-.tool-card[open] > summary { color: #4e5969; }
+.tool-card[open] > summary { color: #4e5969; background: #f6f7f9; }
 .tool-card[open] > summary > .tool-target { display: none; }
 .tool-card[open] > summary > svg:last-child { transform: rotate(180deg); }
 .tool-card > summary > svg:last-child { flex: none; }
-.tool-body { padding: 8px 0 12px; user-select: text; }
+.tool-body { padding: 6px 10px 14px 30px; user-select: text; }
 .tool-result-error { color: #a34d4d; }
 .tool-label { margin-top: 10px; color: var(--muted); font-size: 11px; }
 .tool-body pre { margin: 6px 0 0; font: 12px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.command-transcript { padding: 12px 14px; }
+.command-transcript { padding: 8px 2px; }
 .tool-body .command-source { margin: 0; color: #343a43; }
 .tool-body .command-output { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #e6e9ed; }
 .tool-body .tool-result-text { max-height: min(250px, 50vh); overflow: auto; }
@@ -105,9 +107,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .tool-output-toggle:hover { color: #343a43; }
 .tool-metadata { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; color: var(--muted); font: 11px/1.6 ui-monospace, monospace; }
 .execution-steps { width: 100%; color: var(--muted); font-size: 12px; }
-.execution-steps > summary { display: flex; align-items: center; gap: 8px; padding: 5px 2px 8px; border-bottom: 1px solid #eceef1; list-style: none; cursor: pointer; }
+.execution-steps > summary { display: flex; align-items: center; gap: 8px; padding: 0 0 5px; min-height: 34px; list-style: none; cursor: pointer; }
 .execution-steps > summary::-webkit-details-marker { display: none; }
-.tool-status-dot { display: block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #83a78e; }
+.tool-status-dot { display: block; flex: none; width: 5px; height: 5px; border-radius: 50%; background: #94a79a; }
 .tool-status-dot.running { background: #c5a65d; }
 .tool-status-dot.error { background: #c47f7f; }
 .execution-steps > summary > span:first-of-type { color: var(--muted); }
@@ -116,9 +118,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .execution-steps-status.error, .execution-steps-status.interrupted, .execution-steps-status.rejected { color: #a57575; }
 .execution-steps[open] > summary { color: #4e5969; }
 .execution-steps[open] > summary > svg:last-child { transform: rotate(180deg); }
-.execution-step-list { display: flex; flex-direction: column; gap: 3px; padding: 8px 0 0 14px; border-left: 1px solid #e6e9ee; }
-.execution-step-list .tool-output { width: 100%; }
-.execution-step-list .tool-card > summary { padding: 7px 2px; }
+.execution-step-list { display: flex; flex-direction: column; gap: 2px; }
 .run-indicator { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
 .loading-dot { width: 6px; height: 6px; background: #a0a8b6; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .3; } }

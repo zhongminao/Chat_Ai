@@ -98,6 +98,8 @@ describe('tool expansion', () => {
       busy loading={false} assistantId={null} sessionId="test" images={[]} />);
     expect(html.match(/class="execution-steps"/g)).toHaveLength(1);
     expect(html.match(/class="tool-status-dot/g)).toHaveLength(3);
+    expect(html.match(/class="tool-icon"/g)).toHaveLength(3);
+    expect(html).toMatch(/class="tool-status completed"><span class="tool-status-dot completed"/);
     expect(html).toContain('执行步骤 · 3 个工具');
     expect(html).toContain('Run command · 执行中');
     expect(html).not.toMatch(/<details class="execution-steps" open/);

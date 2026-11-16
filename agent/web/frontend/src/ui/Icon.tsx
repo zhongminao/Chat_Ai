@@ -1,6 +1,10 @@
 import type { CSSProperties } from 'react';
 
 const paths = {
+  file: 'M5 3h14v18H5ZM9 8h6M9 12h6M9 16h4',
+  terminal: 'm5 6 5 6-5 6M13 18h6',
+  search: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
+  globe: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z',
   refresh: 'M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-2L20 8M4 16l2.3 3A7 7 0 0 0 17.9 17',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   pin: 'm9 3 6 0-1 6 4 4H6l4-4-1-6ZM12 13v8',
@@ -21,7 +25,9 @@ const paths = {
   image: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 13 5-5 4 4 3-3 6 6M8 7h.01',
 };
 
-export function Icon({ name, size = 18, style }: { name: keyof typeof paths; size?: number; style?: CSSProperties }) {
+export type IconName = keyof typeof paths;
+
+export function Icon({ name, size = 18, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>
     <path d={paths[name]} />

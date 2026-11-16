@@ -53,10 +53,11 @@ export function ToolCallCard({ item, sessionId, images = [], waiting = false, di
   </>;
   return <div className="tool-output"><details className="tool-card" open={disclosures.isOpen(item.id)}>
     <DisclosureSummary onToggle={() => disclosures.toggle(item.id)} title={item.name}>
-      <span className={`tool-status-dot ${indicator}`} aria-hidden="true" />
+      <span className="tool-icon"><Icon name={view.icon} size={15} /></span>
       <span className="tool-name">{view.label}</span>
       {view.target && <code className="tool-target" title={view.target}>{view.target}</code>}
       <span className={`tool-status ${failed ? 'error' : item.status}`}>
+        <span className={`tool-status-dot ${indicator}`} aria-hidden="true" />
         {failed ? '出错' : waiting && item.status === 'running' ? '等待审批' : toolStatus[item.status]}
       </span><Icon name="down" size={14} />
     </DisclosureSummary>

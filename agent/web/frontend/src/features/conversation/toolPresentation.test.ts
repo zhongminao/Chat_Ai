@@ -7,6 +7,13 @@ const bash: ToolItem = { id: 'tool:bash', kind: 'tool', name: 'bash', status: 'c
 const process = (reason: ToolProcess['reason'], exitCode: number | null): ToolProcess => ({ pid: 10, pgid: 10, exitCode, reason });
 
 describe('tool presentation', () => {
+  it('uses tool-type icons without changing protocol names', () => {
+    expect(toolPresentation(bash).icon).toBe('terminal');
+    expect(toolPresentation({ name: 'read_file' }).icon).toBe('file');
+    expect(toolPresentation({ name: 'read_image' }).icon).toBe('image');
+    expect(toolPresentation({ name: 'mcp_web_search' }).icon).toBe('search');
+    expect(toolPresentation({ name: 'mcp_custom_action' }).icon).toBe('tool');
+  });
   it('preserves the complete multiline bash command', () => {
     expect(toolPresentation(bash)).toMatchObject({ command: true, target: 'echo hello\necho world' });
   });

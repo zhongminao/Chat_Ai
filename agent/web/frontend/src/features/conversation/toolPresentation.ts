@@ -1,21 +1,23 @@
+import type { IconName } from '../../ui/Icon';
 import type { ToolItem } from '../../state/conversation';
 
 // Presentation only: preserve protocol names in history, details and approvals.
-const tools: Record<string, [string, string]> = {
-  ask_user: ['向你提问', 'question'],
-  bash: ['Run command', 'command'],
-  read_file: ['Read file', 'path'], write_file: ['Write file', 'path'],
-  edit_file: ['Edit file', 'path'], read_image: ['View image', 'path'],
-  search_resources: ['Search resources', 'query'],
-  mcp_web_search: ['Search web', 'query'], mcp_web_fetch_url: ['Fetch page', 'url'],
+const tools: Record<string, [string, string, IconName]> = {
+  ask_user: ['向你提问', 'question', 'chat'],
+  bash: ['Run command', 'command', 'terminal'],
+  read_file: ['Read file', 'path', 'file'], write_file: ['Write file', 'path', 'file'],
+  edit_file: ['Edit file', 'path', 'edit'], read_image: ['View image', 'path', 'image'],
+  search_resources: ['Search resources', 'query', 'search'],
+  mcp_web_search: ['Search web', 'query', 'search'], mcp_web_fetch_url: ['Fetch page', 'url', 'globe'],
 };
 
 export function toolPresentation(item: Pick<ToolItem, 'name' | 'arguments'>) {
   const mcp = item.name.startsWith('mcp_');
-  const [label, field] = tools[item.name] ?? [item.name.replace(/^mcp_/, '').replaceAll('_', ' '), ''];
+  const [label, field, icon] = tools[item.name] ?? [item.name.replace(/^mcp_/, '').replaceAll('_', ' '), '', 'tool'];
   const args = item.arguments && typeof item.arguments === 'object'
     ? item.arguments as Record<string, unknown> : {};
   return {
+    icon,
     label: `${mcp ? 'MCP · ' : ''}${label}`,
     target: typeof args[field] === 'string' ? args[field] as string : '',
     command: item.name === 'bash',
