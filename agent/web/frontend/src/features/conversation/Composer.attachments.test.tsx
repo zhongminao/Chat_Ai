@@ -51,7 +51,7 @@ afterEach(() => {
 
 function props(): ComponentProps<typeof Composer> {
   return {
-    busy: false, ready: true, connected: true, readOnly: false, status: 'draft', pending: null,
+    busy: false, ready: true, connected: true, readOnly: false, pending: null,
     accessMode: 'full_access', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
     model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
     sessionId: null, images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),

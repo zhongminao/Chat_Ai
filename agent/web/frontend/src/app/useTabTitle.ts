@@ -18,14 +18,14 @@ export interface TabTitleState {
 
 export function getTabTitle(state: TabTitleState): string {
   let status: string;
-  if (state.loading) status = '⏳ 正在加载';
-  else if (!state.selected) status = state.error ? '❌ 出错' : state.sending ? '⏳ 正在发送' : '○ 新会话';
-  else if (!state.connected) status = state.error ? '❌ 出错' : '⚠ 连接中 / 已断开';
-  else if (!state.ready) status = state.error ? '❌ 出错' : '⏳ 正在恢复';
-  else if (state.waitingApproval) status = '🔔 等待审批';
-  else if (state.waitingQuestion) status = '🔔 等待回答';
-  else if (state.busy || state.sending) status = '⏳ 执行中';
-  else if (state.error) status = '❌ 出错';
+  if (state.loading) status = '正在加载';
+  else if (!state.selected) status = state.error ? '出错' : state.sending ? '正在发送' : '新会话';
+  else if (!state.connected) status = state.error ? '出错' : '连接中';
+  else if (!state.ready) status = state.error ? '出错' : '正在恢复';
+  else if (state.waitingApproval) status = '等待审批';
+  else if (state.waitingQuestion) status = '等待回答';
+  else if (state.busy || state.sending) status = '执行中';
+  else if (state.error) status = '出错';
   else {
     // Use persisted events as well as live events, so refresh/reconnect retains
     // the outcome. Ignore later metadata events (e.g. model/image changes).
@@ -39,11 +39,12 @@ export function getTabTitle(state: TabTitleState): string {
         }
       }
     }
-    status = latest?.type === 'turn.completed' ? '✅ 已完成'
-      : latest?.type === 'turn.failed' ? '❌ 失败'
-      : latest?.type === 'turn.cancelled' ? '⏹ 已停止' : '○ 就绪';
+    status = latest?.type === 'turn.completed' ? '已完成'
+      : latest?.type === 'turn.failed' ? '失败'
+      : latest?.type === 'turn.cancelled' ? '已停止' : '就绪';
   }
-  const title = state.selected ? state.title?.trim() : '';
+  const name = state.title?.trim();
+  const title = state.selected && name !== state.selected ? name : '';
   return `${status}${title ? ` · ${title}` : ''}`;
 }
 

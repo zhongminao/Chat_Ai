@@ -17,7 +17,7 @@ interface Props {
   accessMode: AccessMode; accessDisabled: boolean; approvals: ReactNode;
   onAccessChange: (mode: AccessMode) => void;
   ready: boolean; connected: boolean; busy: boolean;
-  status: string; readOnly: boolean;
+  readOnly: boolean;
   pending: 'send' | 'guide' | 'stop' | 'model' | null;
   model: Model | null; models: ModelGroup[];
   modelsRefreshing: boolean; modelsError: string | null; onRefreshModels: () => Promise<void>;
@@ -105,6 +105,11 @@ export function Composer(props: Props) {
     }
   }
 
+  const notice = props.pending === 'stop' ? '正在停止…'
+    : waitingToSend ? '等待会话就绪后提交…'
+    : !props.connected ? '连接中…'
+    : !props.ready ? '正在恢复会话…' : null;
+
   return <div className="composer-wrap">
     {props.approvals}
     <GuidanceQueue items={guidance.items} disabled={props.readOnly || !props.ready || !props.connected || Boolean(props.pending)}
@@ -183,6 +188,7 @@ export function Composer(props: Props) {
           <option value="audit">审计</option><option value="full_access">完全访问</option>
         </select>
         </div><div className="composer-right-actions">
+        <ContextMeter usage={props.contextUsage} />
         <ModelPicker groups={props.models} model={props.model}
         refreshing={props.modelsRefreshing} error={props.modelsError} onRefresh={props.onRefreshModels}
         disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
@@ -194,10 +200,6 @@ export function Composer(props: Props) {
         </div>
       </div>
     </form>
-    <div className="composer-hint connection-status" role="status">
-      <ContextMeter usage={props.contextUsage} />
-      <span className={`connection-dot ${props.connected ? 'connected' : ''}`} />
-      {props.pending === 'stop' ? '正在停止…' : waitingToSend ? '等待会话就绪后提交…' : props.status}
-    </div>
+    {notice && <div className="composer-notice" role="status">{notice}</div>}
   </div>;
 }

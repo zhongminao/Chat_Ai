@@ -49,7 +49,7 @@ describe('recalled guidance follows current execution state', () => {
       try {
         writeTextDraft('test', '');
         const props: ComponentProps<typeof Composer> = {
-          busy: true, ready: true, connected: true, readOnly: false, status: 'running', pending: null,
+          busy: true, ready: true, connected: true, readOnly: false, pending: null,
           accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
           model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
           sessionId: 'test', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),
@@ -93,7 +93,7 @@ describe('send while loading a switched session', () => {
     try {
       writeTextDraft('loading', '待发送');
       const props: ComponentProps<typeof Composer> = {
-        busy: false, ready: false, connected: false, readOnly: false, status: '正在连接', pending: null,
+        busy: false, ready: false, connected: false, readOnly: false, pending: null,
         accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
         model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
         sessionId: 'loading', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),
@@ -127,7 +127,7 @@ describe('send while loading a switched session', () => {
     try {
       writeTextDraft('loading', '失败后重试');
       const props: ComponentProps<typeof Composer> = {
-        busy: false, ready: false, connected: false, readOnly: false, status: '正在连接', pending: null,
+        busy: false, ready: false, connected: false, readOnly: false, pending: null,
         accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
         model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
         sessionId: 'loading', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => false),
@@ -156,7 +156,7 @@ describe('send while loading a switched session', () => {
     try {
       writeTextDraft('loading', '之前的草稿');
       const props: ComponentProps<typeof Composer> = {
-        busy: false, ready: false, connected: false, readOnly: false, status: '正在连接', pending: null,
+        busy: false, ready: false, connected: false, readOnly: false, pending: null,
         accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
         model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
         sessionId: 'loading', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),
@@ -184,7 +184,7 @@ describe('send while loading a switched session', () => {
       try {
         writeTextDraft('loading', '留在草稿');
         const props: ComponentProps<typeof Composer> = {
-          busy: false, ready: false, connected: false, readOnly: false, status: '正在连接', pending: null,
+          busy: false, ready: false, connected: false, readOnly: false, pending: null,
           accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
           model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
           sessionId: 'loading', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),
@@ -214,7 +214,7 @@ describe('send while loading a switched session', () => {
     try {
       writeTextDraft('old', '原会话草稿');
       const props: ComponentProps<typeof Composer> = {
-        busy: false, ready: false, connected: false, readOnly: false, status: '正在连接', pending: null,
+        busy: false, ready: false, connected: false, readOnly: false, pending: null,
         accessMode: 'audit', accessDisabled: false, approvals: null, onAccessChange: vi.fn(),
         model: null, models: [], modelsRefreshing: false, modelsError: null, onRefreshModels: async () => {},
         sessionId: 'old', images: [], onUploaded: vi.fn(), onSend: vi.fn(async () => true),

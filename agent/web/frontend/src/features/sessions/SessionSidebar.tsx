@@ -40,9 +40,9 @@ export function SessionSidebar(props: Props) {
 
   return <>
     {props.open && <button className="sidebar-backdrop" aria-label="关闭会话列表" onClick={props.onClose} />}
-    <aside className={`sidebar ${props.open ? 'is-open' : ''}`} aria-label="会话列表">
+    <aside id="session-sidebar" className={`sidebar ${props.open ? 'is-open' : ''}`} aria-label="会话列表">
       <div className="sidebar-heading"><span className="brand">chat_ai</span>
-        <button className="icon-button mobile-only" aria-label="关闭会话列表" onClick={props.onClose}><Icon name="close" /></button>
+        <button className="icon-button" aria-label="关闭会话列表" title="收起会话列表" onClick={props.onClose}><Icon name="menu" /></button>
       </div>
       <button className="new-session" onClick={props.onCreate} disabled={props.loading}>
         <Icon name="plus" />新会话

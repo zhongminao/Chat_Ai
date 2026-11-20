@@ -15,7 +15,7 @@ describe('composer draft restoration', () => {
     });
     writeTextDraft('draft-session', '未发送的内容');
     const render = (sessionId: string) => renderToStaticMarkup(<Composer busy={false} ready connected readOnly={false}
-      status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      pending={null} accessMode="audit" accessDisabled={false} approvals={null}
       onAccessChange={() => {}} model={null} models={[]}
       modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId={sessionId} images={[]}
       onUploaded={() => {}} onSend={async () => true}
@@ -30,7 +30,7 @@ describe('composer draft restoration', () => {
 describe('attachment menu', () => {
   it('offers image, attachment and folder directly under the plus button', () => {
     const html = renderToStaticMarkup(<Composer busy={false} ready connected readOnly={false}
-      status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      pending={null} accessMode="audit" accessDisabled={false} approvals={null}
       onAccessChange={() => {}} model={null} models={[]}
       modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="test" images={[]}
       onUploaded={() => {}} onSend={async () => true}
@@ -47,7 +47,7 @@ describe('single composer action', () => {
   for (const busy of [false, true]) {
     it(busy ? 'has one enabled stop action while running with empty input' : 'has one disabled send action before any input', () => {
       const html = renderToStaticMarkup(<Composer busy={busy} ready connected readOnly={false}
-        status="connected" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+        pending={null} accessMode="audit" accessDisabled={false} approvals={null}
         onAccessChange={() => {}} model={null} models={[]}
         modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="test" images={[]}
         onUploaded={() => {}} onSend={async () => true}
@@ -63,13 +63,38 @@ describe('single composer action', () => {
 describe('editing while reconnecting', () => {
   it('allows typing before the session is ready but does not send until readiness', () => {
     const html = renderToStaticMarkup(<Composer busy={false} ready={false} connected={false} readOnly={false}
-      status="正在连接" pending={null} accessMode="audit" accessDisabled={false} approvals={null}
+      pending={null} accessMode="audit" accessDisabled={false} approvals={null}
       onAccessChange={() => {}} model={null} models={[]}
       modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}} sessionId="pending-session" images={[]}
       onUploaded={() => {}} onSend={async () => true}
       onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true} />);
     expect(html).toMatch(/<textarea[^>]*aria-label="消息"[^>]*>/);
     expect(html.match(/<textarea[^>]*>/)?.[0]).not.toContain('disabled');
-    expect(html).toContain('正在连接');
+    expect(html).toContain('连接中…');
+  });
+});
+
+
+describe('compact composer status', () => {
+  const render = (overrides = {}) => renderToStaticMarkup(<Composer busy={false} ready connected readOnly={false}
+    pending={null} accessMode="full_access" accessDisabled={false} approvals={null} onAccessChange={() => {}}
+    model={null} models={[]} modelsRefreshing={false} modelsError={null} onRefreshModels={async () => {}}
+    sessionId="compact-test" images={[]} onUploaded={() => {}} onSend={async () => true}
+    onGuide={async () => true} acceptedGuidance={[]} onStop={async () => true} onModelChange={async () => true}
+    contextUsage={{ usedTokens: 50, limitTokens: 100, estimated: false }} {...overrides} />);
+  it('places the context ring before the model and send action without a permanent status row', () => {
+    const html = render();
+    expect(html.indexOf('class="context-meter"')).toBeLessThan(html.indexOf('class="model-picker"'));
+    expect(html.indexOf('class="model-picker"')).toBeLessThan(html.indexOf('class="send-button'));
+    expect(html).not.toContain('composer-notice');
+    expect(html).not.toContain('connection-dot');
+    expect(html).not.toContain('composer-hint');
+  });
+  it.each([
+    [{ connected: false }, '连接中…'],
+    [{ ready: false }, '正在恢复会话…'],
+    [{ pending: 'stop' }, '正在停止…'],
+  ])('only shows a temporary notice when needed: %s', (props, notice) => {
+    expect(render(props)).toContain(`<div class="composer-notice" role="status">${notice}</div>`);
   });
 });

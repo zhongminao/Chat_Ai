@@ -21,6 +21,9 @@ export function App() {
   const isDraft = sessions.selected === null;
   const draftSending = isDraft && newConversation.sending;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const openSidebar = () => { setSidebarOpen(true); setSidebarCollapsed(false); };
+  const closeSidebar = () => { setSidebarOpen(false); setSidebarCollapsed(true); };
   const current = sessions.sessions.find(item => item.id === sessions.selected);
   const readThrough = useSessionReadState(sessions.sessions, sessions.selected, conversation.ready, conversation.seq);
   const mainId = current?.parent_session_id ?? sessions.selected;
@@ -35,29 +38,25 @@ export function App() {
     sending: isDraft ? draftSending : conversation.pending === 'send', waitingApproval: waitingCallIds.length > 0, waitingQuestion,
     error, history: conversation.history, live: conversation.live,
   });
-  const status = sessions.loading ? '正在加载' : isDraft ? draftSending ? '正在发送…' : '新会话草稿'
-    : !conversation.connected ? '正在连接' : !conversation.ready ? '正在恢复会话'
-    : waitingCallIds.length ? '等待审批'
-    : waitingQuestion ? '等待回答' : '已连接';
 
-  return <div className="app-layout">
+  return <div className={`app-layout${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
     <SessionSidebar sessions={sessions.sessions} selected={sessions.selected} loading={sessions.loading}
       deleting={sessions.deleting} busy={conversation.busy} open={sidebarOpen}
       updating={sessions.updating} onUpdate={sessions.update} readThrough={readThrough}
       activeBusy={conversation.ready ? conversation.busy : undefined}
-      onClose={() => setSidebarOpen(false)} onSelect={id => { sessions.select(id); setSidebarOpen(false); }}
+      onClose={closeSidebar} onSelect={id => { sessions.select(id); setSidebarOpen(false); }}
       onCreate={() => { sessions.select(null); setSidebarOpen(false); }} onDelete={id => { void sessions.remove(id); }} />
     <main className={`workspace${hasChildAgents ? "" : " no-agent-header"}`}>
       <div className="workspace-top">
         {hasChildAgents ? <header className="workspace-header">
-          <button className="icon-button mobile-only" aria-label="打开会话列表" onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
+          <button className="icon-button sidebar-open" aria-label="打开会话列表" aria-controls="session-sidebar" onClick={openSidebar}><Icon name="menu" /></button>
           <AgentTabs sessions={sessions.sessions} selected={sessions.selected} onSelect={sessions.select}>
             <WatchStatus sessionId={mainId} onChange={() => { void sessions.refresh(); }} />
           </AgentTabs>
         </header> : <>
           <div hidden><WatchStatus sessionId={mainId} onChange={() => { void sessions.refresh(); }} /></div>
-          <button className="icon-button mobile-only mobile-menu-no-header" aria-label="打开会话列表"
-            onClick={() => setSidebarOpen(true)}><Icon name="menu" /></button>
+          <button className="icon-button sidebar-open sidebar-open-no-header" aria-label="打开会话列表" aria-controls="session-sidebar"
+            onClick={openSidebar}><Icon name="menu" /></button>
         </>}
         {error && <div className="error-banner" role="alert"><span>{error}</span>
           {!isDraft && conversation.error && !conversation.ready && <button onClick={conversation.retryHistory}>重新打开会话</button>}
@@ -77,7 +76,7 @@ export function App() {
             onAccessChange={isDraft ? newConversation.setAccessMode : approvals.setMode}
             approvals={<ApprovalPanel requests={approvals.snapshot?.pending ?? []} sessionId={sessions.selected}
               disabled={approvals.pending} onDecide={approvals.decide} onStop={approvals.stop} />}
-            contextUsage={conversation.contextUsage} status={status} readOnly={readOnly}
+            contextUsage={conversation.contextUsage} readOnly={readOnly}
             busy={!isDraft && conversation.busy} pending={isDraft ? draftSending ? 'send' : null : conversation.pending} model={isDraft ? newConversation.model : conversation.model} models={sessions.models}
             modelsRefreshing={sessions.modelsRefreshing} modelsError={sessions.modelsError} onRefreshModels={sessions.refreshModels}
             sessionId={sessions.selected} images={conversation.images} onUploaded={conversation.registerImage}
