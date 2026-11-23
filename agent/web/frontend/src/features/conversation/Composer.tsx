@@ -27,7 +27,7 @@ interface Props {
   onGuide: (id: string, text: string, images: string[], files: string[]) => Promise<boolean>;
   acceptedGuidance: string[];
   onStop: () => Promise<boolean>;
-  onModelChange: (provider: string, model: string) => Promise<boolean>;
+  onModelChange: (provider: string, model: string, effort?: string) => Promise<boolean>;
 }
 
 export function Composer(props: Props) {

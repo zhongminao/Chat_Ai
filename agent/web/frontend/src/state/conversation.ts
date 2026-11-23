@@ -2,11 +2,13 @@ import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionS
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
-export type ToolItem = { id: string; kind: 'tool'; name: string; arguments?: unknown; result?: unknown; readImageIds?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
-export type ExecutionItem = TextItem | ToolItem;
+export type ToolItem = { id: string; kind: 'tool'; name: string; callId?: string; arguments?: unknown; result?: unknown; readImageIds?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
+export type ReasoningItem = { id: string; kind: 'reasoning'; status: 'running' | 'completed' | 'stopped';
+  lines: { index: number; text: string }[]; lineIndex: number; blankPrefix: string };
+export type ExecutionItem = TextItem | ToolItem | ReasoningItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
-export type QuestionItem = { id: string; kind: 'question'; questionId: string; callId: string;
+export type QuestionItem = { id: string; kind: 'question'; questionId: string; callId: string; runId?: string;
   question: string; options: QuestionOption[]; status: 'pending' | 'answered' | 'cancelled'; answer?: QuestionAnswer };
 export type Item = ExecutionItem | ReportItem | ContextCompactionItem | QuestionItem;
 export interface Conversation {
@@ -15,6 +17,7 @@ export interface Conversation {
   images: ImageAsset[];
   seq: number;
   assistantId: string | null;
+  reasoning: { id: string; runId?: string; round?: number } | null;
   busy: boolean;
   ready: boolean;
   model: Model | null;
@@ -30,7 +33,7 @@ export interface Conversation {
 }
 
 export const emptyConversation = (): Conversation => ({
-  contextUsage: null, items: [], images: [], seq: 0, assistantId: null, busy: false, ready: false,
+  contextUsage: null, items: [], images: [], seq: 0, assistantId: null, reasoning: null, busy: false, ready: false,
   model: null, error: null, session: null, execution: null,
   minSeq: 0, hasMore: false, history: [], snapshotSeq: 0, live: [], revision: 0,
 });
@@ -58,11 +61,13 @@ function eventImages(event: AgentEvent): ImageAsset[] {
 function applyEvent(state: Conversation, event: AgentEvent): Conversation {
   if (event.seq <= state.seq) return state;
   let next = { ...state, seq: event.seq };
+  // Reasoning belongs to one model round, not to the whole tool loop.
   switch (event.type) {
     case 'turn.started':
+      next = finishReasoning(next, 'stopped');
       next = { ...next, busy: true, assistantId: null, error: null,
         execution: { startIndex: state.items.length + 1, startedAt: event.time },
-        items: [...state.items, { id: `user:${event.seq}`, kind: 'text', role: 'user', content: event.prompt,
+        items: [...next.items, { id: `user:${event.seq}`, kind: 'text', role: 'user', content: event.prompt,
           images: event.images?.map(image => image.id) }] };
       break;
     case 'guidance.queued':
@@ -81,7 +86,35 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
       next.items = state.items.map(item => item.id === `guidance:${event.messageId}` && item.kind === 'text'
         ? { ...item, guidance: 'undelivered' } : item);
       break;
-    case 'model.started': next.assistantId = null; break;
+    case 'model.started':
+      next = finishReasoning(next, 'completed');
+      next.assistantId = null;
+      break;
+    case 'reasoning.delta': {
+      const { text } = event;
+      if (typeof text !== 'string' || !text) break;
+      const current = state.reasoning;
+      if (current && current.runId === event.runId && current.round === event.round) {
+        next.items = state.items.map(item => item.kind === 'reasoning' && item.id === current.id
+          ? appendReasoning(item, text) : item);
+        break;
+      }
+      next = finishReasoning(next, 'completed');
+      const id = `reasoning:${event.seq}`;
+      const item = appendReasoning({ id, kind: 'reasoning', status: 'running', lines: [], lineIndex: 0, blankPrefix: '' }, text);
+      next.reasoning = { id, runId: event.runId, round: event.round };
+      const assistantIndex = next.items.findIndex(entry => entry.id === next.assistantId);
+      // A provider can send answer and reasoning in the same chunk; keep the trail above its answer.
+      next.items = assistantIndex < 0 ? appendExecution(next.items, item)
+        : [...next.items.slice(0, assistantIndex), item, ...next.items.slice(assistantIndex)];
+      break;
+    }
+    case 'model.completed':
+      if (state.reasoning && (event.round === undefined || state.reasoning.round === undefined ||
+          event.round === state.reasoning.round) && (!event.runId || !state.reasoning.runId || event.runId === state.reasoning.runId)) {
+        next = finishReasoning(next, 'completed');
+      }
+      break;
     case 'context.measured':
       if (event.seq > (state.session?.seq ?? 0)) next.contextUsage = { usedTokens: event.usedTokens, limitTokens: event.limitTokens, estimated: event.estimated };
       break;
@@ -111,8 +144,8 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     }
     case 'question.requested':
       next.assistantId = null;
-      next.items = appendExecution(state.items.filter(item => item.id !== `tool:${event.callId}`), {
-        id: `question:${event.questionId}`, kind: 'question', questionId: event.questionId, callId: event.callId,
+      next.items = appendExecution(state.items.filter(item => item.id !== toolKey(event)), {
+        id: `question:${event.questionId}`, kind: 'question', questionId: event.questionId, callId: event.callId, runId: event.runId,
         question: event.question, options: event.options, status: 'pending',
       });
       break;
@@ -123,46 +156,21 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
           answer: event.type === 'question.answered' ? event.answer : undefined } : item);
       break;
     case 'tool.requested':
-      if (event.tool === 'submit') break;
-      next.items = appendExecution(state.items, { id: `tool:${event.callId}`, kind: 'tool', name: event.tool,
-        arguments: event.arguments, status: 'running' });
-      break;
-    case 'tool.process': {
-      const id = `tool:${event.callId}`;
-      let found = false;
-      const update = (item: ExecutionItem): ExecutionItem => {
-        if (item.kind !== 'tool' || item.id !== id) return item;
-        found = true;
-        return { ...item, process: event.process };
-      };
-      next.items = state.items.map(item => item.kind === 'report'
-        ? { ...item, process: item.process.map(update) }
-        : item.kind === 'context' || item.kind === 'question' ? item : update(item));
-      // A history page can begin after tool.requested; only use metadata actually received.
-      if (!found) next.items = appendExecution(next.items, { id, kind: 'tool', name: event.tool,
-        process: event.process, status: event.process.reason === 'running' ? 'running' : 'completed' });
-      break;
-    }
+    case 'tool.process':
     case 'tool.completed': {
-      if (event.tool === 'submit' || (event.tool === 'ask_user' && state.items.some(
-        item => item.kind === 'question' && item.callId === event.callId))) break;
-      const id = `tool:${event.callId}`;
-      const exists = state.items.some(item => item.id === id);
-      const result = String(event.result);
-      const status = result.startsWith('[tool cancelled]') ? 'interrupted' : result.startsWith('[tool denied]') ? 'rejected' : 'completed';
-      const readImageIds = [...new Set(eventImages(event).map(image => image.id))];
-      next.items = exists
-        ? state.items.map(item => item.id === id && item.kind === 'tool' ? { ...item, result: event.result, readImageIds, status } : item)
-        : appendExecution(state.items, { id, kind: 'tool', name: event.tool, result: event.result, readImageIds, status });
+      if (event.tool === 'submit' || (event.tool === 'ask_user' && state.items.some(item =>
+        item.kind === 'question' && toolKey(item) === toolKey(event)))) break;
+      next.items = upsertTool(state.items, event);
       break;
     }
     case 'report.submitted': {
+      next = finishReasoning(next, 'completed');
       const startIndex = state.execution?.startIndex ?? state.items.length;
       const startedAt = state.execution?.startedAt;
-      next.items = [...state.items.slice(0, startIndex),
-        ...state.items.slice(startIndex).filter(item => item.kind === 'context' || item.kind === 'question'), {
+      next.items = [...next.items.slice(0, startIndex),
+        ...next.items.slice(startIndex).filter(item => item.kind === 'context' || item.kind === 'question'), {
         id: `report:${event.seq}`, kind: 'report', content: event.content,
-        process: state.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind === 'text' || item.kind === 'tool'),
+        process: next.items.slice(startIndex).filter((item): item is ExecutionItem => item.kind === 'text' || item.kind === 'tool' || item.kind === 'reasoning'),
         durationSeconds: startedAt !== undefined && event.time !== undefined
           ? Math.max(0, Math.floor((event.time - startedAt) / 1e9)) : null,
       }];
@@ -178,14 +186,19 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     case 'error':
       next.error = event.type === 'turn.failed' ? event.reason : event.reason ?? event.message;
       // Failed and cancelled runs cannot leave a tool card marked as running.
-      next.items = interruptPending(state.items);
+      next = finishReasoning(next, 'stopped');
+      next.items = interruptPending(next.items);
       next.busy = false; next.assistantId = null; next.execution = null;
       break;
     case 'turn.cancelled':
-      next.items = interruptPending(state.items);
+      next = finishReasoning(next, 'stopped');
+      next.items = interruptPending(next.items);
       next.busy = false; next.assistantId = null; next.execution = null;
       break;
-    case 'turn.completed': next.busy = false; next.assistantId = null; break;
+    case 'turn.completed':
+      next = finishReasoning(next, 'completed');
+      next.busy = false; next.assistantId = null;
+      break;
   }
   for (const image of eventImages(event)) {
     if (event.seq > (state.session?.seq ?? 0) || !next.images.some(entry => entry.id === image.id)) {
@@ -193,6 +206,67 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
     }
   }
   return next;
+}
+
+type ToolEvent = Extract<AgentEvent, { type: 'tool.requested' | 'tool.process' | 'tool.completed' }>;
+
+function toolKey({ runId, callId }: { runId?: string; callId: string }): string {
+  return runId ? `tool-run:${JSON.stringify([runId, callId])}` : `tool:${callId}`;
+}
+
+function upsertTool(items: Item[], event: ToolEvent): Item[] {
+  const id = toolKey(event);
+  const patch: Partial<ToolItem> = event.type === 'tool.requested' ? { arguments: event.arguments }
+    : event.type === 'tool.process' ? { process: event.process } : {
+      result: event.result,
+      readImageIds: [...new Set(eventImages(event).map(image => image.id))],
+      status: String(event.result).startsWith('[tool cancelled]') ? 'interrupted'
+        : String(event.result).startsWith('[tool denied]') ? 'rejected' : 'completed',
+    };
+  let found = false;
+  const update = <T extends Item>(item: T): T => {
+    if (item.kind !== 'tool' || item.id !== id) return item;
+    found = true;
+    return { ...item, ...patch };
+  };
+  const updated = items.map(item => {
+    if (item.kind !== 'report') return update(item);
+    // Completion can arrive after a report has collected the execution steps.
+    const process = item.process.map(update);
+    return process.some((step, index) => step !== item.process[index]) ? { ...item, process } : item;
+  });
+  if (found) return updated;
+  // A history page can start at a process/result event; do not invent the arguments.
+  const status = event.type === 'tool.process' && event.process.reason !== 'running' ? 'completed' : 'running';
+  return appendExecution(items, { id, kind: 'tool', name: event.tool, status,
+    ...(event.runId ? { callId: event.callId } : {}), ...patch });
+}
+
+function appendReasoning(item: ReasoningItem, delta: string): ReasoningItem {
+  const { lineIndex, blankPrefix } = item;
+  const lines = [...item.lines];
+  const last = lines.at(-1);
+  const prefix = last?.index === lineIndex ? last.text : blankPrefix;
+  if (last?.index === lineIndex) lines.pop();
+  const parts = delta.split('\n');
+  let tail = '';
+  for (const [offset, part] of parts.entries()) {
+    const raw = offset === 0 ? prefix + part : part;
+    // SSE chunks are not line boundaries. This also handles CRLF split across chunks.
+    const text = offset < parts.length - 1 ? raw.replace(/\r$/, '') : raw;
+    if (/\S/u.test(text)) {
+      lines.push({ index: lineIndex + offset, text });
+      if (lines.length > 2) lines.shift();
+    } else if (offset === parts.length - 1) tail = text;
+  }
+  return { ...item, lines, lineIndex: lineIndex + parts.length - 1, blankPrefix: tail };
+}
+
+function finishReasoning(state: Conversation, status: 'completed' | 'stopped'): Conversation {
+  const current = state.reasoning;
+  if (!current) return state;
+  return { ...state, reasoning: null, items: state.items.map(item => item.kind === 'reasoning' && item.id === current.id
+    ? { ...item, status, blankPrefix: '' } : item) };
 }
 
 function appendExecution(items: Item[], item: Item): Item[] {
@@ -232,7 +306,10 @@ function rebuild(state: Conversation, history: AgentEvent[], live: AgentEvent[],
     contextUsage: state.contextUsage,
     busy: state.busy,
     ready: state.ready, error: state.error };
-  if (state.ready && !state.busy) result.items = interruptPending(result.items);
+  if (state.ready && !state.busy) {
+    result = finishReasoning(result, 'stopped');
+    result.items = interruptPending(result.items);
+  }
   return result;
 }
 
@@ -260,9 +337,10 @@ export function conversationReducer(state: Conversation, action: Action): Conver
     case 'ready': {
       if (!state.session || action.seq !== state.session.seq || state.seq < action.seq) return state;
       const busy = state.seq === action.seq ? state.session.busy : state.busy;
-      return { ...state, ready: true, busy,
+      const next = busy ? state : finishReasoning(state, 'stopped');
+      return { ...next, ready: true, busy,
         model: state.seq === action.seq ? state.session.model : state.model,
-        items: busy ? state.items : interruptPending(state.items) };
+        items: busy ? next.items : interruptPending(next.items) };
     }
     case 'disconnected': return { ...state, ready: false };
     case 'events': {

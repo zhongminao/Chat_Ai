@@ -101,8 +101,8 @@ class SubagentTests(unittest.TestCase):
             else:
                 yield ModelChunk(content='normal chat')
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream), \
-             patch.object(self.registry.catalog, 'supports_vision', return_value=True):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream), \
+             patch('agent.model.catalog.ModelCatalog.supports_vision', return_value=True):
             parent.enqueue('spawn')
             eventually(lambda: len(entered) == 2 and not parent.busy)
             children = [rt for rt in self.registry.items.values() if rt.parent_session_id]
@@ -177,7 +177,7 @@ class SubagentTests(unittest.TestCase):
                     time.sleep(0.01)
                 token.raise_if_cancelled()
             yield ModelChunk(content='ordinary text without submit')
-        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream):
             for name in ['crash', 'missing', 'cancel']:
                 receipt = json.loads(self.registry.delegate(parent.session.id, name))
                 self.assertIn('watch', receipt['hint'])
@@ -234,7 +234,7 @@ class SubagentTests(unittest.TestCase):
                 self.assertEqual(messages[-1]['role'], 'system')
                 yield calls(('submit', {'content': '# Submitted after reminder'}))
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream):
             child.start('work')
             self.registry.wait()
         events = child.session.events.read()
@@ -253,7 +253,7 @@ class SubagentTests(unittest.TestCase):
         for budget, expected_calls, reminders in [(12, 2, 1), (1, 1, 0)]:
             self.registry.config = replace(self.config, max_rounds=budget)
             parent = self.registry.create()
-            with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: (chunk for chunk in [ModelChunk(content='draft')])) as model:
+            with patch('agent.workflows.turn.nodes.stream', side_effect=lambda *a, **k: (chunk for chunk in [ModelChunk(content='draft')])) as model:
                 receipt = json.loads(self.registry.delegate(parent.session.id, 'work'))
                 self.registry.wait()
             child = self.registry.get(receipt['session_id'])
@@ -269,7 +269,7 @@ class SubagentTests(unittest.TestCase):
         schema = next(s['function'] for s in parent.agent.tools.schemas if s['function']['name'] == 'delegate')
         self.assertEqual(schema['parameters']['required'], ['user_prompt'])
         self.assertEqual(set(schema['parameters']['properties']), {'user_prompt'})
-        with patch('agent.core.agent_runtime.stream', side_effect=lambda *a, **k: (chunk for chunk in [calls(('submit', {'content': 'done'}))])):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=lambda *a, **k: (chunk for chunk in [calls(('submit', {'content': 'done'}))])):
             receipt = json.loads(self.registry.delegate(parent.session.id, 'complete task context'))
             self.registry.wait()
         child = self.registry.get(receipt['session_id'])

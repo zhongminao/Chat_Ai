@@ -62,8 +62,8 @@ export const api = {
   imageUrl: (id: string, image: string, preview = false) =>
     `${sessionPath(id)}/images/${encodeURIComponent(image)}/content${preview ? '?preview=true' : ''}`,
   stop: (id: string) => request<{ stopped: boolean }>(`${sessionPath(id)}/control/stop`, post()),
-  switchModel: (id: string, provider: string, model: string) =>
-    request<{ model: Model }>(`${sessionPath(id)}/model`, post({ provider, model })),
+  switchModel: (id: string, provider: string, model: string, reasoning_effort?: string) =>
+    request<{ model: Model }>(`${sessionPath(id)}/model`, post({ provider, model, reasoning_effort })),
   history: (id: string, signal?: AbortSignal, before?: number, through?: number) => request<HistoryPage>(
     `${sessionPath(id)}/history${before === undefined ? "" : `?before=${before}&through=${through}`}`, { signal }),
   eventsUrl: (id: string, after = 0) => `${sessionPath(id)}/events?after=${after}`,

@@ -17,7 +17,7 @@ export function App() {
   const sessions = useSessions();
   const approvals = useApprovals(sessions.selected);
   const conversation = useConversation(sessions.selected, () => { void sessions.refresh(); });
-  const newConversation = useNewConversation(id => { sessions.select(id); void sessions.refresh(); }, sessions.defaultModel);
+  const newConversation = useNewConversation(id => { sessions.select(id); void sessions.refresh(); }, sessions.defaultModel, sessions.models);
   const isDraft = sessions.selected === null;
   const draftSending = isDraft && newConversation.sending;
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -55,8 +55,8 @@ class AgentStateTests(unittest.TestCase):
             else:
                 yield ModelChunk(content='done')
 
-        with patch('agent.core.agent_runtime.datetime') as clock, \
-             patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.workflows.turn.nodes.datetime') as clock, \
+             patch('agent.workflows.turn.nodes.stream', side_effect=stream):
             clock.now.side_effect = moments
             for text in ['first turn', 'next turn']:
                 self.session.enqueue(text)
@@ -92,7 +92,7 @@ class AgentStateTests(unittest.TestCase):
             self.assertEqual(self.serializable()['execution']['status'], 'running')
             yield ModelChunk(content='short reply')
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream):
             self.session.enqueue('hello')
             self.registry.wait()
         execution = self.serializable()['execution']
@@ -112,7 +112,7 @@ class AgentStateTests(unittest.TestCase):
             observed.append((client, kwargs['provider']))
             yield ModelChunk(content='ok')
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream):
             for _ in range(2):
                 self.session.enqueue('hello')
                 self.registry.wait()
@@ -131,7 +131,7 @@ class AgentStateTests(unittest.TestCase):
             yield ModelChunk(tool_deltas=(ToolCallDelta(id='report', name='submit',
                              arguments=json.dumps({'content': '# Final report'})),))
 
-        with patch('agent.core.agent_runtime.stream', side_effect=submit_stream):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=submit_stream):
             self.session.enqueue('report')
             self.registry.wait()
         report = self.serializable()['execution']
@@ -139,7 +139,7 @@ class AgentStateTests(unittest.TestCase):
         self.assertEqual(Path(report['report_path']).read_text().strip(), report['report'])
         self.assertEqual(report['answer'], report['report'])
 
-        with patch('agent.core.agent_runtime.stream', return_value=(chunk for chunk in [ModelChunk(content='hello')])):
+        with patch('agent.workflows.turn.nodes.stream', return_value=(chunk for chunk in [ModelChunk(content='hello')])):
             self.session.enqueue('chat')
             self.registry.wait()
         current = self.serializable()['execution']
@@ -166,7 +166,7 @@ class AgentStateTests(unittest.TestCase):
                 remove()
             context.cancellation.raise_if_cancelled()
 
-        with patch('agent.core.agent_runtime.stream', side_effect=stream), patch.object(self.agent.tools, 'watch', side_effect=wait):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=stream), patch.object(self.agent.tools, 'watch', side_effect=wait):
             self.session.enqueue('wait')
             self.assertTrue(entered.wait(5))
             self.session.stop()
@@ -188,12 +188,27 @@ class AgentStateTests(unittest.TestCase):
                 yield ModelChunk(tool_deltas=(ToolCallDelta(id='read', name='read_file',
                     arguments=json.dumps({'path': 'missing.txt'})),))
 
-            with self.subTest(failure=failure), patch('agent.core.agent_runtime.stream', side_effect=stream):
+            with self.subTest(failure=failure), patch('agent.workflows.turn.nodes.stream', side_effect=stream):
                 self.session.enqueue('work')
                 self.registry.wait()
                 execution = self.serializable()['execution']
                 self.assertEqual((execution['status'], execution['phase']), ('failed', 'done'))
                 self.assertIn('model unavailable' if failure else 'maximum model rounds', execution['error'])
+
+    def test_graph_steps_do_not_reduce_model_round_budget(self):
+        self.agent.max_rounds = 16
+
+        def model(*args, **kwargs):
+            round_no = self.agent.state['execution']['round']
+            if round_no == 15:
+                yield ModelChunk(content='last round completed')
+            else:
+                yield ModelChunk(tool_deltas=(ToolCallDelta(id=f'read-{round_no}', name='read_file',
+                    arguments=json.dumps({'path': 'missing.txt'})),))
+
+        with patch('agent.workflows.turn.nodes.stream', side_effect=model) as stream:
+            self.assertEqual(self.agent.run('work'), 'last round completed')
+        self.assertEqual(stream.call_count, 16)
 
     def test_network_failure_keeps_inputs_and_replays_the_same_messages(self):
         for partial in ['', 'unfinished reply']:
@@ -206,7 +221,7 @@ class AgentStateTests(unittest.TestCase):
                         yield ModelChunk(content=partial)
                     raise ConnectionError('network unavailable')
 
-                with patch('agent.core.agent_runtime.stream', side_effect=fail):
+                with patch('agent.workflows.turn.nodes.stream', side_effect=fail):
                     self.session.enqueue(prompt)
                     self.registry.wait()
                 records = self.session.session.events.read()
@@ -223,14 +238,14 @@ class AgentStateTests(unittest.TestCase):
                     self.assertEqual(messages[-1], {'role': 'user', 'content': 'B'})
                     yield ModelChunk(content='received A and B')
 
-                with patch('agent.core.agent_runtime.stream', side_effect=reply):
+                with patch('agent.workflows.turn.nodes.stream', side_effect=reply):
                     self.session.enqueue('B')
                     self.registry.wait()
                 self.assertEqual(restore_model_messages(self.session.session.events.read(), expected[0]),
                                  self.agent.state['messages'])
 
     def test_reopened_session_sends_failed_input_before_the_next_input(self):
-        with patch('agent.core.agent_runtime.stream', side_effect=ConnectionError('network unavailable')):
+        with patch('agent.workflows.turn.nodes.stream', side_effect=ConnectionError('network unavailable')):
             self.session.enqueue('A')
             self.registry.wait()
         expected = self.serializable()['messages']
@@ -245,7 +260,7 @@ class AgentStateTests(unittest.TestCase):
                 self.assertEqual(messages[-1], {'role': 'user', 'content': 'B'})
                 yield ModelChunk(content='received A and B')
 
-            with patch('agent.core.agent_runtime.stream', side_effect=reply):
+            with patch('agent.workflows.turn.nodes.stream', side_effect=reply):
                 runtime.enqueue('B')
                 reopened.wait()
             self.assertEqual(restore_model_messages(runtime.session.events.read(), expected[0]),
@@ -277,7 +292,7 @@ class AgentStateTests(unittest.TestCase):
                 self.assertEqual(path.read_text(), "x" * 20000 + "\n")
                 yield ModelChunk(content="large output received")
 
-        with patch("agent.core.agent_runtime.stream", side_effect=stream):
+        with patch("agent.workflows.turn.nodes.stream", side_effect=stream):
             self.session.enqueue("produce large output")
             self.registry.wait()
         records = self.session.session.events.read()

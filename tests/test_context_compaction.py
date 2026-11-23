@@ -194,9 +194,9 @@ class CompactionRuntimeTests(unittest.TestCase):
         for method in ["estimate", "llama_cpp", "other"]:
             with self.subTest(method=method), \
                  patch.object(self.agent.catalog, "token_counter", return_value=method), \
-                 patch("agent.core.agent_runtime.count_request_tokens", return_value=42) as counter, \
-                 patch("agent.core.agent_runtime.summarize_context") as summary, \
-                 patch("agent.core.agent_runtime.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
+                 patch("agent.workflows.turn.nodes.count_request_tokens", return_value=42) as counter, \
+                 patch("agent.workflows.turn.nodes.summarize_context") as summary, \
+                 patch("agent.workflows.turn.nodes.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
                 self.runtime.enqueue("new")
                 self.registry.wait()
             counter.assert_called_once()
@@ -215,9 +215,9 @@ class CompactionRuntimeTests(unittest.TestCase):
             self.assertEqual(checkpoint["messages"][-1]["content"], "new")
             yield ModelChunk(content="continued")
 
-        with patch("agent.core.agent_runtime.count_request_tokens", side_effect=[150, 50]) as counter, \
-             patch("agent.core.agent_runtime.summarize_context", return_value="summary") as summary, \
-             patch("agent.core.agent_runtime.stream", side_effect=model):
+        with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 50]) as counter, \
+             patch("agent.workflows.turn.nodes.summarize_context", return_value="summary") as summary, \
+             patch("agent.workflows.turn.nodes.stream", side_effect=model):
             self.runtime.enqueue("new")
             self.registry.wait()
         summary.assert_called_once()
@@ -242,9 +242,9 @@ class CompactionRuntimeTests(unittest.TestCase):
             else:
                 yield ModelChunk(content="done")
 
-        with patch("agent.core.agent_runtime.count_request_tokens", side_effect=[50, 150, 50]), \
-             patch("agent.core.agent_runtime.summarize_context", return_value="summary"), \
-             patch("agent.core.agent_runtime.stream", side_effect=model):
+        with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[50, 150, 50]), \
+             patch("agent.workflows.turn.nodes.summarize_context", return_value="summary"), \
+             patch("agent.workflows.turn.nodes.stream", side_effect=model):
             self.runtime.enqueue("new")
             self.registry.wait()
         records = self.runtime.session.events.read()
@@ -263,8 +263,8 @@ class CompactionRuntimeTests(unittest.TestCase):
                     if kind == "context.compacted" and failure == "disk":
                         raise OSError("disk full")
                     return append(kind, **kwargs)
-                with patch("agent.core.agent_runtime.count_request_tokens", side_effect=[150, 110 if failure == "budget" else 50]), \
-                     patch("agent.core.agent_runtime.summarize_context", return_value="" if failure == "empty" else "summary"), \
+                with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 110 if failure == "budget" else 50]), \
+                     patch("agent.workflows.turn.nodes.summarize_context", return_value="" if failure == "empty" else "summary"), \
                      patch.object(self.runtime.session.events, "append", side_effect=save):
                     self.runtime.enqueue(failure)
                     self.registry.wait()
@@ -290,8 +290,8 @@ class CompactionRuntimeTests(unittest.TestCase):
                 context.cancellation.raise_if_cancelled()
             finally:
                 remove()
-        with patch("agent.core.agent_runtime.count_request_tokens", return_value=150), \
-             patch("agent.core.agent_runtime.summarize_context", side_effect=summary):
+        with patch("agent.workflows.turn.nodes.count_request_tokens", return_value=150), \
+             patch("agent.workflows.turn.nodes.summarize_context", side_effect=summary):
             self.runtime.enqueue("new")
             self.assertTrue(entered.wait(3))
             self.runtime.stop()
@@ -305,9 +305,9 @@ class CompactionRuntimeTests(unittest.TestCase):
 
     def test_disabled_makes_no_count_or_summary_requests(self):
         self.agent.context_config = {"enabled": False}
-        with patch("agent.core.agent_runtime.count_request_tokens") as counter, \
-             patch("agent.core.agent_runtime.summarize_context") as summary, \
-             patch("agent.core.agent_runtime.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
+        with patch("agent.workflows.turn.nodes.count_request_tokens") as counter, \
+             patch("agent.workflows.turn.nodes.summarize_context") as summary, \
+             patch("agent.workflows.turn.nodes.stream", return_value=(chunk for chunk in [ModelChunk(content="ok")])):
             self.runtime.enqueue("new")
             self.registry.wait()
         counter.assert_not_called()
@@ -321,9 +321,9 @@ class CompactionRuntimeTests(unittest.TestCase):
         with patch('sys.argv', ['chat-ai', 'new', '--session', self.runtime.session.id]), \
              patch('agent.cli.main.load', return_value=self.config), \
              patch('agent.cli.main.SessionRegistry', return_value=self.registry), \
-             patch('agent.core.agent_runtime.count_request_tokens', side_effect=[150, 50]), \
-             patch('agent.core.agent_runtime.summarize_context', return_value='summary'), \
-             patch('agent.core.agent_runtime.stream', return_value=(chunk for chunk in [ModelChunk(content='ok')])), \
+             patch('agent.workflows.turn.nodes.count_request_tokens', side_effect=[150, 50]), \
+             patch('agent.workflows.turn.nodes.summarize_context', return_value='summary'), \
+             patch('agent.workflows.turn.nodes.stream', return_value=(chunk for chunk in [ModelChunk(content='ok')])), \
              redirect_stdout(output):
             main()
         self.assertIn('[正在自动压缩上下文…]', output.getvalue())

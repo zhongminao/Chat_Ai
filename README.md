@@ -6,7 +6,8 @@ CLI 与 Web 共用运行时、状态更新和事件协议；模型推理、MCP �
 ## 项目结构
 
 ```text
-agent/core/       Agent 装配、会话运行时、模型与工具循环、子任务监控
+agent/core/       Agent 装配、会话运行时、取消与子任务监控
+agent/workflows/turn/  LangGraph 单轮流程（graph.py 装配，nodes.py 执行与分支）
 agent/model/      模型目录、provider、HTTP 客户端与请求消息组装
 agent/agentsessionstate/   状态类型与更新、历史恢复、上下文整理、配置
 agent/tools/      本地工具、统一路由、审批、输出落盘与 MCP 客户端
@@ -18,6 +19,8 @@ config.yaml      CLI/Web 共用配置
 ```
 
 保持代码简洁、职责清晰；简单状态操作集中管理，复杂变更单独成模块。界面逻辑不进入核心，不为拆分增加无必要的封装。
+
+单轮执行由 LangGraph 编排，主、子 Agent 共用同一张图。模型流式事件、顺序工具批次、用户引导和历史存储继续使用现有运行层；单轮图不启用 checkpoint。
 
 ## 安装与运行
 
@@ -127,7 +130,7 @@ providers:
         default_reasoning_effort: high
 ```
 
-DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` 和 `default_reasoning_effort: high`；单模型视觉覆盖也写在对应的 `models.<模型 ID>.vision` 下。GPT 的 reasoning 配置是人工策略，不代表网关 `/models` 已返回或确认相关能力。
+DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` 和 `default_reasoning_effort: high`；单模型视觉覆盖也写在对应的 `models.<模型 ID>.vision` 下。GPT 的 reasoning 配置是人工策略，不代表网关 `/models` 已返回或确认相关能力。Web 模型弹层仅在适配器会发送 `reasoning_effort` 且声明至少两个档位时显示滑条；切换档位写入当前会话的 `model.changed` 事件，浏览器也按模型记忆偏好，供切回模型和新会话使用。DeepSeek 的能力元数据不用于此滑条。
 参数优先级为：单模型 `models.<ID>` 覆盖 > provider 的 `defaults` > API 返回值；未指定时使用程序默认值。
 
 | 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |

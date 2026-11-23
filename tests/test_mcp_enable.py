@@ -60,7 +60,7 @@ class LiveMcpTests(unittest.TestCase):
                         yield ModelChunk(content='connected')
 
                 with patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-                     patch('agent.core.agent_runtime.stream', side_effect=model):
+                     patch('agent.workflows.turn.nodes.stream', side_effect=model):
                     session.enqueue('connect ' + url)
                     registry.wait()
                 router = session.agent.tools
@@ -123,7 +123,7 @@ class McpEnableTests(unittest.TestCase):
             try:
                 with patch.object(McpClient, '_list', side_effect=[[configured], [ping]]), \
                      patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-                     patch('agent.core.agent_runtime.stream', side_effect=model):
+                     patch('agent.workflows.turn.nodes.stream', side_effect=model):
                     session.enqueue('Connect http://later/mcp')
                     registry.wait()
                 self.assertEqual(len(seen), 2)

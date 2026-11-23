@@ -1,29 +1,18 @@
 import uuid
-from dataclasses import replace
-from contextlib import closing
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
-from ..model.buffer import TextBuffer
-from ..model.catalog import ModelCatalog, ModelTarget
-from ..model.tokens import count_request_tokens
-from ..model.context_summary import summarize_context
+from ..agentsessionstate import message_updates, transitions
 from ..agentsessionstate.input import UserInput, normalize_input
-from ..storage.images import ImageStore
 from ..agentsessionstate.state import AgentState, StateUpdate
-from ..agentsessionstate import context_compaction, completion, message_updates, transitions
-from .cancellation import ExecutionContext, RunCancelled, CancellationToken
-from .control import ExecutionControl
-from ..model.openai_compatible import stream
-from ..model.stream_guard import ModelStreamGuard
+from ..model.catalog import ModelCatalog
 from ..storage.event_log import EventLog
+from ..storage.images import ImageStore
 from ..tools.router import ToolRouter
-from ..tools.result import normalize_result
-from ..tools.spill import spill_tool_output
-from ..tools.schema import SUBMIT_SCHEMA, ToolCallAssembler
+from ..tools.schema import SUBMIT_SCHEMA
+from ..workflows.turn.graph import run_turn
+from .cancellation import CancellationToken, ExecutionContext, RunCancelled
+from .control import ExecutionControl
 
 
 class AgentRuntime:
@@ -92,18 +81,6 @@ class AgentRuntime:
             raise
         return "Report submitted."
 
-    def _cancel_pending_tools(self, run_id: str, calls: list[Any]) -> None:
-        for call in calls:
-            result = "[tool cancelled] Turn was stopped before this tool completed."
-            self.log.append(
-                "tool.completed",
-                runId=run_id,
-                tool=call.name,
-                callId=call.id,
-                result=result,
-            )
-            self.apply(message_updates.receive_tool(self.state, call.id, result))
-
     def run(
         self,
         prompt: str | UserInput,
@@ -114,7 +91,7 @@ class AgentRuntime:
         self.apply(transitions.start(self.state, uuid.uuid4().hex))
         self.control.bind(context.cancellation)
         try:
-            return self._run(prompt, context)
+            return run_turn(self, prompt, context)
         except (RunCancelled, KeyboardInterrupt):
             context.cancellation.cancel()
             self.apply(message_updates.cancel(self.state))
@@ -138,253 +115,7 @@ class AgentRuntime:
             self.tools.pending_tools.clear()
             self.control.unbind(context.cancellation)
 
-    def _run(
-        self,
-        prompt: str | UserInput,
-        context: ExecutionContext,
-    ) -> str:
-        run_id = transitions.execution(self.state)["id"]
-        context.cancellation.raise_if_cancelled()
-        value = self.prepare_input(prompt)
-        assets = [self.images.get(image) for image in value.images]
-        current_time = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
-        # Guidance accepted during a stopped turn precedes this new prompt.
-        # Do not make a later one-character nudge outrank the earlier request.
-        self._deliver_inputs(context)
-        self.apply(message_updates.receive_user(self.state, value.text, value.images,
-                                                current_time=current_time))
-        self.log.append("turn.started", runId=run_id, prompt=value.text, images=assets,
-                        currentTime=current_time)
-
-        for round_no in range(self.max_rounds):
-            self._deliver_inputs(context)
-            self.apply(transitions.start_round(self.state, round_no))
-            model = self.state["model"]
-            client, provider = self.catalog.get_binding(ModelTarget(**model))
-            vision = self.catalog.supports_vision(model)
-            self.tools.vision = vision
-            self._compact(client, provider, vision, context)
-            if self._deliver_inputs(context):
-                self._compact(client, provider, vision, context)
-            assembler = ToolCallAssembler()
-            stream_guard = ModelStreamGuard()
-            text_buffer = TextBuffer()
-            finish_reason = None
-            usage = None
-
-            self.log.append("model.started", runId=run_id, round=round_no)
-            with closing(stream(
-                client,
-                model["name"],
-                self.state["messages"],
-                self.tools.schemas,
-                provider=provider,
-                context=context,
-                images=self.images,
-                read_images=vision,
-            )) as response:
-                for chunk in response:
-                    context.cancellation.raise_if_cancelled()
-
-                    if chunk.content:
-                        self.apply(transitions.append_answer(self.state, chunk.content))
-                        self.output(chunk.content)
-                        if piece := text_buffer.add(chunk.content):
-                            self.log.append(
-                                "message.delta",
-                                durable=False,
-                                runId=run_id,
-                                round=round_no,
-                                text=piece,
-                            )
-
-                    if chunk.reasoning:
-                        self.log.append(
-                            "reasoning.delta",
-                            durable=False,
-                            runId=run_id,
-                            round=round_no,
-                            text=chunk.reasoning,
-                        )
-
-                    for delta in chunk.tool_deltas:
-                        stream_guard.check(delta)
-                        assembler.add(delta.as_dict())
-                        self.log.append(
-                            "tool_call.delta",
-                            durable=False,
-                            runId=run_id,
-                            round=round_no,
-                            delta=delta.as_dict(),
-                        )
-
-                    finish_reason = chunk.finish_reason or finish_reason
-                    usage = chunk.usage or usage
-
-            context.cancellation.raise_if_cancelled()
-
-            if piece := text_buffer.flush():
-                self.log.append(
-                    "message.delta",
-                    durable=False,
-                    runId=run_id,
-                    round=round_no,
-                    text=piece,
-                )
-
-            calls = assembler.finish()
-            full_answer = transitions.execution(self.state)["answer"]
-            self.apply(message_updates.complete_model(self.state, full_answer, calls))
-
-            self.log.append(
-                "model.completed",
-                runId=run_id,
-                round=round_no,
-                finishReason=finish_reason,
-                usage=usage,
-            )
-
-            if transitions.after_model(self.state) == "end":
-                if self.begin_submit(self._deliver_inputs, context):
-                    continue
-                decision = completion.decide(self.state, self.max_rounds)
-                if decision == "remind":
-                    self.release_submit()
-                    context.cancellation.raise_if_cancelled()
-                    self.apply(message_updates.remind_completion(self.state, completion.REMINDER))
-                    self.log.append("completion.reminded", runId=run_id, content=completion.REMINDER)
-                    continue
-                if decision == "fail":
-                    raise RuntimeError(completion.MISSING_SUBMIT)
-                self.apply(transitions.complete(self.state, full_answer))
-                self.log.append(
-                    "turn.completed",
-                    runId=run_id,
-                    answer=full_answer,
-                )
-                print()
-                return full_answer
-
-            completed_call_ids = set()
-            for call in calls:
-                if transitions.after_tools(self.state) == "model":
-                    context.cancellation.raise_if_cancelled()
-                self.log.append(
-                    "tool.requested",
-                    runId=run_id,
-                    tool=call.name,
-                    callId=call.id,
-                    arguments=call.arguments,
-                )
-                tool_context = replace(context, on_process=lambda process, call=call: self.log.append(
-                    "tool.process", runId=run_id, tool=call.name, callId=call.id, process=process,
-                )) if call.name == "bash" else context
-                try:
-                    output = normalize_result(
-                        "[tool skipped] Report already submitted."
-                        if transitions.after_tools(self.state) == "submit"
-                        else self.tools.call(call.name, call.arguments, tool_context, run_id=run_id, call_id=call.id)
-                    )
-                    result = spill_tool_output(
-                        output.text,
-                        preview=output.preview,
-                        sections=output.sections,
-                        detail_limit=output.detail_limit,
-                        max_inline_chars=int(self.spill.get("max_inline_chars", 20000)),
-                        max_preview_chars=int(self.spill.get("max_preview_chars", 24000)),
-                        # ask_user is already strictly bounded and its complete
-                        # answer must reach the next model step, not a spill preview.
-                        enabled=bool(self.spill.get("enabled", True)) and call.name != "ask_user",
-                        max_inline_lines=int(self.spill.get("max_inline_lines", 100)),
-                        head_lines=int(self.spill.get("head_lines", 10)),
-                        tail_lines=int(self.spill.get("tail_lines", 10)),
-                        max_line_chars=int(self.spill.get("max_line_chars", 200)),
-                        workspace=self.workspace,
-                        session_id=self.session_id,
-                        directory=str(self.spill.get("directory", ".spill")),
-                    )
-                except RunCancelled:
-                    self._cancel_pending_tools(
-                        run_id,
-                        [item for item in calls if item.id not in completed_call_ids],
-                    )
-                    raise
-                self.log.append(
-                    "tool.completed",
-                    runId=run_id,
-                    tool=call.name,
-                    callId=call.id,
-                    result=result,
-                    model_images=output.model_images,
-                )
-                self.apply(message_updates.receive_tool(self.state, call.id, result, [image["id"] for image in output.model_images]))
-                completed_call_ids.add(call.id)
-                if transitions.after_tools(self.state) == "model":
-                    context.cancellation.raise_if_cancelled()
-
-            # The model's entire tool-call batch uses the schemas it was shown.
-            # Discovered MCP tools are activated only for the next model request.
-            for alias, url in self.tools.commit_pending_tools():
-                self.log.append("mcp.enabled", runId=run_id, alias=alias, url=url)
-
-            if transitions.after_tools(self.state) == "submit":
-                report = transitions.execution(self.state)["report"]
-                self.output(report)
-                self.apply(transitions.complete(self.state, report))
-                self.log.append("turn.completed", runId=run_id, answer=report)
-                return report
-
-        raise RuntimeError("maximum model rounds reached")
-
-    def _deliver_inputs(self, context, *, finish=False):
-        context.cancellation.raise_if_cancelled()
-        values = self.steering.take(transitions.execution(self.state)['id'], finish=finish)
-        if values:
-            self.apply({"messages": [*self.state["messages"], *values]})
-            # A submit generated before the new requirements is only a candidate.
-            self.apply(transitions.update_execution(self.state, report=None, report_path=None, completion_reminders=0))
-        return bool(values)
-
-    def _compact(self, client, provider, vision: bool, context: ExecutionContext) -> None:
-        config = context_compaction.for_model(self.context_config, self.state["model"])
-        context.cancellation.raise_if_cancelled()
-        if not config.get("enabled", False):
-            return
-        method = self.catalog.token_counter(self.state["model"])
-
-        def measure(value):
-            return count_request_tokens(client, value, self.tools.schemas, context, method=method,
-                                images=self.images, read_images=vision)
-
-        before = measure(self.state["messages"])
-        identifiers = {"runId": transitions.execution(self.state)["id"], "compactionId": uuid.uuid4().hex}
-        try:
-            selected = context_compaction.plan(self.state, before, config)
-            if selected is not None:
-                self.log.append("context.compaction.started", **identifiers, beforeTokens=before, counter=method)
-                summary = summarize_context(client, self.state["model"]["name"], provider, selected, config, context)
-                update = context_compaction.build_update(selected, summary)
-                after = measure(update["messages"])
-                context_compaction.validate_compacted_size(before, after, config)
-                context.cancellation.raise_if_cancelled()
-                # Commit the exact replacement before mutating memory. No await or
-                # cancellation check may split durable commit from applying it.
-                self.log.append("context.compacted", **identifiers, messages=update["messages"],
-                                beforeTokens=before, afterTokens=after, counter=method)
-                self.apply(update)
-                before = after
-        except (RunCancelled, KeyboardInterrupt):
-            self.log.append("context.compaction.cancelled", **identifiers)
-            raise
-        except Exception as exc:
-            self.log.append("context.compaction.failed", **identifiers, reason=str(exc))
-            raise
-
-        self.log.append("context.measured", usedTokens=before, limitTokens=config["trigger_tokens"],
-                        estimated=method != "llama_cpp")
-
     def prepare_input(self, prompt: str | UserInput) -> UserInput:
         value = normalize_input(prompt)
         identifiers = tuple(self.images.get(image)["id"] for image in value.images)
         return UserInput(value.text, identifiers)
-

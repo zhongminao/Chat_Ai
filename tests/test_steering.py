@@ -61,7 +61,7 @@ class SteeringTests(unittest.TestCase):
     def patched(self, stream=None):
         stack = ExitStack()
         stack.enter_context(patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())))
-        stack.enter_context(patch('agent.core.agent_runtime.stream', side_effect=stream or self.stream))
+        stack.enter_context(patch('agent.workflows.turn.nodes.stream', side_effect=stream or self.stream))
         stack.enter_context(patch('agent.tools.router.execute', side_effect=self.tool))
         return stack
 

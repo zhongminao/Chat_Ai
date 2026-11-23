@@ -33,6 +33,7 @@ class SendMessageRequest(BaseModel):
 class SwitchModelRequest(BaseModel):
     provider: str
     model: str
+    reasoning_effort: str | None = None
 
 
 class UpdateSessionRequest(BaseModel):
@@ -206,7 +207,8 @@ def models():
         {"provider": provider, "displayName": data.get("display_name", provider),
          "models": [{"id": item["id"], "name": item.get("name", item["id"]),
                     "enabled": item.get("enabled", True),
-                    **{key: item[key] for key in ("reasoning_efforts", "default_reasoning_effort",
+                    **({"reasoning_efforts": levels} if (levels := catalog.reasoning_efforts(provider, item["id"])) else {}),
+                    **{key: item[key] for key in ("default_reasoning_effort",
                                                     "api_default_reasoning_effort", "chat_completions",
                                                     "context_window", "input_modalities") if key in item}}
                     for item in catalog.models_for(provider)]}
@@ -220,7 +222,7 @@ def switch_model(session_id: str, request: SwitchModelRequest):
     with rt.lock:
         try:
             model = rt.dispatch(
-                SwitchModel(provider=request.provider, model=request.model)
+                SwitchModel(provider=request.provider, model=request.model, reasoning_effort=request.reasoning_effort)
             )
         except RuntimeError as exc:
             raise HTTPException(400, str(exc))

@@ -165,9 +165,9 @@ export function useConversation(id: string | null, onSessionsChanged: () => void
     guide: (messageId: string, text: string, images: string[], files: string[] = []) => command('guide', session => api.guide(session, messageId, text, images, files)),
     registerImage: (image: ImageAsset) => sendAction({ type: 'image', image }),
     stop: () => command('stop', session => api.stop(session)),
-    switchModel: (provider: string, model: string) => command('model', async session => {
+    switchModel: (provider: string, model: string, effort?: string) => command('model', async session => {
       const version = generation.current;
-      const result = await api.switchModel(session, provider, model);
+      const result = await api.switchModel(session, provider, model, effort);
       if (version === generation.current) sendAction({ type: 'model', model: result.model });
     }),
   };

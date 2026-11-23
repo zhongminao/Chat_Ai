@@ -44,6 +44,17 @@ beforeEach(() => {
 afterEach(() => { writeTextDraft(null, ''); vi.unstubAllGlobals(); });
 
 describe('first send from a local conversation draft', () => {
+  it('restores the preferred effort for a fresh draft and sends it to the session', async () => {
+    const model = { provider: 'gpt', name: 'sol', reasoning_effort: 'high' };
+    vi.stubGlobal('localStorage', { getItem: () => 'low' });
+    hooks.index = 0;
+    const draft = useNewConversation(onSent, model, [{ provider: 'gpt', displayName: 'GPT',
+      models: [{ id: 'sol', name: 'Sol', enabled: true, reasoning_efforts: ['low', 'high'] }] }]);
+    expect(draft.model?.reasoning_effort).toBe('low');
+    await draft.send('draft', [], []);
+    expect(api.switchModel).toHaveBeenCalledWith('real', 'gpt', 'sol', 'low');
+  });
+
   it('shows the server default in the draft and preserves an explicit selection', async () => {
     expect(render().model).toBeNull();
     const defaultModel = { provider: 'gpt', name: 'gpt-6.1-sol' };

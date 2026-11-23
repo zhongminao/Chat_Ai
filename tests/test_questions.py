@@ -302,7 +302,7 @@ class QuestionApiTests(unittest.TestCase):
         child = self.registry.create(parent_session_id=self.main.session.id)
         with patch.object(web, 'registry', self.registry), patch.object(web, 'session_store', self.registry.store), \
              patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
+             patch('agent.workflows.turn.nodes.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
             for rt in (self.main, child):
                 with self.subTest(child=bool(rt.parent_session_id)):
                     path = f'/api/sessions/{rt.session.id}'
@@ -360,7 +360,7 @@ class QuestionApiTests(unittest.TestCase):
                     json.dumps({'content': 'Done.'})),), finish_reason='tool_calls')
         with patch.object(web, 'registry', self.registry), patch.object(web, 'session_store', self.registry.store), \
              patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=stream), TestClient(web.app) as client:
+             patch('agent.workflows.turn.nodes.stream', side_effect=stream), TestClient(web.app) as client:
             self.main.enqueue('ask')
             wait_until(lambda: self.main.questions.snapshot()['pending'])
             item = self.main.questions.snapshot()['pending'][0]
@@ -376,7 +376,7 @@ class QuestionApiTests(unittest.TestCase):
     def test_api_stop_cancels_worker_without_holding_session_lock(self):
         with patch.object(web, 'registry', self.registry), patch.object(web, 'session_store', self.registry.store), \
              patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
+             patch('agent.workflows.turn.nodes.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
             self.main.enqueue('ask')
             wait_until(lambda: self.main.questions.snapshot()['pending'])
             item = self.main.questions.snapshot()['pending'][0]

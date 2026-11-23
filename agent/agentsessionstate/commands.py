@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class SwitchModel:
     provider: str
     model: str
+    reasoning_effort: str | None = None

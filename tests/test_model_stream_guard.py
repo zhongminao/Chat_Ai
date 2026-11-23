@@ -142,7 +142,7 @@ class ModelStreamGuardTests(unittest.TestCase):
                 try:
                     with patch.object(ModelStreamGuard, 'MAX_TOOL_DELTAS', 16 if reason == 'safety budget' else 65536), \
                          patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-                         patch('agent.core.agent_runtime.stream', side_effect=rejected_stream):
+                         patch('agent.workflows.turn.nodes.stream', side_effect=rejected_stream):
                         child.start('exercise rejection without executing commands')
                         registry.wait()
                     self.assertTrue(closed)

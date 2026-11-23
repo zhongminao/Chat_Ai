@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request as HttpRequest
 
 from agent.core.session_registry import SessionRegistry
+from agent.model.protocol import ModelChunk, ToolCallDelta
 from agent.web import app as web
 from agent.web.events import session_events
 from agent.web.history import history_page
@@ -30,7 +31,7 @@ def decode(frame):
 class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.config = replace(load(), storage_dir=Path(self.temp.name), mcp={})
+        self.config = replace(load(), workspace=Path(self.temp.name), storage_dir=Path(self.temp.name), mcp={})
         self.registry = SessionRegistry(self.config)
         self.runtime = self.registry.create()
         self.addCleanup(self.close)
@@ -178,6 +179,58 @@ class SessionEventsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(decode(await self.frame(stream))['seq'], 3)
         fourth = log.append('turn.completed', answer='secondthird')
         self.assertEqual(decode(await self.frame(stream)), fourth)
+
+    async def test_executed_tools_are_persisted_and_replayable_after_disconnect(self):
+        marker = 'graph tool visibility check'
+        fixture = Path(self.temp.name) / 'tool-fixture.txt'
+        fixture.write_text(marker, encoding='utf-8')
+        call_count = 0
+
+        def model_stream(*_args, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                yield ModelChunk(tool_deltas=(
+                    ToolCallDelta(index=0, id='fast', name='read_file', arguments=json.dumps({'path': str(fixture)})),
+                    ToolCallDelta(index=1, id='bash', name='bash', arguments=json.dumps({
+                        'command': f"while [ ! -f resume-tool ]; do sleep .01; done; printf '%s' '{marker}'", 'timeout': 5,
+                    })),
+                ))
+            else:
+                yield ModelChunk(tool_deltas=(ToolCallDelta(
+                    id='report', name='submit', arguments=json.dumps({'content': 'Final report'}),
+                ),))
+
+        with patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
+             patch('agent.workflows.turn.nodes.stream', side_effect=model_stream):
+            stream, _ = await self.replay()
+            self.runtime.enqueue('Run the test fixtures')
+            received = []
+            while True:
+                event = decode(await self.frame(stream))
+                received.append(event)
+                self.assertNotIn(event['type'], ('turn.completed', 'turn.failed', 'turn.cancelled'), event)
+                if event['type'] == 'tool.process' and event['process']['reason'] == 'running':
+                    await stream.aclose()
+                    break
+            self.assertTrue(self.runtime.busy)
+            (Path(self.temp.name) / 'resume-tool').touch()
+            await asyncio.wait_for(asyncio.to_thread(self.registry.wait), 5)
+
+        cursor = received[-1]['seq']
+        _, frames = await self.replay(after=cursor)
+        caught_up = received + [decode(frame) for frame in frames[1:-1]]
+        self.assertEqual(caught_up, history_page(self.runtime.session.events)['events'])
+        self.assertEqual(caught_up[-1]['type'], 'turn.completed')
+        for call_id in ('fast', 'bash'):
+            requested = [e for e in caught_up if e['type'] == 'tool.requested' and e['callId'] == call_id]
+            completed = [e for e in caught_up if e['type'] == 'tool.completed' and e['callId'] == call_id]
+            self.assertEqual(len(requested), 1)
+            self.assertEqual(len(completed), 1)
+            self.assertLess(requested[0]['seq'], completed[0]['seq'])
+            self.assertEqual(requested[0]['runId'], completed[0]['runId'])
+            self.assertIn(marker, completed[0]['result'])
+        self.assertIn('report.submitted', [e['type'] for e in caught_up])
 
     async def test_terminal_event_does_not_reinitialize_as_running_before_worker_finalization(self):
         self.runtime.session.events.append('turn.started', prompt='done')

@@ -206,7 +206,7 @@ describe('existing event protocol -> conversation', () => {
     expect(view.items[3]).toMatchObject({ role: 'assistant', content: 'final' });
   });
 
-  it('advances the cursor for supported events that have no UI yet', () => {
+  it('advances the cursor for legacy reasoning deltas without text', () => {
     const view = replay([start, { seq: 2, type: 'reasoning.delta' }], initialState(2, true));
     expect(view.seq).toBe(2);
     expect(view.ready).toBe(true);
@@ -300,6 +300,46 @@ describe('existing event protocol -> conversation', () => {
   });
 });
 
+
+describe('reasoning trails', () => {
+  const delta = (seq: number, text: string, round = 0): AgentEvent =>
+    ({ seq, type: 'reasoning.delta', runId: 'run', round, text });
+
+  it('stitches arbitrary streaming chunks and retains the latest two non-blank source lines', () => {
+    const events = [start, modelStart, delta(3, '\nfirst\r'), delta(4, '\nse'), delta(5, 'cond\n\n  '),
+      delta(6, 'third <source>'), delta(7, '\n  ')];
+    const live = replay(events, initialState(7, true));
+    expect(live.items[1]).toMatchObject({ kind: 'reasoning', status: 'running',
+      lines: [{ text: 'second' }, { text: '  third <source>' }] });
+    expect(JSON.stringify(live.items)).not.toContain('first');
+    const history = reduce(emptyConversation(), { type: 'history', page: {
+      events, snapshot_seq: 7, min_seq: 1, has_more: false,
+    } });
+    expect(history.items).toEqual(live.items);
+  });
+
+  it('separates tool-loop model rounds, placing reasoning above an answer even if it arrived later', () => {
+    const view = replay([start, modelStart, text, delta(4, 'one'),
+      { seq: 5, type: 'model.completed', round: 0, runId: 'run' },
+      { ...requested, seq: 6 }, { ...completed, seq: 7 },
+      { seq: 8, type: 'model.started', round: 1, runId: 'run' }, delta(9, 'two', 1),
+      { seq: 10, type: 'turn.cancelled' }]);
+    expect(view.items).toMatchObject([
+      { role: 'user' }, { kind: 'reasoning', status: 'completed', lines: [{ text: 'one' }] },
+      { role: 'assistant' }, { kind: 'tool' }, { kind: 'reasoning', status: 'stopped', lines: [{ text: 'two' }] },
+    ]);
+    expect(view.reasoning).toBeNull();
+  });
+
+  it('reconciles an idle snapshot without leaving a pulsing trail and keeps completed trails in the report process', () => {
+    const events = [start, modelStart, delta(3, 'received text')];
+    expect(replay(events).items[1]).toMatchObject({ status: 'stopped' });
+    const report = replay([...events, { seq: 4, type: 'report.submitted', content: 'final' }, { seq: 5, type: 'turn.completed' }]);
+    expect(report.items[1]).toMatchObject({ kind: 'report', process: [
+      { kind: 'reasoning', status: 'completed', lines: [{ text: 'received text' }] },
+    ] });
+  });
+});
 
 describe('bounded history and live event merging', () => {
   it('restores a cached view without deleting its loaded older history, then catches up', () => {
@@ -422,6 +462,57 @@ describe('bash process metadata', () => {
     expect(restored.items[1]).toMatchObject({ kind: 'report', process: [{ process: exited.process }] });
     const updated = reduce(restored, { type: 'events', events: [{ ...exited, seq: 7, process: { ...exited.process, reason: 'timeout' } }] });
     expect(updated.items[1]).toMatchObject({ kind: 'report', process: [{ process: { reason: 'timeout' } }] });
+  });
+
+  it('catches up after disconnect and updates a reported tool instead of duplicating it', () => {
+    const begin: AgentEvent[] = [start, { ...request, seq: 2, runId: 'run' }];
+    const missed: AgentEvent[] = [
+      { ...running, seq: 3, runId: 'run' },
+      { seq: 4, type: 'report.submitted', content: 'done', runId: 'run' },
+      { ...exited, seq: 5, runId: 'run' },
+      { ...complete, seq: 6, runId: 'run' },
+      { seq: 7, type: 'turn.completed', runId: 'run' },
+    ];
+    const live = replay(begin, initialState(2, true));
+    expect(live.items[1]).toMatchObject({ kind: 'tool', arguments: request.arguments });
+    const offline = reduce(live, { type: 'disconnected' });
+    expect(offline.items).toEqual(live.items);
+    const resumed = reduce(offline, { type: 'initialize', session: { ...initialState(7), after: 2 } });
+    const received = reduce(resumed, { type: 'events', events: [begin[1], ...missed] });
+    const ready = reduce(received, { type: 'ready', seq: 7 });
+    const refreshed = reduce(emptyConversation(), { type: 'history', page: {
+      events: [...begin, ...missed], min_seq: 1, snapshot_seq: 7, has_more: false,
+    } });
+    expect(ready.items).toEqual(refreshed.items);
+    expect(ready.items).toHaveLength(2);
+    expect(ready.items[1]).toMatchObject({ kind: 'report', process: [
+      { kind: 'tool', arguments: request.arguments, process: exited.process, result: 'hello', status: 'completed' },
+    ] });
+  });
+
+  it('keeps calls with the same provider ID in different runs separate', () => {
+    const view = reduce(emptyConversation(), { type: 'events', events: [
+      { ...request, runId: 'old' }, { ...complete, seq: 2, runId: 'old', result: 'old result' },
+      { ...request, seq: 3, runId: 'new', arguments: { command: 'new command' } },
+      { ...complete, seq: 4, runId: 'new', result: 'new result' },
+    ] });
+    expect(view.items.map(item => item.id)).toHaveLength(2);
+    expect(new Set(view.items.map(item => item.id)).size).toBe(2);
+    expect(view.items).toMatchObject([
+      { arguments: request.arguments, result: 'old result' },
+      { arguments: { command: 'new command' }, result: 'new result' },
+    ]);
+  });
+
+  it('restores a tool from its result alone and updates the same record when its process arrives', () => {
+    const result = { ...complete, runId: 'run' };
+    const restored = reduce(emptyConversation(), { type: 'history', page: {
+      events: [result], min_seq: 4, snapshot_seq: 4, has_more: true,
+    } });
+    const view = reduce(restored, { type: 'events', events: [{ ...exited, seq: 5, runId: 'run' }] });
+    expect(view.items).toHaveLength(1);
+    expect(view.items[0]).toMatchObject({ kind: 'tool', result: 'hello', process: exited.process });
+    expect(view.items[0]).not.toHaveProperty('arguments');
   });
 
   it('supports a page beginning at tool.process without inventing arguments or an exit code', () => {

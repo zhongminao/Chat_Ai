@@ -24,12 +24,14 @@ export interface Model {
   provider: string;
   name: string;
   thinking?: string;
+  reasoning_effort?: string;
 }
 
 export interface ModelGroup {
   provider: string;
   displayName: string;
-  models: { id: string; name: string; enabled: boolean }[];
+  models: { id: string; name: string; enabled: boolean; reasoning_efforts?: string[];
+    default_reasoning_effort?: string; api_default_reasoning_effort?: string }[];
 }
 
 export interface HistoryPage {
@@ -111,5 +113,7 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'turn.cancelled'; answer?: string }
   | { type: 'turn.failed'; reason: string }
   | { type: 'error'; message: string; reason?: string }
-  | { type: 'model.completed' | 'reasoning.delta' | 'tool_call.delta' }
+  | { type: 'model.completed'; round?: number }
+  | { type: 'reasoning.delta'; text?: string; round?: number }
+  | { type: 'tool_call.delta' }
 );

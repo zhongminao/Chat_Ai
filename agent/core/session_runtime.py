@@ -65,7 +65,7 @@ class SessionRuntime:
             if self.busy or self.parent_session_id:
                 raise SessionBusy('This session is running or is a read-only child session')
             catalog = self._agent.catalog if self._agent else self.registry.catalog
-            target = catalog.resolve(command.provider, command.model)
+            target = catalog.resolve(command.provider, command.model, reasoning_effort=command.reasoning_effort)
             old = self.state['model']
             self.apply(transitions.switch_model(self.state, target.as_dict()))
             self.session.events.append('model.changed', old=old, new=self.state['model'])

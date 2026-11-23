@@ -14,6 +14,7 @@ providers:
     # 模型 ID -> 人工覆盖；未列出的模型继承 defaults，不维护发现的全量列表。
     models:
       gpt-6.2-sol:
+        reasoning_efforts: [low, medium, high, xhigh]
         default_reasoning_effort: high
       gpt-6.1-sol:
         vision: true

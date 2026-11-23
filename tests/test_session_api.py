@@ -119,6 +119,26 @@ class SessionApiTests(unittest.TestCase):
                 self.assertEqual(client.delete(path).status_code, 200)
                 runtime.worker.join(5)
 
+    def test_reasoning_effort_is_validated_and_restored_from_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = replace(load(), storage_dir=Path(directory), mcp={})
+            registry = SessionRegistry(config)
+            with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:
+                identifier = client.post('/api/sessions').json()['id']
+                path = f'/api/sessions/{identifier}'
+                target = {'provider': 'gpt', 'model': 'gpt-6.2-sol'}
+                self.assertEqual(client.post(path + '/model', json={**target, 'reasoning_effort': 'invalid'}).status_code, 400)
+                self.assertEqual(client.post(path + '/model', json={'provider': 'deepseek', 'model': 'deepseek-flash', 'reasoning_effort': 'high'}).status_code, 400)
+                response = client.post(path + '/model', json={**target, 'reasoning_effort': 'low'})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['model']['reasoning_effort'], 'low')
+                runtime = registry.get(identifier)
+                from agent.core.agent_factory import build_state
+                restored = build_state(config, runtime.meta, runtime.session.events.read(), registry.catalog)
+                self.assertEqual(restored['model']['reasoning_effort'], 'low')
+                self.assertEqual(client.delete(path).status_code, 200)
+                runtime.worker.join(5)
+
     def test_first_message_title_is_available_while_reply_is_still_running(self):
         entered, release = threading.Event(), threading.Event()
         with tempfile.TemporaryDirectory() as directory:
@@ -133,7 +153,7 @@ class SessionApiTests(unittest.TestCase):
 
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), \
                  patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-                 patch('agent.core.agent_runtime.stream', side_effect=stream), TestClient(web.app) as client:
+                 patch('agent.workflows.turn.nodes.stream', side_effect=stream), TestClient(web.app) as client:
                 identifier = client.post('/api/sessions').json()['id']
                 runtime = registry.get(identifier)
                 try:

@@ -6,7 +6,7 @@ import { ToolCallCard } from './ToolCallCard';
 import { toolFailed, toolPresentation, toolStatus, type DisclosureState } from './toolPresentation';
 
 function callId(item: ToolItem): string {
-  return item.id.startsWith('tool:') ? item.id.slice('tool:'.length) : item.id;
+  return item.callId ?? (item.id.startsWith('tool:') ? item.id.slice('tool:'.length) : item.id);
 }
 
 export function ExecutionSteps({ items, sessionId, images = [], waitingCallIds = [], disclosures }: {

@@ -228,7 +228,7 @@ class ApprovalFlowTests(unittest.TestCase):
         self.assertIs(child.approvals, self.main.approvals)
         with patch.object(web, 'registry', self.registry), patch.object(web, 'session_store', self.registry.store), \
              patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
+             patch('agent.workflows.turn.nodes.stream', side_effect=self.fake_stream), TestClient(web.app) as client:
             path = f'/api/sessions/{self.main.session.id}'
             child.start('write something')
             wait_until(lambda: child.approvals.snapshot()['pending'])
@@ -253,7 +253,7 @@ class ApprovalFlowTests(unittest.TestCase):
 
     def test_cli_approve_reject_stop_and_mode_commands_use_the_same_gate(self):
         with patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=self.fake_stream), redirect_stdout(io.StringIO()):
+             patch('agent.workflows.turn.nodes.stream', side_effect=self.fake_stream), redirect_stdout(io.StringIO()):
             self.main.enqueue('write')
             wait_for_execution(self.registry, self.main, SimpleNamespace(prompt=Mock(return_value='y')))
             self.assertEqual((self.root / 'output.txt').read_text(), 'approved output')
@@ -316,7 +316,7 @@ class ApprovalFlowTests(unittest.TestCase):
              patch('agent.cli.main.SessionRegistry', return_value=self.registry), \
              patch('agent.cli.main.PromptSession', return_value=SimpleNamespace(prompt=approve)), \
              patch('agent.model.catalog.ModelCatalog.get_binding', return_value=(object(), object())), \
-             patch('agent.core.agent_runtime.stream', side_effect=self.fake_stream), redirect_stdout(io.StringIO()):
+             patch('agent.workflows.turn.nodes.stream', side_effect=self.fake_stream), redirect_stdout(io.StringIO()):
             main()
         self.assertEqual((self.root / 'output.txt').read_text(), 'approved output')
 
