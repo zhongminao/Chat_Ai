@@ -108,3 +108,22 @@ describe('deleting a conversation with child sessions', () => {
     expect(sessionStorage.removeItem).not.toHaveBeenCalled();
   });
 });
+
+
+describe('session list connection recovery', () => {
+  it('clears only the list refresh error after a successful refresh', async () => {
+    vi.mocked(api.sessions).mockRejectedValueOnce(new Error('network disconnected'));
+    await render().refresh();
+    expect(render().error).toBe('network disconnected');
+    await render().refresh();
+    expect(render().error).toBeNull();
+  });
+  it('keeps failed mutations visible when list polling recovers', async () => {
+    vi.mocked(api.updateSession).mockRejectedValueOnce(new ApiError('invalid title', 400));
+    await render().update(parent.id, { title: '' });
+    vi.mocked(api.sessions).mockRejectedValueOnce(new Error('offline'));
+    await render().refresh();
+    await render().refresh();
+    expect(render().error).toBe('invalid title');
+  });
+});

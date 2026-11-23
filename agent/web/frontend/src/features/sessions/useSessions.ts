@@ -27,6 +27,7 @@ export function useSessions() {
   const [modelsError, setModelsError] = useState<string | null>(null);
   const modelRequest = useRef<AbortController | null>(null);
   const [defaultModel, setDefaultModel] = useState<Model | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const refreshModels = useCallback(async () => {
     if (modelRequest.current) return;
@@ -63,8 +64,8 @@ export function useSessions() {
     const version = ++listVersion.current;
     try {
       const data = await api.sessions();
-      if (version === listVersion.current) setSessions(data.sessions);
-    } catch (error) { if (version === listVersion.current) setError(errorMessage(error)); }
+      if (version === listVersion.current) { setSessions(data.sessions); setRefreshError(null); }
+    } catch (error) { if (version === listVersion.current) setRefreshError(errorMessage(error)); }
   }, []);
 
   // Refresh summaries for every session, not just the currently subscribed conversation.
@@ -82,12 +83,12 @@ export function useSessions() {
   useEffect(() => {
     const abort = new AbortController();
     let active = true;
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setRefreshError(null);
     api.sessions(abort.signal).then(list => {
       if (!active) return;
-      setSessions(list.sessions);
+      setSessions(list.sessions); setRefreshError(null);
       select(restoreSession(list.sessions));
-    }).catch(error => { if (active && !abort.signal.aborted) setError(errorMessage(error)); })
+    }).catch(error => { if (active && !abort.signal.aborted) setRefreshError(errorMessage(error)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; abort.abort(); };
   }, [attempt, select]);
@@ -123,6 +124,6 @@ export function useSessions() {
   }
 
   return { updating, update, sessions, models, defaultModel, modelsRefreshing, modelsError, refreshModels, selected, select, loading, deleting,
-    error, clearError: () => setError(null), remove, refresh,
+    error: error || refreshError, clearError: () => { setError(null); setRefreshError(null); }, remove, refresh,
     retry: () => setAttempt(value => value + 1) };
 }

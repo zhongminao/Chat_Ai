@@ -26,5 +26,5 @@ it('hides task counts when only the mailbox exists', () => {
 
 it('keeps connection errors visible without agents', () => {
   state.error = true;
-  expect(render()).toContain('后台状态连接中断');
+  expect(render()).toContain('后台状态重连中');
 });

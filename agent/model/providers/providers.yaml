@@ -6,15 +6,16 @@ providers:
     display_name: GPT (passion8.cc)
     api_key_default: gateway
     base_url: http://127.0.0.1:18100/gpt/v1
-    default_model: gpt-6.1-sol
+    default_model: gpt-6.2-sol
     defaults:
       thinking: disabled
       # GPT 网关的 /models 不返回 reasoning 能力；这里是人工策略，非探测结果。
       default_reasoning_effort: medium
     # 模型 ID -> 人工覆盖；未列出的模型继承 defaults，不维护发现的全量列表。
     models:
-      gpt-6.1-sol:
+      gpt-6.2-sol:
         default_reasoning_effort: high
+      gpt-6.1-sol:
         vision: true
       gpt-6-sol:
         default_reasoning_effort: high

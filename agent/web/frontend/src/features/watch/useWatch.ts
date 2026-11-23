@@ -10,26 +10,39 @@ export function useWatch(sessionId: string | null, onChange: () => void) {
   useEffect(() => {
     const abort = new AbortController();
     setResources([]); setError(false);
-    if (sessionId) void (async () => {
-      let cursor: number | undefined;
-      const current = new Map<string, WatchResource>();
+    let timer: ReturnType<typeof setTimeout>;
+    let delay = 1000;
+    let cursor: number | undefined;
+    const current = new Map<string, WatchResource>();
+    async function poll() {
       try {
         while (!abort.signal.aborted) {
-          const result = await api.watch(sessionId, cursor, cursor === undefined ? 0 : 25, abort.signal);
+          const result = await api.watch(sessionId!, cursor, cursor === undefined ? 0 : 25, abort.signal);
           if (abort.signal.aborted) return;
+          const snapshot = cursor === undefined;
+          if (snapshot) current.clear();
           cursor = result.cursor;
-          if (result.changes.length) {
-            for (const resource of result.changes) {
-              if (resource.deleted) current.delete(resource.id);
-              else current.set(resource.id, resource);
-            }
+          setError(false); delay = 1000;
+          for (const resource of result.changes) {
+            if (resource.deleted) current.delete(resource.id);
+            else current.set(resource.id, resource);
+          }
+          if (snapshot || result.changes.length) {
             setResources([...current.values()]);
             changed.current();
           }
         }
-      } catch { if (!abort.signal.aborted) setError(true); }
-    })();
-    return () => abort.abort();
+      } catch {
+        if (abort.signal.aborted) return;
+        setError(true);
+        // A restarted server may no longer recognize the previous cursor.
+        cursor = undefined;
+        timer = setTimeout(() => { void poll(); }, delay);
+        delay = Math.min(delay * 2, 30000);
+      }
+    }
+    if (sessionId) void poll();
+    return () => { abort.abort(); clearTimeout(timer); };
   }, [sessionId, attempt]);
   return { resources, error, retry: () => setAttempt(value => value + 1) };
 }
