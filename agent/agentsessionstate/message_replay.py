@@ -59,7 +59,7 @@ def _restore(events: list[dict], initial: list[dict], *, tool_names=True, runtim
         elif kind == "model.completed":
             model_finished = True
             calls = assembler.finish()
-            message = assistant_message("".join(text), calls)
+            message = assistant_message("".join(text), calls, event.get("reasoning_content", "") if runtime_notices else "")
             if calls:
                 pending.update(call.id for call in calls)
             messages.append(message)

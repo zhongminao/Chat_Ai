@@ -191,7 +191,7 @@ export function Composer(props: Props) {
         <ContextMeter usage={props.contextUsage} />
         <ModelPicker groups={props.models} model={props.model}
         refreshing={props.modelsRefreshing} error={props.modelsError} onRefresh={props.onRefreshModels}
-        disabled={props.readOnly || !props.ready || !props.connected || props.busy || Boolean(props.pending)} onChange={props.onModelChange} />
+        disabled={props.readOnly || !props.ready || !props.connected || props.busy || (props.pending !== null && props.pending !== 'model')} onChange={props.onModelChange} />
         <button type="submit" className={`send-button ${stopAction ? 'stop-button' : ''}`} disabled={disabled}
           aria-label={stopAction ? '停止执行' : props.busy ? '加入引导队列' : '发送消息'}
           title={stopAction ? '停止执行' : props.busy ? '加入前端队列，点击引导后才发送' : '发送消息'}>

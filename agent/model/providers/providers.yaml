@@ -1,4 +1,4 @@
-# API 供应商连接、默认策略与人工模型覆盖；动态发现结果不写回此文件。
+# API 供应商连接、默认策略与人工模型覆盖；推理档位只读此文件，动态发现结果不写回。
 default_provider: gpt
 
 providers:
@@ -9,26 +9,36 @@ providers:
     default_model: gpt-6.2-sol
     defaults:
       thinking: disabled
-      # GPT 网关的 /models 不返回 reasoning 能力；这里是人工策略，非探测结果。
+      # 只为已验证的模型配置可选档位。
       default_reasoning_effort: medium
     # 模型 ID -> 人工覆盖；未列出的模型继承 defaults，不维护发现的全量列表。
     models:
       gpt-6.2-sol:
-        reasoning_efforts: [low, medium, high, xhigh]
+        reasoning_efforts: &gpt_efforts [low, medium, high, xhigh]
         default_reasoning_effort: high
       gpt-6.1-sol:
+        reasoning_efforts: *gpt_efforts
         vision: true
       gpt-6-sol:
+        reasoning_efforts: *gpt_efforts
         default_reasoning_effort: high
         vision: true
       gpt-6-astra:
+        reasoning_efforts: *gpt_efforts
         vision: true
       gpt-6.1-terra:
+        reasoning_efforts: *gpt_efforts
         vision: true
       gpt-5.6-sol:
+        reasoning_efforts: *gpt_efforts
         vision: true
       gpt-5.6-terra:
+        reasoning_efforts: *gpt_efforts
         vision: true
+      gpt-6.2-astra:
+        reasoning_efforts: *gpt_efforts
+      codex-auto-review:
+        reasoning_efforts: *gpt_efforts
   deepseek:
     display_name: DeepSeek
     api_key_default: gateway
@@ -36,11 +46,14 @@ providers:
     default_model: deepseek-flash
     defaults:
       thinking: disabled
-      reasoning_efforts: [low, high, max]
-      default_reasoning_effort: high
     models:
       deepseek-flash:
+        reasoning_efforts: &deepseek_efforts [none, low, high, max]
+        default_reasoning_effort: none
         vision: true
+      deepseek-v4-pro:
+        reasoning_efforts: *deepseek_efforts
+        default_reasoning_effort: none
   local-qwen3-coder-30b:
     display_name: 本地 Qwen3-Coder-30B (llama.cpp · Q4)
     base_url: http://192.168.250.1:18080/v1

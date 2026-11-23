@@ -1,5 +1,5 @@
 """Keep image IDs in state; encode bytes only at the provider boundary."""
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from ..storage.images import ImageStore
@@ -65,17 +65,20 @@ def _image_parts(identifiers: Sequence[str], images: ImageStore | None, seen: se
     return parts
 
 
-def request_messages(messages: list[dict], images: ImageStore | None, *, read_images: bool = True) -> list[dict]:
+def request_messages(messages: list[dict], images: ImageStore | None, *, read_images: bool = True,
+                     reasoning_for_request: Callable[[dict], dict] | None = None) -> list[dict]:
     result = []
     seen: set[str] = set()
     pending: set[str] = set()
     observations: list[tuple[str, list[str]]] = []
     for message in runtime_notice_messages(messages):
-        outgoing = {key: value for key, value in message.items() if key not in {"images", "model_images"}}
+        outgoing = {key: value for key, value in message.items() if key not in {"images", "model_images", "reasoning_content"}}
         if message.get("images"):
             content = [{"type": "text", "text": message["content"]}] if message["content"] else []
             outgoing["content"] = content + _image_parts(message["images"], images, seen)
         if message["role"] == "assistant":
+            if reasoning_for_request is not None:
+                outgoing.update(reasoning_for_request(message))
             pending = {call["id"] for call in message.get("tool_calls", [])}
         elif message["role"] == "tool":
             outgoing.pop("name", None)

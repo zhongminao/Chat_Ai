@@ -4,6 +4,7 @@ import json
 import queue
 
 from ..core.session_runtime import SessionRuntime
+from .history import display_event
 
 
 TERMINAL = {'turn.completed', 'turn.cancelled', 'turn.failed'}
@@ -48,7 +49,7 @@ async def session_events(runtime: SessionRuntime, request, after: int, *, stoppi
         yield encode(state, cursor)  # Never acknowledge the replay boundary before its events.
         for event in records:
             cursor = event['seq']
-            yield encode(event, cursor)
+            yield encode(display_event(event), cursor)
         yield encode({'type': 'session.ready', 'seq': state['seq']})
         ticks = 0
         while not (stopping is not None and stopping.is_set()) and not await request.is_disconnected():
@@ -68,6 +69,6 @@ async def session_events(runtime: SessionRuntime, request, after: int, *, stoppi
                        else await asyncio.to_thread(runtime.session.events.read, cursor))
             for item in pending:
                 cursor = item['seq']
-                yield encode(item, cursor)
+                yield encode(display_event(item), cursor)
     finally:
         runtime.bus.unsubscribe(channel)

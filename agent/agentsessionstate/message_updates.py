@@ -29,9 +29,11 @@ def receive_user(state: AgentState, text: str, images: Sequence[str] = (), *,
     return {'messages': [*state['messages'], *notices, build_user_message(text, images)]}
 
 
-def assistant_message(answer: str, calls: Sequence[ToolCall]) -> dict[str, Any]:
+def assistant_message(answer: str, calls: Sequence[ToolCall], reasoning: str = "") -> dict[str, Any]:
     message: dict[str, Any] = {'role': 'assistant', 'content': answer}
     if calls:
+        if reasoning:
+            message['reasoning_content'] = reasoning
         message['tool_calls'] = [
             {'id': call.id, 'type': 'function', 'function': {
                 'name': call.name, 'arguments': json.dumps(call.arguments, ensure_ascii=False),
@@ -40,9 +42,9 @@ def assistant_message(answer: str, calls: Sequence[ToolCall]) -> dict[str, Any]:
     return message
 
 
-def complete_model(state: AgentState, answer: str, calls: Sequence[ToolCall]) -> StateUpdate:
+def complete_model(state: AgentState, answer: str, calls: Sequence[ToolCall], reasoning: str = "") -> StateUpdate:
     return {
-        'messages': [*state['messages'], assistant_message(answer, calls)],
+        'messages': [*state['messages'], assistant_message(answer, calls, reasoning)],
         **update_execution(state, answer=answer, phase='tools' if calls else 'done'),
     }
 

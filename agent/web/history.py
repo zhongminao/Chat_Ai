@@ -18,6 +18,17 @@ def _start_of_interaction(records: list[dict], index: int) -> int:
     return 0
 
 
+def display_event(event: dict) -> dict:
+    # Preserve event sequence numbers; tool continuation data is not display history.
+    if event['type'] == 'reasoning.delta':
+        return {key: value for key, value in event.items() if key != 'text'}
+    if event['type'] == 'model.completed' and 'reasoning_content' in event:
+        return {key: value for key, value in event.items() if key != 'reasoning_content'}
+    if event['type'] == 'context.compacted' and 'messages' in event:
+        return {key: value for key, value in event.items() if key != 'messages'}
+    return event
+
+
 def history_page(log, *, before: int | None = None, through: int | None = None) -> dict:
     # EventLog.read currently validates/scans the complete JSONL; filter once
     # here, so every boundary and the snapshot high-water mark agree.
@@ -39,6 +50,6 @@ def history_page(log, *, before: int | None = None, through: int | None = None) 
                     'has_more': False}
         start = _start_of_interaction(older, max(0, len(older) - PAGE_EVENTS))
         page = older[start:]
-    return {'events': page, 'snapshot_seq': snapshot,
+    return {'events': [display_event(event) for event in page], 'snapshot_seq': snapshot,
             'min_seq': page[0]['seq'] if page else 0,
             'has_more': bool(page and page[0]['seq'] > 1)}

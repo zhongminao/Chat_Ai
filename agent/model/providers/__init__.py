@@ -8,7 +8,7 @@ from .qwen import QwenChatTemplateAdapter
 
 def create(name: str, thinking: str = "disabled", *, model: str = "", reasoning_effort: str = "") -> Any:
     if name == "deepseek":
-        return DeepSeekProvider(thinking=thinking)
+        return DeepSeekProvider(thinking=thinking, reasoning_effort=reasoning_effort)
     if name in {"local-qwen3p5-9b", "local-qwen3p6-35b"}:
         return QwenChatTemplateAdapter(thinking=thinking)
     if name == "gpt":

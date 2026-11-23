@@ -207,10 +207,9 @@ def models():
         {"provider": provider, "displayName": data.get("display_name", provider),
          "models": [{"id": item["id"], "name": item.get("name", item["id"]),
                     "enabled": item.get("enabled", True),
-                    **({"reasoning_efforts": levels} if (levels := catalog.reasoning_efforts(provider, item["id"])) else {}),
-                    **{key: item[key] for key in ("default_reasoning_effort",
-                                                    "api_default_reasoning_effort", "chat_completions",
-                                                    "context_window", "input_modalities") if key in item}}
+                    **{key: item[key] for key in ("default_reasoning_effort", "chat_completions",
+                                                    "context_window", "input_modalities") if key in item},
+                    **({"reasoning_efforts": levels} if (levels := catalog.reasoning_efforts(provider, item["id"])) else {})}
                     for item in catalog.models_for(provider)]}
         for provider, data in catalog.providers.items() if catalog.models_for(provider)
     ]}

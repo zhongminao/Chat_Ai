@@ -71,11 +71,12 @@ class ModelCatalog:
                 if (options := self.model_options(provider_name, item["id"])).get("enabled", True)]
 
     def reasoning_efforts(self, provider_name: str, model_name: str) -> list[str]:
-        # Only the GPT adapter currently forwards this request option.
-        if provider_name != "gpt":
+        if provider_name not in {"gpt", "deepseek"}:
             return []
         levels = self.model_options(provider_name, model_name).get("reasoning_efforts")
-        return list(dict.fromkeys(level for level in levels if isinstance(level, str) and level)) if isinstance(levels, list) else []
+        if not isinstance(levels, list):
+            return []
+        return list(dict.fromkeys(level for level in levels if isinstance(level, str) and level))
 
     def resolve(self, provider_name: str, model_name: str | None = None, *,
                 reasoning_effort: str | None = None) -> ModelTarget:
@@ -89,14 +90,14 @@ class ModelCatalog:
         entry = self.model_options(provider_name, model_name)
         if entry.get("enabled", True) is False:
             raise ValueError(f"model disabled: {provider_name}/{model_name}")
-        if reasoning_effort is not None and reasoning_effort not in self.reasoning_efforts(provider_name, model_name):
+        levels = self.reasoning_efforts(provider_name, model_name)
+        if reasoning_effort is not None and reasoning_effort not in levels:
             raise ValueError(f"unsupported reasoning effort: {provider_name}/{model_name}")
-        return ModelTarget(
-            provider=provider_name, name=model_name,
-            thinking=entry.get("thinking", "disabled"),
-            reasoning_effort=reasoning_effort or entry.get("default_reasoning_effort",
-                                      entry.get("api_default_reasoning_effort", "")),
-        )
+        thinking = entry.get("thinking", "disabled")
+        effort = reasoning_effort or entry.get("default_reasoning_effort", "")
+        if provider_name == "deepseek" and effort:
+            thinking = "disabled" if effort == "none" else "enabled"
+        return ModelTarget(provider_name, model_name, thinking, effort)
 
     def default(self) -> ModelTarget:
         return self.resolve(self.default_provider)

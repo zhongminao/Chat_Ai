@@ -81,6 +81,8 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
     text_buffer = TextBuffer()
     finish_reason = None
     usage = None
+    reasoning: list[str] = []
+    keep_reasoning = model["provider"] == "deepseek" and model["thinking"] == "enabled"
 
     agent.log.append("model.started", runId=run_id, round=round_no)
     with closing(stream(
@@ -108,14 +110,8 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
                         text=piece,
                     )
 
-            if chunk.reasoning:
-                agent.log.append(
-                    "reasoning.delta",
-                    durable=False,
-                    runId=run_id,
-                    round=round_no,
-                    text=chunk.reasoning,
-                )
+            if keep_reasoning and chunk.reasoning:
+                reasoning.append(chunk.reasoning)
 
             for delta in chunk.tool_deltas:
                 stream_guard.check(delta)
@@ -144,7 +140,8 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
 
     calls = assembler.finish()
     full_answer = transitions.execution(agent.state)["answer"]
-    agent.apply(message_updates.complete_model(agent.state, full_answer, calls))
+    tool_reasoning = "".join(reasoning) if calls else ""
+    agent.apply(message_updates.complete_model(agent.state, full_answer, calls, tool_reasoning))
 
     agent.log.append(
         "model.completed",
@@ -152,6 +149,7 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
         round=round_no,
         finishReason=finish_reason,
         usage=usage,
+        **({"reasoning_content": tool_reasoning} if tool_reasoning else {}),
     )
 
     return Command(update={"calls": calls}, goto="tool_batch" if calls else "finalize")

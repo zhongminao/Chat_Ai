@@ -1,4 +1,5 @@
 """Assemble agent state and resources; session lifecycle stays in the registry/runtime."""
+from dataclasses import replace
 from functools import partial
 
 from .agent_runtime import AgentRuntime
@@ -18,8 +19,9 @@ def build_state(config, metadata: dict, records: list[dict], catalog=None) -> Ag
             model = event["new"]
     target = catalog.resolve(model["provider"], model["name"])
     if "reasoning_effort" in model:
-        from dataclasses import replace
         target = replace(target, reasoning_effort=model["reasoning_effort"])
+    if target.provider == "deepseek":
+        target = replace(target, thinking=model.get("thinking", target.thinking))
     prompt = config.child_system_prompt if role == "child" else config.system_prompt
     return {
         "role": role,

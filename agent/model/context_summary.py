@@ -5,11 +5,14 @@ from .openai_compatible import stream
 
 
 def summarize_context(client, model, provider, selected, config, context):
+    def without_reasoning(messages):
+        return [{key: value for key, value in message.items() if key != "reasoning_content"} for message in messages]
+
     prompt = config["prompt_file"].read_text(encoding="utf-8")
     messages = [{"role": "system", "content": prompt}, {
         "role": "user", "content": json.dumps({
-            "history_to_summarize": selected["history"],
-            "retained_context": selected["retained"],
+            "history_to_summarize": without_reasoning(selected["history"]),
+            "retained_context": without_reasoning(selected["retained"]),
         }, ensure_ascii=False),
     }]
     parts = []

@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import { ModelPicker } from './ModelPicker';
 
+const state = vi.hoisted(() => ({ page: 'models' }));
+
 vi.mock('react', async original => ({
-  ...await original<typeof import('react')>(), useState: () => [true, vi.fn()],
+  ...await original<typeof import('react')>(), useState: (initial: unknown) => [initial === null ? state.page : initial, vi.fn()],
 }));
 
 const props: ComponentProps<typeof ModelPicker> = {
@@ -90,4 +92,37 @@ describe('model list refresh display', () => {
     expect(html).toContain('network error');
     expect(html).toContain('aria-label="刷新模型列表"');
   });
+});
+
+
+it.each([ [[]], [['high']], [['low', 'high']] ])('only renders the effort page for multiple levels (%j)', (levels) => {
+  state.page = 'effort';
+  try {
+    const html = renderToStaticMarkup(<ModelPicker {...props} model={{ provider: 'gpt', name: 'sol' }} groups={[
+      { provider: 'gpt', displayName: 'GPT', models: [{ id: 'sol', name: 'Sol', enabled: true, reasoning_efforts: levels }] },
+    ]} />);
+    expect(html.includes('type="range"')).toBe(levels.length > 1);
+    expect(html.includes('model-option selected')).toBe(levels.length < 2);
+  } finally { state.page = 'models'; }
+});
+
+
+it('shows the active, remembered, or default level without a generic label', () => {
+  vi.stubGlobal('localStorage', { getItem: (key: string) => key.includes('remembered') ? 'xhigh' : null });
+  try {
+    const html = renderToStaticMarkup(<ModelPicker {...props} model={{ provider: 'gpt', name: 'selected', reasoning_effort: 'low' }}
+      groups={[{ provider: 'gpt', displayName: 'GPT', models: [
+        { id: 'selected', name: 'Selected GPT', enabled: true, reasoning_efforts: ['low', 'high'], default_reasoning_effort: 'high' },
+        { id: 'remembered', name: 'Remembered GPT', enabled: true, reasoning_efforts: ['high', 'xhigh'], default_reasoning_effort: 'high' },
+        { id: 'default', name: 'Default GPT', enabled: true, reasoning_efforts: ['low', 'medium'], default_reasoning_effort: 'medium' },
+        { id: 'fixed', name: 'Fixed GPT', enabled: true, reasoning_efforts: ['high'], default_reasoning_effort: 'high' },
+        { id: 'offline', name: 'Offline GPT', enabled: false, reasoning_efforts: ['low', 'high'], default_reasoning_effort: 'high' },
+      ] }]} />);
+    expect(html).toContain('Selected GPT</span><span>低 ✓</span>');
+    expect(html).toContain('Remembered GPT</span><span>最高</span>');
+    expect(html).toContain('Default GPT</span><span>中</span>');
+    expect(html).toContain('Fixed GPT</span><span></span>');
+    expect(html).toContain('Offline GPT</span><span>不可用</span>');
+    expect(html).not.toMatch(/[档挡]位/);
+  } finally { vi.unstubAllGlobals(); }
 });

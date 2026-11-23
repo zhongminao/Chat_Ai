@@ -130,8 +130,8 @@ providers:
         default_reasoning_effort: high
 ```
 
-DeepSeek 在 `defaults` 中统一设置 `reasoning_efforts: [low, high, max]` 和 `default_reasoning_effort: high`；单模型视觉覆盖也写在对应的 `models.<模型 ID>.vision` 下。GPT 的 reasoning 配置是人工策略，不代表网关 `/models` 已返回或确认相关能力。Web 模型弹层仅在适配器会发送 `reasoning_effort` 且声明至少两个档位时显示滑条；切换档位写入当前会话的 `model.changed` 事件，浏览器也按模型记忆偏好，供切回模型和新会话使用。DeepSeek 的能力元数据不用于此滑条。
-参数优先级为：单模型 `models.<ID>` 覆盖 > provider 的 `defaults` > API 返回值；未指定时使用程序默认值。
+GPT 和 DeepSeek 的可选推理档位（`reasoning_efforts`）和默认档位（`default_reasoning_effort`）都只读取 YAML，不从网关 `/models` 获取或补齐。当前为已验证的 GPT 模型配置 `[low, medium, high, xhigh]`，为 DeepSeek Flash 和 Pro 配置 `[none, low, high, max]`，默认 `none`（关闭推理）。适配器支持发送档位且模型配置了至少两个档位时，网页才显示滑条。会话内选择写入 `model.changed`，浏览器也按模型记忆偏好。
+档位配置优先级为：单模型 `models.<ID>` > 供应商 `defaults`；两处都没配置可选档位时，不提供档位选择。其他支持自动发现的元数据（例如模型名和输入类型）仍由 API 提供，人工策略可以覆盖。
 
 | 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |
 |---|---|---|---|

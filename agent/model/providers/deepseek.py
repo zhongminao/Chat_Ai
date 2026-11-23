@@ -1,25 +1,29 @@
 from dataclasses import dataclass
 from typing import Any
 
-from ..openai_compatible import parse_chunk
-from ..protocol import ModelChunk
+from ..openai_compatible import OpenAICompatibleAdapter
 
 
 @dataclass(frozen=True)
-class DeepSeekProvider:
+class DeepSeekProvider(OpenAICompatibleAdapter):
     thinking: str = "disabled"
+    reasoning_effort: str = ""
 
     def request_options(self) -> dict[str, Any]:
-        return {"extra_body": {"thinking": {"type": self.thinking}}}
+        options: dict[str, Any] = {"extra_body": {"thinking": {"type": self.thinking}}}
+        if self.thinking == "enabled" and self.reasoning_effort not in {"", "none"}:
+            options["reasoning_effort"] = self.reasoning_effort
+        return options
 
-    def parse_chunk(self, raw: Any) -> ModelChunk:
-        return parse_chunk(raw, reasoning_field="reasoning_content")
+    def reasoning_for_request(self, message: dict) -> dict:
+        # The gateway requires this key on tool calls in thinking mode, including
+        # history produced before thinking was enabled or by a different model.
+        if self.thinking == "enabled" and message.get("tool_calls"):
+            return {"reasoning_content": message.get("reasoning_content", "")}
+        return {}
 
 
 def normalize_model(raw: dict[str, Any]) -> dict[str, Any]:
-    effort = raw.get("effort") or {}
     return {"id": raw["id"], "name": raw.get("name", raw["id"]),
-            "reasoning_efforts": effort.get("supported_levels", []),
-            "api_default_reasoning_effort": effort.get("default_level", ""),
             "context_window": raw.get("context_window"),
             "input_modalities": raw.get("input_modalities", ["text"])}

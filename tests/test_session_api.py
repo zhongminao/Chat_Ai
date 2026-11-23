@@ -119,6 +119,21 @@ class SessionApiTests(unittest.TestCase):
                 self.assertEqual(client.delete(path).status_code, 200)
                 runtime.worker.join(5)
 
+    def test_deepseek_catalog_exposes_yaml_efforts_not_gateway_efforts(self):
+        with patch('agent.model.discovery.get_json', return_value={'data': [
+            {'id': 'deepseek-flash', 'effort': {'supported_levels': ['medium'], 'default_level': 'medium'}},
+            {'id': 'unconfigured', 'effort': {'supported_levels': ['low', 'high'], 'default_level': 'high'}},
+        ]}):
+            from agent.model.catalog import ModelCatalog
+            catalog = ModelCatalog(load().providers_file)
+            with patch.object(web, 'registry', SimpleNamespace(catalog=catalog)):
+                group = next(group for group in web.models()['models'] if group['provider'] == 'deepseek')
+        option = group['models'][0]
+        self.assertEqual(option['reasoning_efforts'], ['none', 'low', 'high', 'max'])
+        self.assertEqual(option['default_reasoning_effort'], 'none')
+        self.assertNotIn('reasoning_efforts', group['models'][1])
+        self.assertNotIn('default_reasoning_effort', group['models'][1])
+
     def test_reasoning_effort_is_validated_and_restored_from_history(self):
         with tempfile.TemporaryDirectory() as directory:
             config = replace(load(), storage_dir=Path(directory), mcp={})
@@ -126,16 +141,22 @@ class SessionApiTests(unittest.TestCase):
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:
                 identifier = client.post('/api/sessions').json()['id']
                 path = f'/api/sessions/{identifier}'
-                target = {'provider': 'gpt', 'model': 'gpt-6.2-sol'}
-                self.assertEqual(client.post(path + '/model', json={**target, 'reasoning_effort': 'invalid'}).status_code, 400)
-                self.assertEqual(client.post(path + '/model', json={'provider': 'deepseek', 'model': 'deepseek-flash', 'reasoning_effort': 'high'}).status_code, 400)
-                response = client.post(path + '/model', json={**target, 'reasoning_effort': 'low'})
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json()['model']['reasoning_effort'], 'low')
                 runtime = registry.get(identifier)
                 from agent.core.agent_factory import build_state
-                restored = build_state(config, runtime.meta, runtime.session.events.read(), registry.catalog)
-                self.assertEqual(restored['model']['reasoning_effort'], 'low')
+                for provider, model, level, thinking in (
+                    ('gpt', 'gpt-6.1-sol', 'low', 'disabled'),
+                    ('deepseek', 'deepseek-flash', 'max', 'enabled'),
+                    ('deepseek', 'deepseek-flash', 'none', 'disabled'),
+                ):
+                    target = {'provider': provider, 'model': model}
+                    self.assertEqual(client.post(path + '/model', json={**target, 'reasoning_effort': 'invalid'}).status_code, 400)
+                    response = client.post(path + '/model', json={**target, 'reasoning_effort': level})
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.json()['model'], {
+                        'provider': provider, 'name': model, 'reasoning_effort': level, 'thinking': thinking,
+                    })
+                    restored = build_state(config, runtime.meta, runtime.session.events.read(), registry.catalog)
+                    self.assertEqual(restored['model'], response.json()['model'])
                 self.assertEqual(client.delete(path).status_code, 200)
                 runtime.worker.join(5)
 

@@ -1,6 +1,6 @@
 import { type PointerEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 
-const effortLabel = (value: string) => ({ none: '无', minimal: '极低', low: '低', medium: '中', high: '高', xhigh: '最高', max: '最高' })[value] ?? value;
+export const effortLabel = (value: string) => ({ none: '无', minimal: '极低', low: '低', medium: '中', high: '高', xhigh: '最高', max: '最高' })[value] ?? value;
 
 export function ReasoningSlider({ levels, value, disabled, onSelect, heading }: {
   levels: string[]; value: string; disabled: boolean;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MessageList } from './MessageList';
-import type { Item, ReasoningItem, TextItem } from '../../state/conversation';
+import { conversationReducer, emptyConversation, type TextItem } from '../../state/conversation';
+import type { AgentEvent } from '../../api/types';
 
 describe('guidance delivery position', () => {
   const render = (guidance: TextItem['guidance'], busy = true) => renderToStaticMarkup(<MessageList
@@ -151,29 +152,19 @@ describe('execution feedback', () => {
   });
 });
 
-
-describe('reasoning trail rendering', () => {
-  const trail: ReasoningItem = { id: 'reasoning:1', kind: 'reasoning', status: 'running',
-    lineIndex: 1, blankPrefix: '', lines: [{ index: 0, text: '<script>provider text</script>' }, { index: 1, text: 'latest line' }] };
-  const render = (items: Item[], busy: boolean) => renderToStaticMarkup(<MessageList items={items}
-    busy={busy} loading={false} assistantId={null} sessionId="test" images={[]} />);
-
-  it('opens while reasoning, displays the two lines as plain text, and replaces the generic progress indicator', () => {
-    const html = render([trail], true);
-    expect(html).toContain('<details class="reasoning-trail" data-state="running" open="">');
-    expect(html).toContain('思考中');
-    expect(html.match(/class="reasoning-trail-line"/g)).toHaveLength(2);
-    expect(html).toContain('&lt;script&gt;provider text&lt;/script&gt;');
-    expect(html).not.toContain('正在执行');
-  });
-
-  it('closes on completion or cancellation, and never displays a card without visible reasoning', () => {
-    for (const [status, label] of [['completed', '已思考'], ['stopped', '已停止思考']] as const) {
-      const html = render([{ ...trail, status }], false);
-      expect(html).toContain(`<details class="reasoning-trail" data-state="${status}">`);
-      expect(html).toContain(label);
-      expect(html).not.toContain('latest line');
-    }
-    for (const items of [[], [{ ...trail, lines: [] }]]) expect(render(items, true)).not.toContain('reasoning-trail');
-  });
+it.each([false, true])('groups tools around a historical reasoning event (report: %s)', inReport => {
+  const events: AgentEvent[] = [
+    { seq: 1, type: 'turn.started', prompt: 'start' },
+    { seq: 2, type: 'tool.requested', tool: 'bash', callId: 'one', arguments: {} },
+    { seq: 3, type: 'reasoning.delta', text: 'historical reasoning' },
+    { seq: 4, type: 'tool.requested', tool: 'bash', callId: 'two', arguments: {} },
+  ];
+  if (inReport) events.push({ seq: 5, type: 'report.submitted', content: 'done' });
+  const { items } = conversationReducer(emptyConversation(), { type: 'events', events });
+  const html = renderToStaticMarkup(<MessageList items={items} busy={!inReport} loading={false}
+    assistantId={null} sessionId="test" images={[]} />);
+  expect(html).not.toContain('historical reasoning');
+  expect(html.match(/class="execution-steps"/g)).toHaveLength(1);
+  expect(html.match(/class="tool-card"/g)).toHaveLength(2);
+  if (!inReport) expect(html).toContain('正在执行…');
 });

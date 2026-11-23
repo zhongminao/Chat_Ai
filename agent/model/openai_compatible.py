@@ -13,6 +13,9 @@ class ProviderAdapter(Protocol):
     def request_options(self) -> dict[str, Any]:
         ...
 
+    def reasoning_for_request(self, message: dict) -> dict:
+        ...
+
     def parse_chunk(self, raw: Any) -> ModelChunk:
         ...
 
@@ -53,6 +56,9 @@ class OpenAICompatibleAdapter:
     def request_options(self) -> dict[str, Any]:
         return {}
 
+    def reasoning_for_request(self, message: dict) -> dict:
+        return {}
+
     def parse_chunk(self, raw: Any) -> ModelChunk:
         return parse_chunk(raw, reasoning_field="reasoning_content")
 
@@ -69,7 +75,7 @@ def stream(
 ) -> Iterator[ModelChunk]:
     options = {
         "model": model,
-        "messages": request_messages(messages, images, read_images=read_images),
+        "messages": request_messages(messages, images, read_images=read_images, reasoning_for_request=provider.reasoning_for_request),
         "tools": tools,
         "stream": True,
         "stream_options": {"include_usage": True},

@@ -2,6 +2,9 @@ import unittest
 
 from agent.agentsessionstate.message_replay import restore_display_messages, restore_model_messages
 from agent.agentsessionstate.message_updates import time_notice
+from agent.model.providers import create
+from agent.model.request_messages import request_messages
+from agent.web.history import display_event
 
 
 class MessageReplayTests(unittest.TestCase):
@@ -78,6 +81,33 @@ class MessageReplayTests(unittest.TestCase):
         expected = [{'role': 'user', 'content': 'A'}, {'role': 'user', 'content': 'B'}]
         self.assertEqual(restore_model_messages(events, self.system), [self.system, *expected])
         self.assertEqual(restore_display_messages(events), expected)
+
+    def test_deepseek_tool_reasoning_is_restored_and_only_forwarded_to_thinking_requests(self):
+        completion = {'type': 'model.completed', 'reasoning_content': 'provider continuation'}
+        events = [
+            {'type': 'turn.started', 'prompt': 'A'}, {'type': 'model.started'},
+            {'type': 'tool_call.delta', 'delta': {'index': 0, 'id': 'call', 'name': 'bash', 'arguments': '{}'}},
+            completion,
+            {'type': 'tool.completed', 'callId': 'call', 'tool': 'bash', 'result': 'done'},
+        ]
+        self.assertNotIn('reasoning_content', display_event(completion))
+        self.assertNotIn('reasoning_content', restore_display_messages(events)[1])
+        messages = restore_model_messages(events, self.system)
+        self.assertEqual(messages[2]['reasoning_content'], 'provider continuation')
+        deepseek = create('deepseek', 'enabled', reasoning_effort='max')
+        self.assertEqual(deepseek.request_options(), {
+            'reasoning_effort': 'max', 'extra_body': {'thinking': {'type': 'enabled'}},
+        })
+        wire = request_messages(messages, None, reasoning_for_request=deepseek.reasoning_for_request)
+        self.assertEqual(wire[2]['reasoning_content'], 'provider continuation')
+        messages[2].pop('reasoning_content')
+        self.assertEqual(request_messages(messages, None, reasoning_for_request=deepseek.reasoning_for_request)[2]
+                         ['reasoning_content'], '')
+        messages[2]['reasoning_content'] = 'provider continuation'
+        for adapter in (create('deepseek', reasoning_effort='none'), create('gpt')):
+            self.assertNotIn('reasoning_content', request_messages(messages, None,
+                             reasoning_for_request=adapter.reasoning_for_request)[2])
+            self.assertNotIn('reasoning_effort', adapter.request_options())
 
     def test_real_completed_and_cancelled_replies_are_preserved_once(self):
         for terminal in ['model.completed', 'turn.cancelled']:

@@ -31,7 +31,7 @@ export interface ModelGroup {
   provider: string;
   displayName: string;
   models: { id: string; name: string; enabled: boolean; reasoning_efforts?: string[];
-    default_reasoning_effort?: string; api_default_reasoning_effort?: string }[];
+    default_reasoning_effort?: string }[];
 }
 
 export interface HistoryPage {
