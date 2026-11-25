@@ -29,7 +29,8 @@ class ModelDiscoveryTests(unittest.TestCase):
 
     def response(self, url, key, timeout):
         if "gpt" in url:
-            return {"data": [{"id": "sol", "supported_endpoint_types": ["openai"]},
+            return {"data": [{"id": "sol", "reasoning_efforts": ["medium", "xhigh"],
+                              "default_reasoning_effort": "xhigh"},
                              {"id": "image", "supported_endpoint_types": ["image-generation", "openai"]}]}
         return {"data": [{"id": "flash", "effort": {"supported_levels": ["low", "high"], "default_level": "low"},
                           "input_modalities": ["text", "image"]}]}
@@ -37,10 +38,12 @@ class ModelDiscoveryTests(unittest.TestCase):
     def test_discovery_merges_policy_without_writing_config_or_using_overrides_as_directory(self):
         before = self.path.read_bytes()
         self.assertEqual(self.catalog.models_for("gpt"), [])
-        with patch("agent.model.discovery.get_json", side_effect=self.response):
+        with patch("agent.model.discovery.get_json", side_effect=self.response) as fetch:
             self.assertEqual(refresh_catalog(self.catalog), {"gpt": "ok", "deepseek": "ok"})
+        self.assertCountEqual([c.args[0] for c in fetch.call_args_list],
+                              ["http://gpt/v1/models", "http://deepseek/v1/models"])
         self.assertEqual([m["id"] for m in self.catalog.models_for("gpt")], ["sol"])
-        self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "high")
+        self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "xhigh")
         self.assertEqual(self.catalog.reasoning_efforts("deepseek", "flash"), [])
         self.assertEqual(self.catalog.resolve("deepseek").reasoning_effort, "")
         self.assertTrue(self.catalog.supports_vision({"provider": "deepseek", "name": "flash"}))
@@ -94,7 +97,7 @@ class ModelDiscoveryTests(unittest.TestCase):
             refresh_catalog(self.catalog)
         self.assertEqual(self.catalog.models_for("gpt"), [])
 
-    def test_only_config_controls_efforts_and_model_overrides_win(self):
+    def test_discovery_alone_controls_efforts_and_manual_vision_still_wins(self):
         self.config["providers"]["deepseek"]["defaults"] = {
             "reasoning_efforts": ["none", "high"], "default_reasoning_effort": "high", "vision": False}
         self.config["providers"]["deepseek"]["models"] = {
@@ -102,15 +105,28 @@ class ModelDiscoveryTests(unittest.TestCase):
             "hidden": {"enabled": False}, "not-loaded": {"vision": True}}
         self.save()
         with patch("agent.model.discovery.get_json", return_value={"data": [
-            {"id": "flash", "effort": {"supported_levels": ["low", "high"], "default_level": "low"}}, {"id": "hidden"}]}):
+            {"id": "flash", "reasoning_efforts": ["none", " low ", "low", "", None],
+             "default_reasoning_effort": "low"}, {"id": "hidden"}]}):
             refresh_catalog(self.catalog)
         self.assertEqual([m["id"] for m in self.catalog.models_for("deepseek")], ["flash"])
-        self.assertEqual(self.catalog.reasoning_efforts("deepseek", "flash"), ["none", "max"])
-        self.assertEqual(self.catalog.resolve("deepseek").reasoning_effort, "max")
+        self.assertEqual(self.catalog.reasoning_efforts("deepseek", "flash"), ["none", "low"])
+        self.assertEqual(self.catalog.resolve("deepseek").reasoning_effort, "low")
         self.assertEqual(self.catalog.resolve("deepseek").thinking, "enabled")
         with self.assertRaises(ValueError):
-            self.catalog.resolve("deepseek", "flash", reasoning_effort="low")
+            self.catalog.resolve("deepseek", "flash", reasoning_effort="max")
         self.assertTrue(self.catalog.supports_vision({"provider": "deepseek", "name": "flash"}))
+
+    def test_invalid_default_is_not_used_and_refresh_replaces_effort_metadata(self):
+        with patch("agent.model.discovery.get_json", side_effect=self.response):
+            refresh_catalog(self.catalog)
+        self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "xhigh")
+        with patch("agent.model.discovery.get_json", return_value={"data": [
+            {"id": "sol", "reasoning_efforts": ["low"], "default_reasoning_effort": "xhigh"},
+        ]}):
+            refresh_catalog(self.catalog)
+        self.assertEqual(self.catalog.reasoning_efforts("gpt", "sol"), ["low"])
+        self.assertNotIn("default_reasoning_effort", self.catalog.model_options("gpt", "sol"))
+        self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "")
 
     def test_web_startup_queries_without_changing_provider_file(self):
         import asyncio

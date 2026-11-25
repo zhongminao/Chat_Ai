@@ -119,9 +119,10 @@ class SessionApiTests(unittest.TestCase):
                 self.assertEqual(client.delete(path).status_code, 200)
                 runtime.worker.join(5)
 
-    def test_deepseek_catalog_exposes_yaml_efforts_not_gateway_efforts(self):
+    def test_deepseek_catalog_exposes_normalized_gateway_efforts_only(self):
         with patch('agent.model.discovery.get_json', return_value={'data': [
-            {'id': 'deepseek-flash', 'effort': {'supported_levels': ['medium'], 'default_level': 'medium'}},
+            {'id': 'deepseek-flash', 'reasoning_efforts': ['none', 'low', 'high', 'max'],
+             'default_reasoning_effort': 'none'},
             {'id': 'unconfigured', 'effort': {'supported_levels': ['low', 'high'], 'default_level': 'high'}},
         ]}):
             from agent.model.catalog import ModelCatalog
@@ -135,7 +136,17 @@ class SessionApiTests(unittest.TestCase):
         self.assertNotIn('default_reasoning_effort', group['models'][1])
 
     def test_reasoning_effort_is_validated_and_restored_from_history(self):
-        with tempfile.TemporaryDirectory() as directory:
+        def model_list(url, key, timeout):
+            if '/gpt/' in url:
+                return {'data': [{'id': 'gpt-6.1-sol', 'reasoning_efforts': ['low', 'medium'],
+                                  'default_reasoning_effort': 'medium'}]}
+            if '/deepseek/' in url:
+                return {'data': [{'id': 'deepseek-flash', 'reasoning_efforts': ['none', 'max'],
+                                  'default_reasoning_effort': 'none'}]}
+            return {'data': []}
+
+        with tempfile.TemporaryDirectory() as directory, \
+                patch('agent.model.discovery.get_json', side_effect=model_list):
             config = replace(load(), storage_dir=Path(directory), mcp={})
             registry = SessionRegistry(config)
             with patch.object(web, 'registry', registry), patch.object(web, 'session_store', registry.store), TestClient(web.app) as client:

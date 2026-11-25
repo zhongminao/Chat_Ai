@@ -15,12 +15,28 @@ def get_json(url: str, api_key: str, timeout: float = 8) -> dict[str, Any]:
 
 
 def _normalize(provider: str, raw: dict[str, Any]) -> dict[str, Any]:
+    if provider in {"gpt", "deepseek"} and not raw.get("id"):
+        return {}
     if provider == "gpt":
         return gpt.normalize_model(raw)
     if provider == "deepseek":
         return deepseek.normalize_model(raw)
     identifier = raw.get("id") or raw.get("model") or raw.get("name")
     return {"id": identifier, "name": raw.get("name", identifier)}
+
+
+def _reasoning_metadata(raw: dict[str, Any]) -> dict[str, Any]:
+    levels = raw.get("reasoning_efforts")
+    if not isinstance(levels, list):
+        return {}
+    levels = list(dict.fromkeys(level.strip() for level in levels if isinstance(level, str) and level.strip()))
+    if not levels:
+        return {}
+    metadata = {"reasoning_efforts": levels}
+    default = raw.get("default_reasoning_effort")
+    if default in levels:
+        metadata["default_reasoning_effort"] = default
+    return metadata
 
 
 def refresh_catalog(catalog, timeout: float = 8) -> dict[str, str]:
@@ -40,7 +56,8 @@ def refresh_catalog(catalog, timeout: float = 8) -> dict[str, str]:
             for future in as_completed(futures):
                 name = futures[future]
                 try:
-                    models = [_normalize(name, raw) for raw in future.result().get("data", [])]
+                    models = [{**_normalize(name, raw), **_reasoning_metadata(raw)}
+                              for raw in future.result().get("data", []) if isinstance(raw, dict)]
                     snapshot["discovered"][name] = [item for item in models
                         if item.get("id") and item.get("chat_completions", True)]
                     results[name] = "ok"

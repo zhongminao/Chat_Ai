@@ -1,0 +1,25 @@
+# Optional cloud API gateway; does not use the existing host gateway port (18100).
+host: 127.0.0.1
+port: 18101
+providers:
+  gpt:
+    base_url: https://passion8.cc/v1
+    api_key_env: GPT_API_KEY
+    # Applied only to IDs returned by the upstream /models and lacking standardized levels.
+    reasoning_fallback:
+      gpt-6.2-sol: &gpt_high
+        reasoning_efforts: [low, medium, high, xhigh]
+        default_reasoning_effort: high
+      gpt-6-sol: *gpt_high
+      gpt-6.1-sol: &gpt_medium
+        reasoning_efforts: [low, medium, high, xhigh]
+        default_reasoning_effort: medium
+      gpt-6-astra: *gpt_medium
+      gpt-6.1-terra: *gpt_medium
+      gpt-5.6-sol: *gpt_medium
+      gpt-5.6-terra: *gpt_medium
+      gpt-6.2-astra: *gpt_medium
+      codex-auto-review: *gpt_medium
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY

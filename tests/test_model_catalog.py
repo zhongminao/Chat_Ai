@@ -30,12 +30,17 @@ class ModelBindingTests(unittest.TestCase):
 
     def test_provider_defaults_and_model_overrides(self):
         provider = self.catalog.providers.pop("test")
-        provider["defaults"] = {"thinking": "enabled", "default_reasoning_effort": "medium"}
-        provider["models"]["one"] = {"default_reasoning_effort": "high"}
+        provider["defaults"] = {"thinking": "enabled"}
+        provider["models"]["two"] = {"thinking": "disabled"}
         self.catalog.providers["gpt"] = provider
+        self.catalog._state["discovered"]["gpt"] = [
+            {"id": "one", "reasoning_efforts": ["medium", "high"], "default_reasoning_effort": "high"},
+            {"id": "two"},
+        ]
         target = self.catalog.resolve("gpt", "one")
         self.assertEqual((target.thinking, target.reasoning_effort), ("enabled", "high"))
-        self.assertEqual(self.catalog.resolve("gpt", "two").reasoning_effort, "medium")
+        second = self.catalog.resolve("gpt", "two")
+        self.assertEqual((second.thinking, second.reasoning_effort), ("disabled", ""))
         with patch("agent.model.catalog.ModelHttpClient"):
             _, adapter = self.catalog.get_binding(target)
             self.assertEqual(adapter.request_options(), {"reasoning_effort": "high"})

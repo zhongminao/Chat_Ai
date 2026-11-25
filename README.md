@@ -14,6 +14,7 @@ agent/tools/      本地工具、统一路由、审批、输出落盘与 MCP 客
 agent/storage/    SQLite 会话摘要与图片元数据、JSONL 事件、附件与报告
 agent/cli/        命令行交互
 agent/web/        FastAPI、SSE 与 React/TypeScript 前端
+services/model_gateway/  独立 GPT / DeepSeek API 网关（可选）
 prompts/         主 Agent、子 Agent、上下文整理提示词
 config.yaml      CLI/Web 共用配置
 ```
@@ -109,29 +110,10 @@ MCP 配置统一使用上述结构，不再接受直接写 URL 字符串的旧�
 模型连接与人工策略统一写在 `providers_file` 指向的 YAML 中，不再放在项目配置里：
 
 - 顶层 `default_provider` 选择默认供应商；`providers.<名称>` 保留 `display_name`、`base_url`、`default_model`、`token_counter` 等连接与部署配置。`base_url_env` 可覆盖部署地址，`api_key_env` 可指定密钥环境变量。
-- `providers.<名称>.defaults` 保存该供应商模型共用的 `thinking`、`vision`、`reasoning_efforts`、`default_reasoning_effort` 等人工策略。
-- `providers.<名称>.models` 是 **模型 ID → 人工覆盖映射**，仅列需要覆盖默认策略的模型，不是模型清单。未列出的模型继承 `defaults`；动态发现得到的全量列表与元数据只保留在运行时，不写回 YAML。
+- `providers.<名称>.defaults` 保存 `thinking`、`vision` 等通用策略；`providers.<名称>.models` 仅保存按模型 ID 配置的覆盖项，不是在线模型清单。
+- GPT 和 DeepSeek 可通过仓库中的[独立 API 模型网关](services/model_gateway/README.md)连接。网关独立安装、启动和更新，`chat_ai` 不负责启动它。本地模型仍使用原 OpenAI 兼容地址；不需要迁移本地模型服务或 KVM 网关。
 
-例如，GPT 默认使用 `medium`，仅两个模型例外使用 `high`：
-
-```yaml
-providers:
-  gpt:
-    base_url: http://127.0.0.1:18100/gpt/v1
-    api_key_default: gateway
-    default_model: gpt-6.2-sol
-    defaults:
-      thinking: disabled
-      default_reasoning_effort: medium
-    models:
-      gpt-6.2-sol:
-        default_reasoning_effort: high
-      gpt-6-sol:
-        default_reasoning_effort: high
-```
-
-GPT 和 DeepSeek 的可选推理档位（`reasoning_efforts`）和默认档位（`default_reasoning_effort`）都只读取 YAML，不从网关 `/models` 获取或补齐。当前为已验证的 GPT 模型配置 `[low, medium, high, xhigh]`，为 DeepSeek Flash 和 Pro 配置 `[none, low, high, max]`，默认 `none`（关闭推理）。适配器支持发送档位且模型配置了至少两个档位时，网页才显示滑条。会话内选择写入 `model.changed`，浏览器也按模型记忆偏好。
-档位配置优先级为：单模型 `models.<ID>` > 供应商 `defaults`；两处都没配置可选档位时，不提供档位选择。其他支持自动发现的元数据（例如模型名和输入类型）仍由 API 提供，人工策略可以覆盖。
+刷新时，每个供应商只发一次 `GET /models`。模型是否在线、可选推理等级 `reasoning_efforts`、默认等级 `default_reasoning_effort` 都来自这份响应，应用不再维护等级表。缺少等级的在线模型仍可选择；仅有多个可选等级时显示滑条。会话内选择写入 `model.changed`，浏览器也按模型记忆偏好。部署在非默认端口时，可用 `CHAT_AI_GPT_BASE_URL` 和 `CHAT_AI_DEEPSEEK_BASE_URL` 覆盖应用连接地址。
 
 | 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |
 |---|---|---|---|

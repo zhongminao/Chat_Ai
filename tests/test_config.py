@@ -1,4 +1,4 @@
-"""Project config resolves paths/prompts and loads model policy from providers only."""
+"""Project config resolves paths/prompts and loads model identity and manual policy from providers."""
 import os
 import tempfile
 import unittest
@@ -29,13 +29,8 @@ class PromptConfigTests(unittest.TestCase):
                 'gpt': {
                     'base_url': 'http://127.0.0.1:1/v1',
                     'default_model': 'gpt-test-high',
-                    'defaults': {
-                        'thinking': 'disabled',
-                        'default_reasoning_effort': 'medium',
-                    },
-                    'models': {
-                        'gpt-test-high': {'default_reasoning_effort': 'high'},
-                    },
+                    'defaults': {'thinking': 'enabled'},
+                    'models': {'gpt-test-high': {'thinking': 'disabled'}},
                 },
             },
         }), encoding='utf-8')
@@ -56,7 +51,7 @@ class PromptConfigTests(unittest.TestCase):
         self.assertEqual(config.providers_file, self.providers)
         self.assertEqual(config.model, {
             'provider': 'gpt', 'name': 'gpt-test-high',
-            'thinking': 'disabled', 'reasoning_effort': 'high',
+            'thinking': 'disabled',
         })
         self.assertNotIn('model_overrides', Config.__dataclass_fields__)
         self.assertEqual(build_state(config, {}, [])['model'], config.model)
@@ -73,7 +68,7 @@ class PromptConfigTests(unittest.TestCase):
         self.providers.write_text(yaml.safe_dump(providers), encoding='utf-8')
         self.assertEqual(self.config().model, {
             'provider': 'gpt', 'name': 'gpt-test-medium',
-            'thinking': 'disabled', 'reasoning_effort': 'medium',
+            'thinking': 'enabled',
         })
 
     def test_environment_selects_config_when_no_path_is_given(self):

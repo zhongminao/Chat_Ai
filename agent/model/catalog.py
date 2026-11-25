@@ -61,9 +61,14 @@ class ModelCatalog:
         provider = self.providers.get(provider_name, {})
         discovered = next((item for item in self._state["discovered"].get(provider_name, [])
                            if item["id"] == model_name), {})
-        return {"id": model_name, "name": model_name, **discovered,
-                **provider.get("defaults", {}),
-                **(provider.get("models", {}).get(model_name) or {})}
+        options = {"id": model_name, "name": model_name, **discovered,
+                   **provider.get("defaults", {}),
+                   **(provider.get("models", {}).get(model_name) or {})}
+        for key in ("reasoning_efforts", "default_reasoning_effort"):
+            options.pop(key, None)
+            if key in discovered:
+                options[key] = discovered[key]
+        return options
 
     def models_for(self, provider_name: str) -> list[dict[str, Any]]:
         # Only API discoveries are selectable; manual overrides never imply availability.
@@ -94,7 +99,7 @@ class ModelCatalog:
         if reasoning_effort is not None and reasoning_effort not in levels:
             raise ValueError(f"unsupported reasoning effort: {provider_name}/{model_name}")
         thinking = entry.get("thinking", "disabled")
-        effort = reasoning_effort or entry.get("default_reasoning_effort", "")
+        effort = reasoning_effort or (entry.get("default_reasoning_effort") if levels else None) or ""
         if provider_name == "deepseek" and effort:
             thinking = "disabled" if effort == "none" else "enabled"
         return ModelTarget(provider_name, model_name, thinking, effort)
