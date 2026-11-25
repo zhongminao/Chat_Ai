@@ -128,6 +128,45 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.assertNotIn("default_reasoning_effort", self.catalog.model_options("gpt", "sol"))
         self.assertEqual(self.catalog.resolve("gpt").reasoning_effort, "")
 
+    def test_vision_discovery_and_api_use_the_same_effective_capability(self):
+        self.config["providers"]["gpt"]["models"]["sol"]["vision"] = True
+        self.config["providers"]["gpt"]["models"]["force-off"] = {"vision": False}
+        self.config["providers"]["local-test"] = {"base_url": "http://local/v1", "default_model": "local"}
+        self.save()
+        responses = {
+            "http://gpt/v1/models": {"data": [
+                {"id": "sol", "supported_endpoint_types": ["openai"]},
+                {"id": "with-vision", "input_modalities": ["text", " Image ", "image", 1]},
+                {"id": "force-off", "input_modalities": ["image"]},
+                {"id": "no-vision", "vision": False, "input_modalities": ["image"]},
+                {"id": "unknown", "vision": "true", "input_modalities": None, "output_modalities": ["image"]},
+                {"id": "image-gen", "supported_endpoint_types": ["image-generation", "openai"]},
+                {"input_modalities": ["image"]},
+            ]},
+            "http://deepseek/v1/models": {"data": [
+                {"id": "flash", "input_modalities": ["text", "image"]},
+                {"id": "pro", "input_modalities": ["text"]},
+            ]},
+            "http://local/v1/models": {"data": [{"id": "local", "vision": True}]},
+        }
+        with patch.object(web, "registry", SimpleNamespace(catalog=self.catalog)), \
+             patch("agent.model.discovery.get_json", side_effect=lambda url, *_: responses[url]) as fetch:
+            groups = web.models()["models"]
+        self.assertCountEqual([c.args[0] for c in fetch.call_args_list], list(responses))
+        expected = {
+            "gpt": {"sol": True, "with-vision": True, "force-off": False, "no-vision": False, "unknown": False},
+            "deepseek": {"flash": True, "pro": False},
+            "local-test": {"local": True},
+        }
+        self.assertEqual({group["provider"]: {item["id"]: item["vision"] for item in group["models"]}
+                          for group in groups}, expected)
+        for provider, models in expected.items():
+            for model, vision in models.items():
+                self.assertEqual(self.catalog.supports_vision({"provider": provider, "name": model}), vision)
+        options = self.catalog.model_options("gpt", "with-vision")
+        self.assertEqual(options["input_modalities"], ["text", "image"])
+        self.assertNotIn("input_modalities", self.catalog.model_options("gpt", "unknown"))
+
     def test_web_startup_queries_without_changing_provider_file(self):
         import asyncio
         before = self.path.read_bytes()

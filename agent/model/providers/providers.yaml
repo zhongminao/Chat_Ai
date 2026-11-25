@@ -11,6 +11,9 @@ providers:
     default_model: gpt-6.2-sol
     # 模型 ID -> 人工覆盖；不维护发现的全量列表。
     models:
+      gpt-6.2-sol:
+        # /models 未声明视觉；已用真实图像输入验证。
+        vision: true
       gpt-6.1-sol:
         vision: true
       gpt-6-sol:

@@ -124,7 +124,11 @@ class ModelCatalog:
 
     def supports_vision(self, model: dict[str, str]) -> bool:
         entry = self.model_options(model["provider"], model["name"])
-        return entry.get("vision", "image" in entry.get("input_modalities", [])) is True
+        vision = entry.get("vision")
+        if isinstance(vision, bool):
+            return vision
+        modalities = entry.get("input_modalities")
+        return isinstance(modalities, list) and "image" in modalities
 
     def get_binding(self, target: ModelTarget) -> tuple[Any, Any]:
         provider = self.providers[target.provider]

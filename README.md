@@ -115,6 +115,8 @@ MCP 配置统一使用上述结构，不再接受直接写 URL 字符串的旧�
 
 刷新时，每个供应商只发一次 `GET /models`。模型是否在线、可选推理等级 `reasoning_efforts`、默认等级 `default_reasoning_effort` 都来自这份响应，应用不再维护等级表。缺少等级的在线模型仍可选择；仅有多个可选等级时显示滑条。会话内选择写入 `model.changed`，浏览器也按模型记忆偏好。部署在非默认端口时，可用 `CHAT_AI_GPT_BASE_URL` 和 `CHAT_AI_DEEPSEEK_BASE_URL` 覆盖应用连接地址。
 
+视觉能力从同一次 `/models` 响应读取：优先采用明确的布尔 `vision`，否则看 `input_modalities` 是否包含 `image`；图片输出或生图接口不等于支持图片输入。没有声明时默认不启用，可通过 `providers.yaml` 的 `vision` 人工覆盖。GPT 上游目前没有声明输入类型，已用图像输入验证的 `gpt-6.2-sol` 在本配置中显式启用。应用的 `/api/models` 返回生效后的 `vision`，和读图工具用的是同一规则。
+
 | 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |
 |---|---|---|---|
 | Web/CLI 启动 | 是 | 是 | 否 |

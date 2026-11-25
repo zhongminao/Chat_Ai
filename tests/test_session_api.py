@@ -38,7 +38,7 @@ class SessionApiTests(unittest.TestCase):
                 group = response["models"][0]
                 self.assertEqual(response["defaultModel"]["name"], "qwen3-coder-30b")
             self.assertEqual(group["displayName"], "本地 Qwen3-Coder-30B (llama.cpp · Q4)")
-            self.assertEqual(group["models"], [{"id": "qwen3-coder-30b", "name": "qwen3-coder-30b", "enabled": True}])
+            self.assertEqual(group["models"], [{"id": "qwen3-coder-30b", "name": "qwen3-coder-30b", "enabled": True, "vision": False}])
 
     def test_child_list_status_uses_summaries_without_reading_events(self):
         with tempfile.TemporaryDirectory() as directory:

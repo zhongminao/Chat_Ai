@@ -34,21 +34,12 @@ Tests use fake credentials and mock or ephemeral loopback upstreams:
 python -m unittest discover -s services/model_gateway -v
 ```
 
-## Replace the old cloud API gateway on this host
+## Host deployment
 
-Run in a quiet window on the host as the service owner, not as root. Keep the
-existing KVM cloud-model SSH tunnel open. This migration briefly takes the cloud
-endpoint offline, then starts `chat-ai-model-gateway.service` on `127.0.0.1:18100`
-with the same credentials file. No change to `chat_ai` URLs or to the tunnel is
-needed. The local-model gateway and its configuration are not changed.
-
-```sh
-bash "$HOME/mydisk/tools/chat_ai/services/model_gateway/migrate_api_gateway.sh"
-```
-
-The script installs dependencies in an independent venv, checks `/models` for
-both providers from the host and the VM, and restores the old service if the
-cutover checks fail. It removes only the old cloud service files and `config.yaml`
-after verification, leaving a backup under `~/.local/share/chat-ai-model-gateway/`.
-The example at `18101` is still available for standalone testing; the script
-copies it to a separate deployment configuration and changes the port to `18100`.
+The host runs this gateway as the independent user service
+`chat-ai-model-gateway.service`, with its own virtual environment and configuration
+under `~/.local/share/chat-ai-model-gateway/`. The deployed port is `18100`;
+`18101` in the repository example is for standalone testing. The deployed service
+loads its credentials from `~/.config/chat_ai/chat.env`. Ordinary chat_ai deployments
+do not restart this service. The local-model gateway and the existing KVM tunnel
+are managed separately.
