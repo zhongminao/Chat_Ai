@@ -33,12 +33,8 @@ htmlcov/
 
 /local/
 /supper_agent
-# Host-specific deployment Skill: keep local, do not publish.
-/skills/linux_environment/
+# Skills are managed locally, not versioned in this worktree.
+/skills/
 
-# Host-specific desktop automation: keep local, not in portable deployments.
-/skills/desktop_locator/
+# Host-specific desktop automation test.
 /tests/test_desktop_locator.py
-
-# Host-local QQ email Skill; contains local operational configuration.
-/skills/qq_email/
