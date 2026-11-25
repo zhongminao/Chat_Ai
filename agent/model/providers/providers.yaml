@@ -16,6 +16,8 @@ providers:
       gpt-6.2-sol:
         reasoning_efforts: &gpt_efforts [low, medium, high, xhigh]
         default_reasoning_effort: high
+        # /models 未声明视觉；已用真实图像输入验证。
+        vision: true
       gpt-6.1-sol:
         reasoning_efforts: *gpt_efforts
         vision: true

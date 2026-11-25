@@ -24,6 +24,6 @@ class DeepSeekProvider(OpenAICompatibleAdapter):
 
 
 def normalize_model(raw: dict[str, Any]) -> dict[str, Any]:
-    return {"id": raw["id"], "name": raw.get("name", raw["id"]),
-            "context_window": raw.get("context_window"),
-            "input_modalities": raw.get("input_modalities", ["text"])}
+    identifier = raw.get("id")
+    return {"id": identifier, "name": raw.get("name", identifier),
+            "context_window": raw.get("context_window")}

@@ -15,6 +15,8 @@ class GPTChatAdapter(OpenAICompatibleAdapter):
 
 
 def normalize_model(raw: dict[str, Any]) -> dict[str, Any]:
-    endpoints = raw.get("supported_endpoint_types", [])
-    return {"id": raw["id"], "name": raw.get("name", raw["id"]),
-            "chat_completions": "openai" in endpoints and "image-generation" not in endpoints}
+    endpoints = raw.get("supported_endpoint_types")
+    identifier = raw.get("id")
+    return {"id": identifier, "name": raw.get("name", identifier),
+            "chat_completions": endpoints is None or (isinstance(endpoints, list) and
+                "openai" in endpoints and "image-generation" not in endpoints)}

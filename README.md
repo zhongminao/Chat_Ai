@@ -133,6 +133,8 @@ providers:
 GPT 和 DeepSeek 的可选推理档位（`reasoning_efforts`）和默认档位（`default_reasoning_effort`）都只读取 YAML，不从网关 `/models` 获取或补齐。当前为已验证的 GPT 模型配置 `[low, medium, high, xhigh]`，为 DeepSeek Flash 和 Pro 配置 `[none, low, high, max]`，默认 `none`（关闭推理）。适配器支持发送档位且模型配置了至少两个档位时，网页才显示滑条。会话内选择写入 `model.changed`，浏览器也按模型记忆偏好。
 档位配置优先级为：单模型 `models.<ID>` > 供应商 `defaults`；两处都没配置可选档位时，不提供档位选择。其他支持自动发现的元数据（例如模型名和输入类型）仍由 API 提供，人工策略可以覆盖。
 
+视觉能力从同一次 `/models` 响应读取：优先采用明确的布尔 `vision`，否则看 `input_modalities` 是否包含 `image`；图片输出或生图接口不等于支持图片输入。没有声明时默认不启用，可通过 `providers.yaml` 的 `vision` 人工覆盖。GPT 上游目前没有声明输入类型，已用图像输入验证的 `gpt-6.2-sol` 在本配置中显式启用。应用的 `/api/models` 返回生效后的 `vision`，和读图工具用的是同一规则。
+
 | 事件 | 重新读取 providers YAML | 查询模型 API `/models` | 写回 YAML |
 |---|---|---|---|
 | Web/CLI 启动 | 是 | 是 | 否 |
