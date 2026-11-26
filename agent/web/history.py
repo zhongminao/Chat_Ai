@@ -20,6 +20,15 @@ def _start_of_interaction(records: list[dict], index: int) -> int:
 
 def display_event(event: dict) -> dict:
     # Preserve event sequence numbers; tool continuation data is not display history.
+    if event['type'] == 'mailbox.correction':
+        return {key: value for key, value in event.items() if key != 'content'}
+    if event['type'] == 'tool_call.delta':
+        return {key: value for key, value in event.items() if key != 'delta'}
+    if event['type'] == 'tool.requested' and event.get('tool') == 'notify_agent':
+        return {**event, 'arguments': {key: value for key, value in event['arguments'].items()
+                                      if key != 'content'}}
+    if event['type'] == 'tool.completed' and event.get('tool') in {'inspect_agent', 'read_agent_message'}:
+        return {**event, 'result': '[private collaboration data]'}
     if event['type'] == 'reasoning.delta':
         return {key: value for key, value in event.items() if key != 'text'}
     if event['type'] == 'model.completed' and 'reasoning_content' in event:

@@ -2,7 +2,7 @@ import type { AgentEvent, ContextUsage, HistoryPage, ImageAsset, Model, SessionS
 
 export type TextItem = { id: string; kind: 'text'; role: 'user' | 'assistant'; content: string; images?: string[];
   guidance?: 'queued' | 'applied' | 'undelivered' };
-export type ToolItem = { id: string; kind: 'tool'; name: string; callId?: string; arguments?: unknown; result?: unknown; readImageIds?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'rejected' };
+export type ToolItem = { id: string; kind: 'tool'; name: string; callId?: string; arguments?: unknown; result?: unknown; readImageIds?: string[]; process?: ToolProcess; status: 'running' | 'completed' | 'interrupted' | 'skipped' | 'rejected' };
 export type ExecutionItem = TextItem | ToolItem;
 export type ContextCompactionItem = { id: string; kind: 'context'; status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'; reason?: string };
 export type ReportItem = { id: string; kind: 'report'; content: string; process: ExecutionItem[]; durationSeconds: number | null };
@@ -82,6 +82,12 @@ function applyEvent(state: Conversation, event: AgentEvent): Conversation {
         ? { ...item, guidance: 'undelivered' } : item);
       break;
     case 'model.started': next.assistantId = null; break;
+    case 'model.interrupted':
+      if (event.answer) next.items = state.assistantId
+        ? state.items.map(item => item.kind === 'text' && item.id === state.assistantId ? { ...item, content: event.answer } : item)
+        : appendExecution(state.items, { id: `assistant:${event.seq}`, kind: 'text', role: 'assistant', content: event.answer });
+      next.assistantId = null;
+      break;
     case 'context.measured':
       if (event.seq > (state.session?.seq ?? 0)) next.contextUsage = { usedTokens: event.usedTokens, limitTokens: event.limitTokens, estimated: event.estimated };
       break;
@@ -181,8 +187,8 @@ function upsertTool(items: Item[], event: ToolEvent): Item[] {
     : event.type === 'tool.process' ? { process: event.process } : {
       result: event.result,
       readImageIds: [...new Set(eventImages(event).map(image => image.id))],
-      status: String(event.result).startsWith('[tool cancelled]') ? 'interrupted'
-        : String(event.result).startsWith('[tool denied]') ? 'rejected' : 'completed',
+      status: event.status ?? (String(event.result).startsWith('[tool cancelled]') ? 'interrupted'
+        : String(event.result).startsWith('[tool denied]') ? 'rejected' : 'completed'),
     };
   let found = false;
   const update = <T extends Item>(item: T): T => {

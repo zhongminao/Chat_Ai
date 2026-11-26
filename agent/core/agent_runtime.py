@@ -113,6 +113,7 @@ class AgentRuntime:
             # A cancelled or failed tool batch must not activate a previous discovery
             # on an unrelated later user turn.
             self.tools.pending_tools.clear()
+            self.control.pending_tools([])
             self.control.unbind(context.cancellation)
 
     def prepare_input(self, prompt: str | UserInput) -> UserInput:

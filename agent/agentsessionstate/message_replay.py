@@ -1,4 +1,4 @@
-from .message_updates import assistant_message, mailbox_notice, time_notice
+from .message_updates import assistant_message, correction_message, mailbox_notice, time_notice
 from ..tools.schema import ToolCallAssembler
 from ..model.request_messages import build_user_message, build_tool_message
 
@@ -38,6 +38,8 @@ def _restore(events: list[dict], initial: list[dict], *, tool_names=True, runtim
         kind = event["type"]
         if kind == 'guidance.applied':
             messages.append(build_user_message(event['content'], [i['id'] for i in event.get('images', [])]))
+        elif kind == 'mailbox.correction' and runtime_notices:
+            messages.append(correction_message(event['senderId'], event['content']))
         elif kind == 'mailbox.notified' and runtime_notices:
             messages.append(mailbox_notice(event['messageIds']))
         elif kind == "turn.started":
@@ -65,6 +67,11 @@ def _restore(events: list[dict], initial: list[dict], *, tool_names=True, runtim
             messages.append(message)
         elif kind == "completion.reminded":
             messages.append({"role": "system", "content": event["content"]})
+        elif kind == "model.interrupted":
+            if event["answer"]:
+                messages.append({"role": "assistant", "content": event["answer"]})
+            model_finished = True
+            text = []
         elif kind == "turn.cancelled":
             close_pending()
             content = event.get("answer") or "".join(text)

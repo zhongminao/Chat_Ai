@@ -92,14 +92,16 @@ export type AgentEvent = EventEnvelope & (
   | { type: 'guidance.queued' | 'guidance.applied'; messageId: string; content: string; images?: ImageAsset[] }
   | { type: 'guidance.undelivered'; messageId: string }
   | { type: 'mailbox.notified'; messageIds: string[] }
+  | { type: 'mailbox.correction'; messageId: string; senderId: string }
   | { type: 'model.started'; round: number }
+  | { type: 'model.interrupted'; round: number; answer: string }
   | { type: 'message.delta'; text: string; round: number }
   | { type: 'tool.requested'; callId: string; tool: string; arguments: unknown }
   | { type: 'question.requested'; questionId: string; callId: string; question: string; options: QuestionOption[] }
   | { type: 'question.answered'; questionId: string; callId: string; answer: QuestionAnswer }
   | { type: 'question.cancelled'; questionId: string; callId: string }
   | { type: 'tool.process'; callId: string; tool: 'bash'; process: ToolProcess }
-  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; model_images?: ImageAsset[] }
+  | { type: 'tool.completed'; callId: string; tool: string; result: unknown; status?: 'interrupted' | 'skipped'; model_images?: ImageAsset[] }
   | { type: 'model.changed'; new: Model }
   | { type: 'agent.created'; session_id: string }
   | { type: 'report.submitted'; content: string }

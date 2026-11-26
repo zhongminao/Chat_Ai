@@ -4,9 +4,11 @@ import threading
 import uuid
 
 from .bus import EventBus
+from .cancellation import RunCancelled
 from .control import ExecutionControl
 from .steering import InputDelivery
 from .agent_factory import build_agent, build_state
+from ..agentsessionstate.input import normalize_input
 from ..storage import reports
 from ..agentsessionstate.commands import SwitchModel
 from ..agentsessionstate.state import AgentState, StateUpdate
@@ -27,6 +29,7 @@ class SessionRuntime:
         self.meta = registry.store.metadata(session_id)
         records = self.session.events.read()
         self.parent_session_id = self.meta.get("parent_session_id")
+        self.task_input = next((e["prompt"] for e in reversed(records) if e["type"] == "turn.started"), None)
         if self.parent_session_id:
             self.approvals = registry.get(self.parent_session_id).approvals
         else:
@@ -38,7 +41,8 @@ class SessionRuntime:
         self.lock = threading.RLock()
         self.steering = InputDelivery(
             self.lock, self.session.events.append, records,
-            inbox=lambda: registry.mailbox_list(session_id, unread_only=True))
+            inbox=lambda: registry.mailbox.list(session_id, unread_only=True, include_read_corrections=True),
+            acknowledge=lambda identifier: registry.mailbox_read(session_id, identifier))
         self._agent_lock = threading.Lock()
         self._state_lock = threading.Lock()
         self._state: AgentState | None = None
@@ -111,6 +115,7 @@ class SessionRuntime:
             monitor._wake()
 
     def start(self, content):
+        task_input = normalize_input(content).text if self.parent_session_id else None
         with self.lock:
             if self.closed or self.busy:
                 raise SessionBusy("This session is closed or already running")
@@ -118,15 +123,19 @@ class SessionRuntime:
             self.submitting = False
             self.steering.begin()
             self.busy = True
+            self.task_input = task_input
             self.queue.put(content)
 
     def stop(self) -> bool:
         with self.lock:
             if not self.busy:
                 return False
-            self.control.request_stop()
+            token = self.control.mark_stopped()
             self.steering.close()
-            return True
+        # Cancellation callbacks may wake a monitor whose predicate uses this lock.
+        if token:
+            token.cancel()
+        return True
 
     def submitted(self, content: str, run_id: str) -> str:
         path, rendered = reports.save(self.session, run_id, content, self.registry.config.workspace)
@@ -137,6 +146,8 @@ class SessionRuntime:
     def begin_submit(self, deliver, context):
         """Atomically close guidance, then seal the final result against new mail."""
         with self.lock:
+            if self.control.stopped:
+                raise RunCancelled()
             received = deliver(context, finish=True)
             if not received:
                 self.steering.accepting = False

@@ -9,6 +9,8 @@ import type { ImageAsset } from '../../api/types';
 import { MessageImages } from '../images/MessageImages';
 import type { DisclosureState } from './toolPresentation';
 
+const NEAR_BOTTOM_PX = 72;
+
 export function MessageList({ footer, items, busy, loading, assistantId, sessionId, images, waitingCallIds = [], hasMore = false, loadingMore = false, historyError = null, onLoadMore, revision = 0, canAnswer = true }: {
   footer?: ReactNode; canAnswer?: boolean;
   items: Item[]; busy: boolean; loading: boolean; assistantId: string | null;
@@ -16,6 +18,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   waitingCallIds?: string[]; hasMore?: boolean; loadingMore?: boolean; historyError?: string | null;
   onLoadMore?: () => void; revision?: number;
 }) {
+  const area = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const contentBox = useRef<HTMLDivElement>(null);
   const footerBox = useRef<HTMLDivElement>(null);
@@ -61,16 +64,20 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
   useEffect(() => {
     const content = contentBox.current;
     if (!content) return;
+    let contentHeight = content.offsetHeight;
     const measure = () => {
       const element = viewport.current;
       const footerElement = footerBox.current;
-      if (element && footerElement) {
-        const limit = element.clientHeight * 0.65;
+      if (area.current && footerElement) {
+        const limit = area.current.clientHeight * 0.65;
         footerElement.style.setProperty('--composer-height-limit', `${limit}px`);
         footerElement.classList.toggle('is-tall', Boolean(footerElement.firstElementChild && footerElement.firstElementChild.scrollHeight > limit));
       }
+      // A growing composer only changes the visible pane, not the message scroll position.
+      const grew = content.offsetHeight > contentHeight;
+      contentHeight = content.offsetHeight;
       if (element && follow.current && !anchor.current) {
-        element.scrollTop = element.scrollHeight;
+        if (grew && element.scrollHeight > element.clientHeight) element.scrollTop = element.scrollHeight;
         if (!loading && !loadingMore && !historyError && hasMore && onLoadMore
             && autoHistory.current.pages < 3 && autoHistory.current.revision !== revision
             && element.scrollHeight <= element.clientHeight + 2) {
@@ -81,7 +88,7 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
     };
     const observer = new ResizeObserver(measure);
     observer.observe(content);
-    if (viewport.current) observer.observe(viewport.current);
+    if (area.current) observer.observe(area.current);
     if (footerBox.current?.firstElementChild) observer.observe(footerBox.current.firstElementChild);
     measure();
     return () => observer.disconnect();
@@ -112,12 +119,12 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
       sessionId={sessionId} images={images} waitingCallIds={waitingCallIds} />;
   };
 
-  return <div className="conversation-area">
+  return <div ref={area} className="conversation-area">
     <div ref={viewport} className="message-viewport"
       onScroll={() => {
         const element = viewport.current;
         if (!element) return;
-        follow.current = element.scrollHeight - element.scrollTop - element.clientHeight <= 2;
+        follow.current = element.scrollHeight - element.scrollTop - element.clientHeight <= NEAR_BOTTOM_PX;
         if (!follow.current) autoHistory.current.pages = 3;
         setAway(!follow.current);
       }}>
@@ -152,11 +159,11 @@ export function MessageList({ footer, items, busy, loading, assistantId, session
             {progressIndex === items.length && progress}
           </div>}
       </div>
-      <div ref={footerBox} className="workspace-bottom">
-        {footer}
-        {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}
       </div>
-      </div>
+    </div>
+    <div ref={footerBox} className="workspace-bottom">
+      {footer}
+      {away && <button className="scroll-bottom" onClick={bottom}><Icon name="down" size={16} />回到最新消息</button>}
     </div>
   </div>;
 }
