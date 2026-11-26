@@ -23,8 +23,8 @@ class AgentToAgentMailbox:
     def send(self, sender_id: str, recipient_id: str, content: str, *, cc=(), kind='notification') -> dict:
         if not isinstance(content, str) or not content.strip():
             raise ValueError('content must be non-empty text')
-        if kind not in {'notification', 'feedback'}:
-            raise ValueError('kind must be notification or feedback')
+        if kind not in {'notification', 'feedback', 'correction'}:
+            raise ValueError('invalid mail kind')
         if not isinstance(recipient_id, str) or not recipient_id:
             raise ValueError('recipient must be a session ID')
         if not isinstance(cc, (list, tuple)) or not all(isinstance(item, str) for item in cc):
@@ -38,8 +38,10 @@ class AgentToAgentMailbox:
         with self.database.connect(write=True) as connection:
             root = self._root(connection, sender_id)
             sender_is_child = root != sender_id
-            if (sender_is_child and kind != 'feedback') or (not sender_is_child and kind != 'notification'):
+            if (sender_is_child and kind != 'feedback') or (not sender_is_child and kind == 'feedback'):
                 raise ValueError('kind does not match sender role')
+            if kind == 'correction' and cc:
+                raise ValueError('a correction targets one child')
             if sender_id == recipient_id or sender_id in cc:
                 raise PermissionError('cannot send to yourself')
             for recipient in recipients:
@@ -56,32 +58,43 @@ class AgentToAgentMailbox:
                                    [(message_id, r['session_id'], r['role']) for r in recipients])
         return {'id': message_id, 'recipients': recipients}
 
-    def list(self, session_id: str, unread_only: bool = False) -> list[dict]:
+    def list(self, session_id: str, unread_only: bool = False, *, include_read_corrections=False) -> list[dict]:
         with self.database.connect() as connection:
             self._root(connection, session_id)
             rows = connection.execute('''SELECT m.id, m.sender_id, m.content, m.kind, m.created_at,
                 d.role, d.read_at FROM agent_to_agent_message_deliveries AS d
                 JOIN agent_to_agent_messages AS m ON m.id=d.message_id
-                WHERE d.recipient_id=? AND (?=0 OR d.read_at IS NULL)
-                ORDER BY m.created_at DESC, m.id DESC''', (session_id, int(bool(unread_only)))).fetchall()
+                WHERE d.recipient_id=? AND (?=0 OR d.read_at IS NULL OR (? AND m.kind='correction'))
+                ORDER BY m.created_at DESC, m.id DESC''', (session_id, int(bool(unread_only)), int(include_read_corrections))).fetchall()
             return [dict(row) for row in rows]
 
+    def sender_for_delivery(self, session_id: str, message_id: str) -> str:
+        with self.database.connect() as connection:
+            row = connection.execute('''SELECT m.sender_id FROM agent_to_agent_message_deliveries AS d
+                JOIN agent_to_agent_messages AS m ON m.id=d.message_id
+                WHERE d.recipient_id=? AND d.message_id=?''', (session_id, message_id)).fetchone()
+            if row is None:
+                raise FileNotFoundError(message_id)
+            return row['sender_id']
+
     def read(self, session_id: str, message_id: str) -> dict:
+        result, _ = self.read_with_ack(session_id, message_id)
+        return result
+
+    def read_with_ack(self, session_id: str, message_id: str) -> tuple[dict, bool]:
+        """Read a delivery and report whether this transaction first acknowledged it."""
         with self.database.connect(write=True) as connection:
             self._root(connection, session_id)
+            updated = connection.execute('''UPDATE agent_to_agent_message_deliveries SET read_at=?
+                WHERE recipient_id=? AND message_id=? AND read_at IS NULL''',
+                                         (_now(), session_id, message_id))
             row = connection.execute('''SELECT m.id, m.sender_id, m.content, m.kind, m.created_at,
                 d.role, d.read_at FROM agent_to_agent_message_deliveries AS d
                 JOIN agent_to_agent_messages AS m ON m.id=d.message_id
                 WHERE d.recipient_id=? AND m.id=?''', (session_id, message_id)).fetchone()
             if row is None:
                 raise FileNotFoundError(message_id)
-            if row['read_at'] is None:
-                timestamp = _now()
-                connection.execute('''UPDATE agent_to_agent_message_deliveries SET read_at=?
-                    WHERE recipient_id=? AND message_id=? AND read_at IS NULL''',
-                                   (timestamp, session_id, message_id))
-                return {**dict(row), 'read_at': timestamp}
-            return dict(row)
+            return dict(row), updated.rowcount == 1
 
     def unread_count(self, session_id: str) -> int:
         with self.database.connect() as connection:

@@ -100,14 +100,32 @@ class SessionRegistry:
             unread_count=self.mailbox.unread_count(session_id),
             latest_id=self.mailbox.latest_id(session_id))
 
+    def inspect_agent(self, sender_id: str, child_id: str) -> dict:
+        if self.store.metadata(child_id).get("parent_session_id") != sender_id:
+            raise PermissionError('can only inspect your own child')
+        child = self.get(child_id)
+        with child.lock:
+            return {"session_id": child_id, "running": child.busy and not child.control.stopped,
+                    "task_input": child.task_input, "latest_correction": child.steering.latest_correction,
+                    **child.control.inspect()}
+
     def notify_agent(self, sender_id: str, recipient_id: str, content: str,
-                     cc=(), kind='notification') -> dict:
+                     cc=(), kind='notification', interrupt=False, step_id=None) -> dict:
         """Call with the authenticated runtime's sender ID, never a model-supplied ID."""
         if not isinstance(recipient_id, str) or not recipient_id:
             raise ValueError("recipient must be a session ID")
         if not isinstance(cc, (list, tuple)) or not all(isinstance(item, str) for item in cc):
             raise ValueError("cc must be a sequence of session IDs")
         cc = tuple(cc)
+        if type(interrupt) is not bool or (step_id is not None and
+                                            (not interrupt or not isinstance(step_id, str) or not step_id)):
+            raise ValueError('step_id requires interrupt=true')
+        if kind not in {'notification', 'feedback'}:
+            raise ValueError('invalid mail kind')
+        if interrupt and (cc or kind != 'notification' or
+                          self.store.metadata(recipient_id).get('parent_session_id') != sender_id):
+            raise PermissionError('can only interrupt one direct child')
+        token = None
         # Lock all target runtimes in stable order against concurrent submit/stop.
         with self.lock:
             with ExitStack() as locks:
@@ -119,20 +137,34 @@ class SessionRegistry:
                                                       not runtime.busy or not runtime.steering.accepting or
                                                       runtime.control.stopped):
                         raise SessionBusy('子 agent 正在提交或停止，无法投递留言')
-                result = self.mailbox.send(sender_id, recipient_id, content, cc=cc, kind=kind)
+                if interrupt:
+                    action, token = self.items[recipient_id].control.interrupt_target(step_id)
+                result = self.mailbox.send(sender_id, recipient_id, content, cc=cc,
+                                           kind='correction' if interrupt else kind)
+                if interrupt:
+                    result['action'] = action
             # watch() holds the monitor condition while checking runtime input.
             # Release every runtime lock before acquiring that condition.
             # Keep registry serialization so mailbox snapshots stay ordered.
             for target in targets:
                 self._mailbox_resource(target)
-            return result
+        if token:
+            token.cancel()
+        return result
 
     def mailbox_list(self, session_id: str, unread_only: bool = False) -> list[dict]:
         return self.mailbox.list(session_id, unread_only)
 
     def mailbox_read(self, session_id: str, message_id: str) -> dict:
-        result = self.mailbox.read(session_id, message_id)
-        self._mailbox_resource(session_id)
+        with self.lock:
+            sender = self.monitor(self.mailbox.sender_for_delivery(session_id, message_id))
+            # Serialize the acknowledgement with admission to this sender's watch.
+            with sender.condition:
+                result, newly_read = self.mailbox.read_with_ack(session_id, message_id)
+                if newly_read:
+                    sender.record_read_receipt(result['id'], session_id)
+            if newly_read:
+                self._mailbox_resource(session_id)
         return result
 
     def mailbox_unread_count(self, session_id: str) -> int:

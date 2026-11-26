@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from contextlib import closing
+from contextlib import closing, contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from functools import partial
@@ -57,18 +57,43 @@ def prepare_turn(state: TurnState, runtime: Runtime[TurnContext]) -> None:
                     currentTime=current_time)
 
 
-def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Literal["tool_batch", "finalize"]]:
+@contextmanager
+def _step_context(agent, context, step):
+    remove = context.cancellation.add_callback(step.token.cancel)
+    try:
+        yield replace(context, cancellation=step.token, turn_cancellation=context.cancellation)
+    finally:
+        agent.control.end_step(step)
+        remove()
+
+
+def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Literal["model_round", "tool_batch", "finalize"]]:
     agent, context = runtime.context.agent, runtime.context.execution
     execution = transitions.execution(agent.state)
     run_id = execution["id"]
-    # Only the first entry starts in the model phase; returns follow a completed model step.
-    round_no = execution["round"]
-    if execution["phase"] != "model":
-        round_no += 1
+    round_no = execution["round"] + (execution["phase"] != "model")
+    context.cancellation.raise_if_cancelled()
     if round_no >= agent.max_rounds:
         raise RuntimeError("maximum model rounds reached")
-    _deliver_inputs(agent, context)
     agent.apply(transitions.start_round(agent.state, round_no))
+    with _step_context(agent, context, agent.control.start_step("model")) as step_context:
+        try:
+            return _run_model(agent, step_context, run_id, round_no)
+        except RunCancelled:
+            if _turn_stopped(agent, context) or not step_context.cancellation.is_cancelled():
+                raise
+            # Keep streamed text, but never turn partial tool arguments into calls.
+            answer = transitions.execution(agent.state)["answer"]
+            if answer:
+                agent.apply(message_updates.complete_model(agent.state, answer, []))
+            else:
+                agent.apply(transitions.update_execution(agent.state, phase="done"))
+            agent.log.append("model.interrupted", runId=run_id, round=round_no, answer=answer)
+            return Command(goto="model_round")
+
+
+def _run_model(agent, context, run_id, round_no):
+    _deliver_inputs(agent, context)
     model = agent.state["model"]
     client, provider = agent.catalog.get_binding(ModelTarget(**model))
     vision = agent.catalog.supports_vision(model)
@@ -84,6 +109,8 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
     reasoning: list[str] = []
     keep_reasoning = model["provider"] == "deepseek" and model["thinking"] == "enabled"
 
+    context.cancellation.raise_if_cancelled()
+    agent.steering.acknowledge_corrections()
     agent.log.append("model.started", runId=run_id, round=round_no)
     with closing(stream(
         client,
@@ -152,6 +179,7 @@ def model_round(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Lit
         **({"reasoning_content": tool_reasoning} if tool_reasoning else {}),
     )
 
+    agent.control.pending_tools(calls)
     return Command(update={"calls": calls}, goto="tool_batch" if calls else "finalize")
 
 
@@ -159,62 +187,33 @@ def tool_batch(state: TurnState, runtime: Runtime[TurnContext]) -> Command[Liter
     agent, context = runtime.context.agent, runtime.context.execution
     run_id = transitions.execution(agent.state)["id"]
     calls = state["calls"]
-    completed_call_ids = set()
-    for call in calls:
-        if transitions.after_tools(agent.state) == "model":
-            context.cancellation.raise_if_cancelled()
-        agent.log.append(
-            "tool.requested",
-            runId=run_id,
-            tool=call.name,
-            callId=call.id,
-            arguments=call.arguments,
-        )
-        tool_context = replace(context, on_process=lambda process, call=call: agent.log.append(
-            "tool.process", runId=run_id, tool=call.name, callId=call.id, process=process,
-        )) if call.name == "bash" else context
+    for index, call in enumerate(calls):
+        # Share admission with stop and send; neither can race past this boundary.
+        with agent.steering.lock:
+            stopped = transitions.after_tools(agent.state) != "submit" and _turn_stopped(agent, context)
+            corrected = not stopped and agent.state["role"] == "child" and agent.steering.has_correction()
+            step = None if stopped or corrected else agent.control.start_step("tool")
+        if stopped:
+            _cancel_tools(agent, run_id, calls[index:])
+            raise RunCancelled()
+        if step is None:
+            for pending in calls[index:]:
+                _tool_result(agent, run_id, pending, "[tool skipped] Parent sent a correction.", status="skipped")
+            break
         try:
-            output = normalize_result(
-                "[tool skipped] Report already submitted."
-                if transitions.after_tools(agent.state) == "submit"
-                else agent.tools.call(call.name, call.arguments, tool_context, run_id=run_id, call_id=call.id)
-            )
-            result = spill_tool_output(
-                output.text,
-                preview=output.preview,
-                sections=output.sections,
-                detail_limit=output.detail_limit,
-                max_inline_chars=int(agent.spill.get("max_inline_chars", 20000)),
-                max_preview_chars=int(agent.spill.get("max_preview_chars", 24000)),
-                # ask_user is already strictly bounded and its complete
-                # answer must reach the next model step, not a spill preview.
-                enabled=bool(agent.spill.get("enabled", True)) and call.name != "ask_user",
-                max_inline_lines=int(agent.spill.get("max_inline_lines", 100)),
-                head_lines=int(agent.spill.get("head_lines", 10)),
-                tail_lines=int(agent.spill.get("tail_lines", 10)),
-                max_line_chars=int(agent.spill.get("max_line_chars", 200)),
-                workspace=agent.workspace,
-                session_id=agent.session_id,
-                directory=str(agent.spill.get("directory", ".spill")),
-            )
+            with _step_context(agent, context, step) as tool_context:
+                _run_tool(agent, tool_context, run_id, call)
         except RunCancelled:
-            _cancel_pending_tools(
-                agent, run_id,
-                [item for item in calls if item.id not in completed_call_ids],
-            )
-            raise
-        agent.log.append(
-            "tool.completed",
-            runId=run_id,
-            tool=call.name,
-            callId=call.id,
-            result=result,
-            model_images=output.model_images,
-        )
-        agent.apply(message_updates.receive_tool(agent.state, call.id, result, [image["id"] for image in output.model_images]))
-        completed_call_ids.add(call.id)
-        if transitions.after_tools(agent.state) == "model":
-            context.cancellation.raise_if_cancelled()
+            if _turn_stopped(agent, context) or not step.token.is_cancelled():
+                _cancel_tools(agent, run_id, calls[index:])
+                raise
+            _tool_result(agent, run_id, call, "[tool interrupted] Parent sent a correction.", status="interrupted")
+            for pending in calls[index + 1:]:
+                _tool_result(agent, run_id, pending, "[tool skipped] Parent sent a correction.", status="skipped")
+            break
+    agent.control.pending_tools([])
+    if transitions.after_tools(agent.state) != "submit" and _turn_stopped(agent, context):
+        raise RunCancelled()
 
     # The model's entire tool-call batch uses the schemas it was shown.
     # Discovered MCP tools are activated only for the next model request.
@@ -253,17 +252,49 @@ def finalize(_state: TurnState, runtime: Runtime[TurnContext]) -> Command[Litera
     return Command(goto=END)
 
 
-def _cancel_pending_tools(agent: AgentRuntime, run_id: str, calls: list[ToolCall]) -> None:
+def _run_tool(agent, context, run_id, call):
+    agent.log.append("tool.requested", runId=run_id, tool=call.name, callId=call.id, arguments=call.arguments)
+    if call.name == "bash":
+        context = replace(context, on_process=lambda process: agent.log.append(
+            "tool.process", runId=run_id, tool=call.name, callId=call.id, process=process,
+        ))
+    output = normalize_result(
+        "[tool skipped] Report already submitted."
+        if transitions.after_tools(agent.state) == "submit"
+        else agent.tools.call(call.name, call.arguments, context, run_id=run_id, call_id=call.id)
+    )
+    result = spill_tool_output(
+        output.text, preview=output.preview, sections=output.sections, detail_limit=output.detail_limit,
+        max_inline_chars=int(agent.spill.get("max_inline_chars", 20000)),
+        max_preview_chars=int(agent.spill.get("max_preview_chars", 24000)),
+        # Keep complete answers and do not spill private collaboration data into the workspace.
+        enabled=bool(agent.spill.get("enabled", True)) and call.name not in {
+            "ask_user", "inspect_agent", "read_agent_message",
+        },
+        max_inline_lines=int(agent.spill.get("max_inline_lines", 100)),
+        head_lines=int(agent.spill.get("head_lines", 10)),
+        tail_lines=int(agent.spill.get("tail_lines", 10)),
+        max_line_chars=int(agent.spill.get("max_line_chars", 200)),
+        workspace=agent.workspace, session_id=agent.session_id,
+        directory=str(agent.spill.get("directory", ".spill")),
+    )
+    _tool_result(agent, run_id, call, result, output.model_images)
+
+
+def _turn_stopped(agent, context):
+    return agent.control.stopped or context.cancellation.is_cancelled()
+
+
+def _cancel_tools(agent, run_id, calls):
     for call in calls:
-        result = "[tool cancelled] Turn was stopped before this tool completed."
-        agent.log.append(
-            "tool.completed",
-            runId=run_id,
-            tool=call.name,
-            callId=call.id,
-            result=result,
-        )
-        agent.apply(message_updates.receive_tool(agent.state, call.id, result))
+        _tool_result(agent, run_id, call, "[tool cancelled] Turn was stopped before this tool completed.")
+
+
+def _tool_result(agent, run_id, call, result, images=(), *, status=None):
+    fields = {"status": status} if status else {}
+    agent.log.append("tool.completed", runId=run_id, tool=call.name, callId=call.id,
+                     result=result, model_images=list(images), **fields)
+    agent.apply(message_updates.receive_tool(agent.state, call.id, result, [image["id"] for image in images]))
 
 
 def _deliver_inputs(agent: AgentRuntime, context: ExecutionContext, *, finish=False) -> bool:
@@ -296,14 +327,16 @@ def _compact(agent: AgentRuntime, client, provider, vision: bool, context: Execu
             summary = summarize_context(client, agent.state["model"]["name"], provider, selected, config, context)
             update = context_compaction.build_update(selected, summary)
             after = measure(update["messages"])
-            context_compaction.validate_compacted_size(before, after, config)
             context.cancellation.raise_if_cancelled()
-            # Commit the exact replacement before mutating memory. No await or
-            # cancellation check may split durable commit from applying it.
-            agent.log.append("context.compacted", **identifiers, messages=update["messages"],
-                            beforeTokens=before, afterTokens=after, counter=method)
-            agent.apply(update)
-            before = after
+            if after < before:
+                # Persist the replacement before using it, even if still above the trigger.
+                agent.log.append("context.compacted", **identifiers, messages=update["messages"],
+                                 beforeTokens=before, afterTokens=after, counter=method)
+                agent.apply(update)
+                before = after
+            else:
+                agent.log.append("context.compaction.failed", **identifiers,
+                                 reason="整理未缩小上下文，保留原上下文并继续请求模型。")
     except (RunCancelled, KeyboardInterrupt):
         agent.log.append("context.compaction.cancelled", **identifiers)
         raise

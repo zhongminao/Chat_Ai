@@ -64,3 +64,4 @@ class CancellationToken:
 class ExecutionContext:
     cancellation: CancellationToken
     on_process: Callable[[dict], None] | None = None
+    turn_cancellation: CancellationToken | None = None

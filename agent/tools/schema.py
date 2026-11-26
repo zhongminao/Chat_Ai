@@ -27,17 +27,26 @@ DELEGATE_SCHEMA = {"type": "function", "function": {
 
 NOTIFY_SCHEMA = {"type": "function", "function": {
     "name": "notify_agent",
-    "description": "Send durable private task-tree mail: parent to active children, children to parent or siblings. Delivery fails when a child is submitting or finished. Mail IDs are notified automatically; bodies require read_agent_message. Mail does not wake an idle agent.",
+    "description": "Send private task-tree mail. Ordinary mail notifies by ID. Set interrupt to redirect one active direct child without CC.",
     "parameters": {"type": "object", "properties": {
         "to": {"type": "string", "description": "Recipient session_id; child agents may use parent"},
         "content": {"type": "string", "description": "Message body"},
         "cc": {"type": "array", "items": {"type": "string"}, "description": "Optional sibling session_ids for child feedback"},
-        "kind": {"type": "string", "enum": ["notification", "feedback"]}},
+        "kind": {"type": "string", "enum": ["notification", "feedback"]},
+        "interrupt": {"type": "boolean", "default": False, "description": "Request a safe interruption and deliver the body at the next model boundary."},
+        "step_id": {"type": "string", "description": "With interrupt: only cancel this inspected step; if stale, deliver without cancelling the new step."}},
         "required": ["to", "content"], "additionalProperties": False}}}
+
+INSPECT_AGENT_SCHEMA = {"type": "function", "function": {
+    "name": "inspect_agent",
+    "description": "Inspect your child: task input, latest correction, current step and pending tool calls.",
+    "parameters": {"type": "object", "properties": {"session_id": {"type": "string"}},
+                   "required": ["session_id"], "additionalProperties": False}}}
+
 
 INBOX_SCHEMA = {"type": "function", "function": {
     "name": "agent_inbox",
-    "description": "List received task-tree mail without marking it read. unread_only filters unacknowledged mail. Use read_agent_message for bodies; automatic ID notifications make polling unnecessary.",
+    "description": "List mail metadata without marking it read. Use read_agent_message for bodies; do not poll.",
     "parameters": {"type": "object", "properties": {
         "unread_only": {"type": "boolean", "default": False}}, "additionalProperties": False}}}
 
@@ -58,12 +67,11 @@ ENABLE_MCP_SCHEMA = {"type": "function", "function": {
 
 WATCH_SCHEMA = {"type": "function", "function": {
     "name": "watch",
-    "description": "Query background tasks and mailbox state, or wait for changes. Without cursor, return a full snapshot immediately. Reuse the latest returned cursor across all resources; it is not a task ID. Changed entries contain current state, not event history. User guidance wakes a waiting watch without cancelling the turn; interrupted_by_guidance indicates pending input that is delivered after the tool batch. Timeouts return no changes and keep the cursor. For completed tasks read result_path; for failed/cancelled tasks inspect error and read events_path to review work already performed before deciding how to proceed. Do not poll for mail or wait when no relevant task remains.",
+    "description": "Check tasks and new mail. Reuse the latest cursor to wait. Detailed adds only live read receipts for mail you sent.",
     "parameters": {"type": "object", "properties": {
-        "cursor": {"type": ["integer", "null"], "minimum": 0,
-                   "description": "Latest watch cursor; omit/null for a full snapshot."},
-        "timeout": {"type": "number", "minimum": 0, "maximum": 86400, "default": 0,
-                    "description": "Seconds to wait with cursor, up to 86400 (1 day). Returns early on changes; ignored without cursor."}},
+        "cursor": {"type": ["integer", "null"], "minimum": 0, "description": "Omit for an immediate snapshot."},
+        "timeout": {"type": "number", "minimum": 0, "maximum": 86400, "default": 0, "description": "Seconds to wait when a cursor is supplied."},
+        "detail_level": {"type": "string", "enum": ["default", "detailed"], "default": "default"}},
         "additionalProperties": False}}}
 
 

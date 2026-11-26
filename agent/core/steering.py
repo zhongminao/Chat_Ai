@@ -1,15 +1,26 @@
 """Batch runtime inputs at safe boundaries; share the lock with submission."""
 from ..agentsessionstate.input import UserInput
-from ..agentsessionstate.message_updates import mailbox_notice
+from ..agentsessionstate.message_updates import correction_message, mailbox_notice
 from ..model.request_messages import build_user_message
 
 
 class InputDelivery:
-    def __init__(self, lock, emit, records, inbox=lambda: ()):
+    def __init__(self, lock, emit, records, inbox=lambda: (), acknowledge=None):
         self.lock, self.emit = lock, emit
         self.inbox = inbox
+        self.acknowledge = acknowledge
+        corrections = [e for e in records if e['type'] == 'mailbox.correction']
+        # The journal can commit before the request/ack. Replay its input, and
+        # repair any missing acknowledgement at the next request.
+        delivered = {e["messageId"] for e in corrections}
+        self.correction_acks = []
+        if delivered:
+            self.correction_acks = [item["id"] for item in self.inbox()
+                                    if item["id"] in delivered and not item.get("read_at")]
+        self.latest_correction = corrections[-1]['content'] if corrections else None
         self.notified = {identifier for e in records if e["type"] == "mailbox.notified"
                          for identifier in e["messageIds"]}
+        self.notified.update(delivered)
         # Accepted guidance survives cancellation and process recreation until a
         # model boundary consumes it. Explicitly undelivered historical guidance
         # is terminal and must not silently reappear.
@@ -45,6 +56,18 @@ class InputDelivery:
         with self.lock:
             return bool(self.pending or any(item['id'] not in self.notified for item in self.inbox()))
 
+    def has_correction(self):
+        return any(item.get('kind') == 'correction' and item['id'] not in self.notified for item in self.inbox())
+
+    def acknowledge_corrections(self):
+        with self.lock:
+            identifiers = list(self.correction_acks)
+        if self.acknowledge:
+            for identifier in identifiers:
+                self.acknowledge(identifier)
+        with self.lock:
+            self.correction_acks.clear()
+
     def take(self, run_id, *, finish=False):
         with self.lock:
             items = list(self.pending)
@@ -53,10 +76,20 @@ class InputDelivery:
                 self.pending.remove(item)
             messages = [build_user_message(item['content'], [i['id'] for i in item['images']])
                         for item in items]
-            # Mail stays durable in its own store. Only framework-owned IDs enter
-            # system context; reading/acknowledging the body remains a tool call.
-            identifiers = [item['id'] for item in reversed(self.inbox())
-                           if item['id'] not in self.notified]
+            identifiers = []
+            for item in reversed(self.inbox()):
+                identifier = item['id']
+                if identifier in self.notified:
+                    continue
+                if item.get('kind') != 'correction':
+                    identifiers.append(identifier)
+                    continue
+                self.emit('mailbox.correction', runId=run_id, messageId=identifier,
+                          senderId=item['sender_id'], content=item['content'])
+                self.notified.add(identifier)
+                self.latest_correction = item['content']
+                self.correction_acks.append(identifier)
+                messages.append(correction_message(item['sender_id'], item['content']))
             if identifiers:
                 self.emit('mailbox.notified', runId=run_id, messageIds=identifiers)
                 self.notified.update(identifiers)

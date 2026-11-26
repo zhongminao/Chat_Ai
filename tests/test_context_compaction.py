@@ -65,21 +65,12 @@ class CompactionPolicyTests(unittest.TestCase):
         self.assertEqual(selected["retained"][0]["content"], "old task")
         self.assertEqual(selected["history"], tool_pair("old results"))
 
-    def test_disabled_under_threshold_empty_summary_and_unshrinkable_input(self):
+    def test_disabled_under_threshold_empty_summary_and_no_history(self):
         self.assertIsNone(context_compaction.plan(self.state, 99, self.config))
         self.assertIsNone(context_compaction.plan(self.state, 100, {"enabled": False}))
         with self.assertRaises(ValueError):
             context_compaction.build_update({}, " ")
-        with self.assertRaises(ValueError):
-            context_compaction.plan({"messages": self.state["messages"][:2]}, 100, self.config)
-        with self.assertRaises(ValueError):
-            context_compaction.validate_compacted_size(150, 100, self.config)
-        with self.assertRaises(ValueError):
-            context_compaction.validate_compacted_size(50, 60, self.config)
-
-    def test_task_sized_context_can_exceed_the_old_fixed_target(self):
-        context_compaction.validate_compacted_size(112000, 50000, {"trigger_tokens": 110592})
-        context_compaction.validate_compacted_size(150, 70, self.config)
+        self.assertIsNone(context_compaction.plan({"messages": self.state["messages"][:2]}, 100, self.config))
 
     def test_estimate_includes_tools_and_does_not_count_image_base64(self):
         messages = [{"role": "user", "content": "hello"}]
@@ -213,6 +204,7 @@ class CompactionRuntimeTests(unittest.TestCase):
             checkpoint = next(e for e in records if e["type"] == "context.compacted")
             self.assertEqual(args[2], checkpoint["messages"])
             self.assertEqual(checkpoint["messages"][-1]["content"], "new")
+            self.assertNotIn("old reply", [m["content"] for m in args[2]])
             yield ModelChunk(content="continued")
 
         with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 50]) as counter, \
@@ -254,8 +246,53 @@ class CompactionRuntimeTests(unittest.TestCase):
         self.assertLess(max(completed), checkpoint["seq"])
         self.assertEqual(self.agent.state["execution"]["status"], "completed")
 
-    def test_failed_summary_budget_or_persistence_never_replaces_messages(self):
-        for failure in ["empty", "budget", "disk"]:
+    def test_compaction_can_still_exceed_threshold_and_send_replacement(self):
+        for count in (100, 110):
+            with self.subTest(count=count):
+                def model(_client, _model, messages, *_args, **_kwargs):
+                    self.assertIn("summary", messages[1]["content"])
+                    self.assertNotIn("old reply", [m["content"] for m in messages])
+                    yield ModelChunk(content="continued")
+                with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, count]), \
+                     patch("agent.workflows.turn.nodes.summarize_context", return_value="summary") as summary, \
+                     patch("agent.workflows.turn.nodes.stream", side_effect=model) as request:
+                    self.runtime.enqueue("new")
+                    self.registry.wait()
+                summary.assert_called_once()
+                request.assert_called_once()
+                self.assertEqual(self.agent.state["execution"]["status"], "completed")
+                records = self.runtime.session.events.read()
+                saved = [e for e in records if e["type"] == "context.compacted"][-1]
+                self.assertEqual(saved["afterTokens"], count)
+                self.assertEqual(build_state(self.config, {}, records)["messages"], self.agent.state["messages"])
+
+    def test_over_threshold_without_history_reaches_model_service(self):
+        self.agent.state["messages"] = self.agent.state["messages"][:1]
+        with patch("agent.workflows.turn.nodes.count_request_tokens", return_value=150), \
+             patch("agent.workflows.turn.nodes.summarize_context") as summary, \
+             patch("agent.workflows.turn.nodes.stream", side_effect=RuntimeError("upstream context limit")) as request:
+            self.runtime.enqueue("large current input")
+            self.registry.wait()
+        summary.assert_not_called()
+        request.assert_called_once()
+        self.assertEqual(self.agent.state["execution"]["error"], "upstream context limit")
+
+    def test_nonshrinking_summary_keeps_original_and_continues(self):
+        def model(_client, _model, messages, *_args, **_kwargs):
+            self.assertIn("old reply", [m["content"] for m in messages])
+            yield ModelChunk(content="continued")
+        with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 170]), \
+             patch("agent.workflows.turn.nodes.summarize_context", return_value="summary"), \
+             patch("agent.workflows.turn.nodes.stream", side_effect=model):
+            self.runtime.enqueue("new")
+            self.registry.wait()
+        records = self.runtime.session.events.read()
+        self.assertNotIn("context.compacted", [e["type"] for e in records])
+        self.assertEqual(next(e["usedTokens"] for e in records if e["type"] == "context.measured"), 150)
+        self.assertEqual(self.agent.state["execution"]["status"], "completed")
+
+    def test_failed_summary_or_persistence_never_replaces_messages(self):
+        for failure in ["empty", "upstream", "disk"]:
             with self.subTest(failure=failure):
                 before = copy.deepcopy(self.agent.state["messages"])
                 append = self.runtime.session.events.append
@@ -263,8 +300,9 @@ class CompactionRuntimeTests(unittest.TestCase):
                     if kind == "context.compacted" and failure == "disk":
                         raise OSError("disk full")
                     return append(kind, **kwargs)
-                with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 110 if failure == "budget" else 50]), \
-                     patch("agent.workflows.turn.nodes.summarize_context", return_value="" if failure == "empty" else "summary"), \
+                with patch("agent.workflows.turn.nodes.count_request_tokens", side_effect=[150, 50]), \
+                     patch("agent.workflows.turn.nodes.summarize_context", return_value="" if failure == "empty" else "summary",
+                           side_effect=RuntimeError("upstream summary error") if failure == "upstream" else None), \
                      patch.object(self.runtime.session.events, "append", side_effect=save):
                     self.runtime.enqueue(failure)
                     self.registry.wait()
@@ -273,6 +311,8 @@ class CompactionRuntimeTests(unittest.TestCase):
                 self.assertEqual(self.agent.state["messages"],
                                  [*before, time_notice(started['currentTime']), {"role": "user", "content": failure}])
                 self.assertEqual(self.agent.state["execution"]["status"], "failed")
+                if failure == "upstream":
+                    self.assertEqual(self.agent.state["execution"]["error"], "upstream summary error")
         kinds = [e["type"] for e in self.runtime.session.events.read()]
         self.assertNotIn("context.compacted", kinds)
         self.assertEqual(kinds.count("context.compaction.failed"), 3)

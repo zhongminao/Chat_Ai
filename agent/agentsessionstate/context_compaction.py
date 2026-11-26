@@ -33,7 +33,7 @@ def plan(state: AgentState, tokens: int, config: dict) -> dict | None:
         protected.add(latest_time)
     history = [m for i, m in enumerate(messages) if i not in protected]
     if not history:
-        raise ValueError("上下文超过整理阈值，但没有可整理的历史；请缩小当前输入或新建会话。")
+        return None
     retained = [m for i, m in enumerate(messages) if i in protected and i != 0]
     return {"system": messages[:1], "history": history, "retained": retained}
 
@@ -45,10 +45,3 @@ def build_update(selected: dict, summary: str) -> StateUpdate:
         "role": "assistant",
         "content": "[自动整理的历史摘要；可能有遗漏，以用户最新要求和实际文件为准。]\n" + summary.strip(),
     }, *selected["retained"]]}
-
-
-def validate_compacted_size(before: int, after: int, config: dict) -> None:
-    if after >= before:
-        raise ValueError(f"整理后上下文未缩小（{after} tokens），原上下文保持不变。")
-    if after >= config["trigger_tokens"]:
-        raise ValueError(f"整理后上下文仍达到触发阈值（{after} tokens），原上下文保持不变。")

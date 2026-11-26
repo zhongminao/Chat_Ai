@@ -29,6 +29,7 @@ function find(node: Node, predicate: (node: Node) => boolean): Node | undefined 
 }
 
 let resize: () => void;
+let content: { offsetHeight: number };
 let viewport: { scrollTop: number; scrollHeight: number; clientHeight: number };
 function render() {
   hooks.index = 0;
@@ -40,7 +41,7 @@ function render() {
   }) as Node;
   const log = find(tree, node => node.props?.className === 'message-viewport')!;
   log.props.ref.current = viewport;
-  find(tree, node => node.props?.className === 'message-body')!.props.ref.current = {};
+  find(tree, node => node.props?.className === 'message-body')!.props.ref.current = content;
   hooks.layouts.forEach(effect => effect());
   hooks.effects.forEach(effect => effect());
   return { scroll: () => log.props.onScroll(),
@@ -50,6 +51,7 @@ function render() {
 beforeEach(() => {
   hooks.refs = [];
   viewport = { scrollTop: 600, scrollHeight: 1000, clientHeight: 400 };
+  content = { offsetHeight: 1000 };
   vi.stubGlobal('ResizeObserver', class {
     constructor(callback: () => void) { resize = callback; }
     observe() {}
@@ -70,13 +72,12 @@ describe('tool inspection scrolling', () => {
     expect(viewport.scrollTop).toBe(200);
   });
 
-  it('resumes following after manually scrolling to the bottom of an inspected tool', () => {
+  it('resumes following within 72px of the latest message', () => {
     const view = render();
     view.inspect();
-    // The initial layout assigned scrollHeight; emulate the browser clamp.
-    viewport.scrollTop = 600;
+    viewport.scrollTop = 540;
     view.scroll();
-    viewport.scrollHeight = 1300;
+    viewport.scrollHeight = content.offsetHeight = 1300;
     resize();
     expect(viewport.scrollTop).toBe(1300);
     viewport.scrollHeight = 1500;
@@ -87,10 +88,28 @@ describe('tool inspection scrolling', () => {
   it('does not resume following while still above the bottom', () => {
     const view = render();
     view.inspect();
-    viewport.scrollTop = 560;
+    viewport.scrollTop = 520;
     view.scroll();
-    viewport.scrollHeight = 1300;
+    viewport.scrollHeight = content.offsetHeight = 1300;
     resize();
-    expect(viewport.scrollTop).toBe(560);
+    expect(viewport.scrollTop).toBe(520);
+  });
+});
+
+
+describe('composer resizing', () => {
+  it('keeps the history scroll position while the user grows and shrinks a draft', () => {
+    render();
+    viewport.scrollTop = 600;
+    viewport.clientHeight = 280;
+    resize();
+    expect(viewport.scrollTop).toBe(600);
+    viewport.clientHeight = 400;
+    resize();
+    expect(viewport.scrollTop).toBe(600);
+
+    viewport.scrollHeight = content.offsetHeight = 1200;
+    resize();
+    expect(viewport.scrollTop).toBe(1200);
   });
 });

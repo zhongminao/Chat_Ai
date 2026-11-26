@@ -54,6 +54,23 @@ describe('existing event protocol -> conversation', () => {
     expect(restored.items).toEqual(expected);
   });
 
+  it('replays local interruptions and skipped tools without ending the turn', () => {
+    const events: AgentEvent[] = [start, modelStart, text,
+      { seq: 4, type: 'model.interrupted', round: 0, answer: 'partial text' },
+      { seq: 5, type: 'model.started', round: 1 }, { ...requested, seq: 6 },
+      { ...completed, seq: 7, status: 'interrupted' },
+      { ...completed, seq: 8, callId: 'never-started', status: 'skipped' },
+      { seq: 9, type: 'mailbox.correction', messageId: 'private-id', senderId: 'parent' },
+    ];
+    const view = replay(events, initialState(9, true));
+    expect(view.busy).toBe(true);
+    expect(view.items).toHaveLength(4);
+    expect(view.items[1]).toMatchObject({ content: 'partial text' });
+    expect(view.items[2]).toMatchObject({ status: 'interrupted' });
+    expect(view.items[3]).toMatchObject({ status: 'skipped' });
+    expect(JSON.stringify(view.items)).not.toContain('private-id');
+  });
+
   it('waits for explicit replay completion, including empty history', () => {
     const empty = reduce(emptyConversation(), { type: 'initialize', session: initialState(0) });
     expect(empty.ready).toBe(false);

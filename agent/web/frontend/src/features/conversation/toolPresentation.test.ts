@@ -32,7 +32,8 @@ describe('tool presentation', () => {
   it('keeps existing failure indicators for legacy records', () => {
     expect(toolFailed({ ...bash, result: '[tool error] failed' })).toBe(true);
     expect(toolFailed({ ...bash, result: '[mcp error] failed' })).toBe(true);
-    expect(toolFailed({ ...bash, status: 'interrupted' })).toBe(true);
-    expect(toolFailed({ ...bash, status: 'rejected' })).toBe(true);
+    expect(toolFailed({ ...bash, status: 'interrupted', process: process('cancelled', 130) })).toBe(false);
+    expect(toolFailed({ ...bash, status: 'skipped' })).toBe(false);
+    expect(toolFailed({ ...bash, status: 'rejected' })).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import hashlib
 import json
 from copy import deepcopy
+from dataclasses import replace
 from urllib.parse import urlsplit
 from typing import Any
 
@@ -11,7 +12,7 @@ from .images import read_image
 from .result import ToolResult
 from .mcp.client import McpClient
 from .mcp.results import convert_result
-from .schema import ASK_USER_SCHEMA, DELEGATE_SCHEMA, WATCH_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
+from .schema import ASK_USER_SCHEMA, DELEGATE_SCHEMA, WATCH_SCHEMA, INSPECT_AGENT_SCHEMA, NOTIFY_SCHEMA, INBOX_SCHEMA, READ_MAIL_SCHEMA, ENABLE_MCP_SCHEMA, TOOL_SCHEMAS
 from .search import search_resources
 from .search_output import DEFAULT_CONTEXT_CHARS, resource_search_output, web_search_output
 from . import mailbox
@@ -51,7 +52,7 @@ class ToolRouter:
         if ask_user:
             self.schemas.append(deepcopy(ASK_USER_SCHEMA))
         if delegate:
-            self.schemas.append(DELEGATE_SCHEMA)
+            self.schemas.extend([DELEGATE_SCHEMA, INSPECT_AGENT_SCHEMA])
         if watch:
             self.schemas.append(WATCH_SCHEMA)
         if registry is not None and session_id:
@@ -102,7 +103,7 @@ class ToolRouter:
             return f"[tool error] 当前工具不可用：{name}"
         arguments = deepcopy(arguments)
         decision = "approved"
-        if self.approval and name not in {"notify_agent", "agent_inbox", "read_agent_message"}:
+        if self.approval and name not in {"notify_agent", "agent_inbox", "read_agent_message", "inspect_agent"}:
             decision = self.approval(name, arguments, context, run_id=run_id, call_id=call_id,
                                      is_mcp=bool(self.mcp and name in self.mcp.tools))
             if not decision:
@@ -113,11 +114,13 @@ class ToolRouter:
         try:
             if name == "ask_user":
                 return json.dumps(self.ask_user(context=context, run_id=run_id, call_id=call_id, **arguments), ensure_ascii=False)
-            if name in {"notify_agent", "agent_inbox", "read_agent_message"}:
+            if name in {"notify_agent", "agent_inbox", "read_agent_message", "inspect_agent"}:
                 if not self.registry or not self.session_id:
                     raise ValueError("agent mailbox is unavailable")
                 if name == "notify_agent":
                     value = mailbox.send(self.registry, self.session_id, **arguments)
+                elif name == "inspect_agent":
+                    value = self.registry.inspect_agent(self.session_id, arguments["session_id"])
                 elif name == "agent_inbox":
                     value = mailbox.inbox(self.registry, self.session_id, **arguments)
                 else:
@@ -148,7 +151,11 @@ class ToolRouter:
                     if type(detail_limit) is not int or not 1 <= detail_limit <= 50:
                         raise ValueError("网页搜索 limit 必须为 1–50 的整数（详细展示条数）")
                     remote_arguments = {**arguments, "limit": 50}
-                result = self.mcp.call(name, remote_arguments, context)
+                # After dispatch a remote tool may finish server-side even if we
+                # close the client. Corrections wait for its actual result.
+                remote_context = (replace(context, cancellation=context.turn_cancellation)
+                                  if context and context.turn_cancellation else context)
+                result = self.mcp.call(name, remote_arguments, remote_context)
                 output = convert_result(result, self.images, vision=self.vision)
                 # Adapt the configured web search only, not unrelated MCP JSON/images.
                 if (web_search and not result.is_error

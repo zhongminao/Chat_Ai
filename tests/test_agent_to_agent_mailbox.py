@@ -44,6 +44,10 @@ class MailboxTests(unittest.TestCase):
         self.assertNotIn('secret', str(resource))
         with self.assertRaises(FileNotFoundError):
             self.registry.mailbox_read(a, result['id'])
+        inbox = self.root.agent.tools.call('agent_inbox', {'unread_only': True})
+        self.assertIn(result['id'], inbox)
+        self.assertNotIn('secret', inbox)
+        self.assertEqual(self.registry.mailbox_unread_count(root), 1)
         self.assertIsNotNone(self.registry.mailbox_read(root, result['id'])['read_at'])
         self.assertEqual(self.registry.mailbox_unread_count(root), 0)
         self.assertEqual(self.registry.mailbox_unread_count(b), 1)
@@ -90,7 +94,7 @@ class MailboxTests(unittest.TestCase):
             self.registry.notify_agent(root, a, 'too late')
         self.a.submitting = False
         self.a.busy = True
-        self.a.control.request_stop()
+        self.a.control.mark_stopped()
         with self.assertRaises(SessionBusy):
             self.registry.notify_agent(root, a, 'stopping')
         self.a.busy = False
